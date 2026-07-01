@@ -403,7 +403,7 @@ def _render_rationing_section(pdf: Any, sensor_data: dict) -> None:
     _flow_max = SENSOR_RANGES.get("flow_rate", (0, 60))[1]
     render_text_progress_bar(
         pdf,
-        label=f"Caudal actual vs. umbral de racionamiento ({RATIONING_THRESHOLD} l/s)",
+        label=f"Caudal actual contra su límite actual ({RATIONING_THRESHOLD} l/s)",
         value=flow,
         max_value=_flow_max,
         threshold=RATIONING_THRESHOLD,
@@ -414,11 +414,11 @@ def _render_rationing_section(pdf: Any, sensor_data: dict) -> None:
     if in_rationing:
         pdf.set_fill_color(254, 242, 242)
         pdf.set_text_color(220, 38, 38)
-        label = "ACTIVO — El caudal está por debajo del umbral de racionamiento."
+        label = "El racionamiento está activo, el caudal está por debajo del umbral de racionamiento."
     else:
         pdf.set_fill_color(240, 253, 244)
         pdf.set_text_color(22, 101, 52)
-        label = "NORMAL — El caudal se encuentra dentro del rango aceptable."
+        label = "El caudal se encuentra dentro del rango aceptable."
 
     _pdf_font(pdf, "B", 10)
     pdf.set_draw_color(10, 10, 10)
@@ -554,7 +554,7 @@ def _render_thresholds(
 
     _pdf_font(pdf, "", 9)
     pdf.set_draw_color(10, 10, 10)
-    dir_labels = {"higher": "> mayor", "lower": "< menor", "range": "rango"}
+    dir_labels = {"higher": "Mayor es peor", "lower": "Menor es peor", "range": "Rango válido"}
     for idx, var in enumerate(sorted(relevant_vars)):
         if var not in thresholds:
             continue
