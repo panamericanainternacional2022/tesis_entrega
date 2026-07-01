@@ -893,21 +893,7 @@
         if (data.thresholds) currentThresholds = data.thresholds;
         hideAllStates();
 
-        if (data.current) { currentReadings = data.current; updateCards(data.current); }
-        if (data.history) updateCharts(data.history);
-
-        updateStatusBadge('pumpStatusBadge', data.pump_status);
-        updateStatusBadge('elevatorStatusBadge', data.elevator_status);
-
-        const lastUpd = document.getElementById('lastUpdate');
-        if (lastUpd) lastUpd.innerText = new Date().toLocaleTimeString();
-
-        const hasEquipment = updateEquipmentVisibility(data.equipment_types);
-        if (IS_ADMIN) updateAdminControlsByEquipment(data.equipment_types);
-        if (data.current && hasEquipment) updateSummaryValues(data);
-        if (data.stats || data.recommendations) {
-            updateStatsAndRecs(data.stats, data.recommendations, data.door_close_attempts);
-        }
+        const simPaused = data.sim_paused === true;
 
         if (IS_ADMIN) {
             if (data.sim_paused !== undefined) updatePauseBtn(data.sim_paused);
@@ -922,21 +908,39 @@
 
             const simSpd = document.getElementById('simSpeedDisplay');
             if (simSpd) {
-                const isPaused = data.sim_paused !== undefined
+                const paused = data.sim_paused !== undefined
                     ? data.sim_paused
                     : document.getElementById('simPauseBtn')?.querySelector('i.fa-play') !== null;
                 const speed = data.sim_speed !== undefined
                     ? data.sim_speed
                     : parseFloat(document.querySelector('[data-speed].btn-primary')?.dataset.speed || 1.0);
-                simSpd.textContent = isPaused ? 'Pausada' : `${speed.toFixed(1)}x`;
-                simSpd.className = isPaused ? 'badge badge-high' : 'badge badge-info';
+                simSpd.textContent = paused ? 'Pausada' : `${speed.toFixed(1)}x`;
+                simSpd.className = paused ? 'badge badge-high' : 'badge badge-info';
 
                 const simCell = document.getElementById('simStatusRow');
                 if (simCell) {
                     simCell.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
-                    simCell.classList.add(isPaused ? 'cell-high' : 'cell-info');
+                    simCell.classList.add(paused ? 'cell-high' : 'cell-info');
                 }
             }
+        }
+
+        if (simPaused) return;
+
+        if (data.current) { currentReadings = data.current; updateCards(data.current); }
+        if (data.history) updateCharts(data.history);
+
+        updateStatusBadge('pumpStatusBadge', data.pump_status);
+        updateStatusBadge('elevatorStatusBadge', data.elevator_status);
+
+        const lastUpd = document.getElementById('lastUpdate');
+        if (lastUpd) lastUpd.innerText = new Date().toLocaleTimeString();
+
+        const hasEquipment = updateEquipmentVisibility(data.equipment_types);
+        if (IS_ADMIN) updateAdminControlsByEquipment(data.equipment_types);
+        if (data.current && hasEquipment) updateSummaryValues(data);
+        if (data.stats || data.recommendations) {
+            updateStatsAndRecs(data.stats, data.recommendations, data.door_close_attempts);
         }
 
         const totalAlerts = _countUnreadAlerts(data.alert_log);
