@@ -89,14 +89,17 @@ def _apply_door_blocked(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 def _apply_door_close_failure(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     """Puerta falla al cerrar gradualmente: 1 intento cada ~3 s.
 
-    A diferencia de door_blocked (que incrementa el contador cada tick),
-    esta falla simula el escenario realista donde el controlador lo intenta
-    varias veces antes de declarar la puerta bloqueada.
+    Simula el escenario donde el elevador está parado en un piso pero la
+    puerta no cierra correctamente.  Fuerza speed=0 y estado IDLE para que
+    ``is_moving`` sea False en el alert handler, permitiendo que el badge
+    muestre "Puerta: intento X/2" antes de disparar la alerta de modo seguro.
     """
+    # Elevador detenido en piso: no está en movimiento
+    sd["speed"] = 0.0
     sd["door_status"] = "open"
     sd["motor_stuck"] = False
-    sd["speed"] = _clamp(sd.get("speed", 0.0) - 0.3 * dt, _SPEED_LOW, _SPEED_HIGH)
     sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.2 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
+    sim._elev_state = "IDLE"
     # Acumular tiempo; cada 3 segundos registrar un intento fallido de cierre
     sim._elev_timer = getattr(sim, "_elev_timer", 0) + dt
     if sim._elev_timer >= 3.0:
