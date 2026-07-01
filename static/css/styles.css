@@ -961,13 +961,6 @@ button {
     box-shadow: var(--shadow-brutal-hover);
 }
 
-/* Estado activo (presionado) compartido */
-.btn:active:not(:disabled),
-.btn-icon:active:not(:disabled) {
-    transform: translate(0, 0);
-    box-shadow: none;
-}
-
 /* Estado deshabilitado compartido */
 .btn:disabled,
 .btn-icon:disabled {
@@ -1008,6 +1001,12 @@ button {
     transform: rotate(90deg);
 }
 
+/* Estado activo (presionado) compartido */
+.btn:active:not(:disabled),
+.btn-icon:active:not(:disabled) {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
 
 /* ============================================================
    8. DROPDOWN
