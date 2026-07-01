@@ -174,5 +174,11 @@ def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None)
     from apps.sensors.simulation.constants import RATIONING_THRESHOLD
     from apps.events.services.alert_service import get_professional_action
     if flow_rate < RATIONING_THRESHOLD:
+        # Skip if pump is off, in protection, in startup grace, or flow_rate in transition
+        if sim is not None:
+            if getattr(sim, "_pump_start_grace_ticks", 0) > 0:
+                return
+            if "flow_rate" in getattr(sim, "manual_overrides", {}):
+                return
         action = get_professional_action("rationing", RISK_CRITICO, flow_rate)
         send_alert("rationing", flow_rate, RISK_CRITICO, action, sim=sim)

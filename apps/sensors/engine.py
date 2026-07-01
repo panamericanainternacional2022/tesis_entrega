@@ -56,6 +56,11 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
         if var not in alert_vars:
             continue
 
+        # Skip alerts while variable is in progressive transition
+        if var in getattr(sim, "manual_overrides", {}):
+            sim.active_alerts.pop(var, None)
+            continue
+
         # Skip alerts during pump startup transient (avoids false protection triggers)
         if var in {"flow_rate", "pressure"} and getattr(sim, "_pump_start_grace_ticks", 0) > 0:
             sim.active_alerts.pop(var, None)
@@ -88,10 +93,15 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
         else:
             sim.active_alerts.pop(var, None)
     from apps.events.alerts.engine import check_rationing
-    if not pump_protected:
-        check_rationing(sim.sensor_data["flow_rate"], sim=sim)
-    else:
+    _skip_rationing = (
+        pump_protected
+        or getattr(sim, "_pump_start_grace_ticks", 0) > 0
+        or "flow_rate" in getattr(sim, "manual_overrides", {})
+    )
+    if _skip_rationing:
         sim.active_alerts.pop("rationing", None)
+    else:
+        check_rationing(sim.sensor_data["flow_rate"], sim=sim)
 
 
 def _handle_motor_stuck_alert(
