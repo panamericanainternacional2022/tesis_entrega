@@ -19,7 +19,15 @@ def enter_protection_mode(
     reason: Optional[str] = None,
     targets: Optional[set[str]] = None,
     sim: Optional['BuildingSimulator'] = None,
+    create_notification: bool = True,
 ) -> None:
+    """Activa el modo de protección para los dispositivos indicados.
+
+    Args:
+        create_notification: Si es False, omite crear la notificación DB/pending
+            (útil cuando el caller ya embebe la info de protección en su propio
+            payload de alerta, evitando notificaciones duplicadas simultáneas).
+    """
     from apps.sensors.simulation.constants import PROTECTION_HOLD_SECONDS
     from apps.events.services.alert_service import get_professional_action
     if not targets:
@@ -36,6 +44,9 @@ def enter_protection_mode(
     reason_text = f" ({reason})" if reason else ""
     targets_text_es = " y ".join(translate_device_to_spanish(d) for d in sorted(targets))
     logger.warning("PROTECTION ACTIVATED%s. Forced operation: %s.", reason_text, " and ".join(sorted(targets)))
+
+    if not create_notification:
+        return
 
     action = get_professional_action("auto_protection", RISK_CRITICO, targets_text_es)
     notification_payload = {

@@ -55,7 +55,7 @@ def _build_alert_email_body(
         device_es = translate_device_to_spanish(device_target)
         article = "el" if device_target == "elevator" else "la"
         detalles["Respuesta automática"] = (
-            f"Protección activada — INES ha puesto en modo seguro {article} {device_es} "
+            f"Protección activada. Se ha puesto en modo seguro {article} {device_es} "
             f"de forma preventiva."
         )
     return build_standard_email_body(
@@ -138,13 +138,25 @@ def send_alert(
             f"[SIM] {time.strftime('%H:%M:%S')} ALERT: {variable}={value} level={risk_level} mapped={device_target}"
         )
 
+    # Construir el mensaje combinado (alerta + acción de protección si aplica)
+    combined_action = recommended_action
     if risk_level in (RISK_ALTO, RISK_CRITICO):
         if device_target:
             from apps.sensors.sensor_config import RISK_NAMES_ES
+            device_es = translate_device_to_spanish(device_target)
+            article = "el" if device_target == "elevator" else "la"
+            combined_action = (
+                f"{recommended_action}. Se ha puesto en modo seguro {article} "
+                f"{device_es} de forma preventiva."
+            )
+            # Activar protección sin generar notificación separada:
+            # la información ya está embebida en combined_action.
             enter_protection_mode(
-                f"alert {RISK_NAMES_ES.get(risk_level, risk_level.lower())} of {translate_variable_to_spanish(variable).lower()}",
+                f"alert {RISK_NAMES_ES.get(risk_level, risk_level.lower())} of "
+                f"{translate_variable_to_spanish(variable).lower()}",
                 targets={device_target},
                 sim=sim,
+                create_notification=False,
             )
         else:
             logger.warning(
@@ -161,24 +173,30 @@ def send_alert(
         "variable": variable,
         "value": value,
         "risk": risk_level,
-        "message": recommended_action,
+        "message": combined_action,
     }
     pn.append(notification_payload)
 
     from apps.events.services.alert_service import persist_notification_in_django
     eid = sim.edificio_id if sim else None
-    persist_notification_in_django(variable, value, risk_level, recommended_action, edificio_id=eid)
+    persist_notification_in_django(variable, value, risk_level, combined_action, edificio_id=eid)
 
 
 def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None) -> None:
     from apps.sensors.simulation.constants import RATIONING_THRESHOLD
     from apps.events.services.alert_service import get_professional_action
     if flow_rate < RATIONING_THRESHOLD:
-        # Skip if pump is off, in protection, in startup grace, or flow_rate in transition
+        # Skip si la bomba está en arranque, en transición manual o en protección
         if sim is not None:
             if getattr(sim, "_pump_start_grace_ticks", 0) > 0:
                 return
             if "flow_rate" in getattr(sim, "manual_overrides", {}):
                 return
+        # Suprimir racionamiento si flow_rate ya tiene una alerta activa:
+        # ambas condiciones comparten la misma causa raíz y generarían
+        # notificaciones duplicadas simultáneas.
+        aa = get_attribute(sim, "active_alerts")
+        if isinstance(aa, dict) and aa.get("flow_rate") in (RISK_ALTO, RISK_CRITICO):
+            return
         action = get_professional_action("rationing", RISK_CRITICO, flow_rate)
         send_alert("rationing", flow_rate, RISK_CRITICO, action, sim=sim)
