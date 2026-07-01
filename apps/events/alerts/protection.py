@@ -128,6 +128,20 @@ def update_protection_state(sim: Optional['BuildingSimulator'] = None) -> None:
     for device in expired:
         _reset_device(device, sim)
         _clear_device_alerts(device, aa, sim=sim)
+
+        # Limpiar la falla activa del dispositivo: si sim_faults contiene una
+        # falla para este equipo, eliminarla para que el physics vuelva al modo
+        # normal en lugar de re-aplicar la falla inmediatamente.
+        if sim is not None and hasattr(sim, "sim_faults") and isinstance(sim.sim_faults, dict):
+            if device in sim.sim_faults:
+                del sim.sim_faults[device]
+                logger.info("Fault cleared for %s after protection expired.", device)
+
+        # Grace period post-protección para la bomba (igual que en arranque normal)
+        if device == "pump" and sim is not None and hasattr(sim, "_pump_start_grace_ticks"):
+            sim._pump_start_grace_ticks = 10
+
         del pe[device]
         logger.info("Protection ended for %s. Device restored.", device)
         _notify_protection_ended(device, sim, pn)
+
