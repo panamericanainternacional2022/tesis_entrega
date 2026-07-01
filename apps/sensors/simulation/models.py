@@ -38,6 +38,7 @@ class BuildingSimulator:
         self._pump_failure_timer: float = 0
         self._pump_failure_active: bool = False
         self._pump_failure_var = None
+        self._pump_start_grace_ticks: int = 0
 
         self._elev_state: str = "IDLE"
         self._elev_timer: float = 0

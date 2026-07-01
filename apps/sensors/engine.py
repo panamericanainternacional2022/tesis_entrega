@@ -56,6 +56,11 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
         if var not in alert_vars:
             continue
 
+        # Skip alerts during pump startup transient (avoids false protection triggers)
+        if var in {"flow_rate", "pressure"} and getattr(sim, "_pump_start_grace_ticks", 0) > 0:
+            sim.active_alerts.pop(var, None)
+            continue
+
         if pump_protected and var in PUMP_VARS:
             sim.active_alerts.pop(var, None)
             continue

@@ -27,16 +27,37 @@ ELEVATOR_RESET_KEYS = [v for v in ELEVATOR_VARS if v in SAFE_RESET_VALUES] + ["t
 def reset_critical_values(targets: set[str], sim: BuildingSimulator) -> None:
     if not targets:
         return
+    import time as _time
+    from apps.sensors.sensor_config import BOOLEAN_VARS, ENUM_VARS
+    PROGRESSIVE_DURATION = 15.0
+    expiration = _time.time() + PROGRESSIVE_DURATION
     sd = sim.sensor_data
     if "pump" in targets:
+        sim._pump_start_grace_ticks = 5
         for k in PUMP_RESET_KEYS:
             if k in SAFE_RESET_VALUES:
-                sd[k] = SAFE_RESET_VALUES[k]
+                target_val = SAFE_RESET_VALUES[k]
+                current_val = sd.get(k)
+                if k in BOOLEAN_VARS or k in ENUM_VARS:
+                    sd[k] = target_val
+                elif current_val is not None and current_val != target_val:
+                    sim.manual_overrides[k] = expiration
+                    sim.manual_targets[k] = target_val
+                else:
+                    sd[k] = target_val
         sim._pump_demand = DEFAULT_SENSOR_DATA["flow_rate"]
     if "elevator" in targets:
         for k in ELEVATOR_RESET_KEYS:
             if k in SAFE_RESET_VALUES:
-                sd[k] = SAFE_RESET_VALUES[k]
+                target_val = SAFE_RESET_VALUES[k]
+                current_val = sd.get(k)
+                if k in BOOLEAN_VARS or k in ENUM_VARS:
+                    sd[k] = target_val
+                elif current_val is not None and current_val != target_val:
+                    sim.manual_overrides[k] = expiration
+                    sim.manual_targets[k] = target_val
+                else:
+                    sd[k] = target_val
     sim.door_close_attempts = 0
 
 
@@ -121,6 +142,7 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
     sd = sim.sensor_data
     expiration = _time.time() + PROGRESSIVE_DURATION
     if device in (None, "pump"):
+        sim._pump_start_grace_ticks = 5
         if sd.get("flow_rate", 0) < CLEAR_FAULT_MIN_FLOW:
             sim.manual_overrides["flow_rate"] = expiration
             sim.manual_targets["flow_rate"] = CLEAR_FAULT_MIN_FLOW
@@ -191,6 +213,7 @@ def reset_simulator(edificio_id: int) -> str:
     sim.sim_paused = False
     sim.sim_speed = 1.0
     sim._pump_demand = 15.0
+    sim._pump_start_grace_ticks = 5
     sim._pump_refill_timer = 0
     sim._elev_state = "IDLE"
     sim._elev_timer = 0

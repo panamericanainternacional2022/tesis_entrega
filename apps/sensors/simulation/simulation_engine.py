@@ -56,6 +56,7 @@ def _clear_expired_fault_device(sim: BuildingSimulator, device: str) -> None:
     expiration = time.time() + PROGRESSIVE_DURATION
     if device == "pump":
         from apps.sensors.simulation.physics.pump import _clamp
+        sim._pump_start_grace_ticks = 5
         if sd.get("flow_rate", 0) < CLEAR_FAULT_MIN_FLOW:
             sim.manual_overrides["flow_rate"] = expiration
             sim.manual_targets["flow_rate"] = CLEAR_FAULT_MIN_FLOW

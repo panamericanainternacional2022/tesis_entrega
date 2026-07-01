@@ -247,6 +247,7 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
 
     if sim.pump_on:
         sim.manual_pump_override = False
+        sim._pump_start_grace_ticks = 5
     else:
         sim.manual_pump_override = True
 

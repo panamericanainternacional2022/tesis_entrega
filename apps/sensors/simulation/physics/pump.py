@@ -60,6 +60,7 @@ def _apply_float_switch(sim: BuildingSimulator, sd: dict) -> None:
         sim.pump_on = False
     elif tank < _TANK_LOW_THRESHOLD and not sim.pump_on:
         sim.pump_on = True
+        sim._pump_start_grace_ticks = 5
 
 
 def _update_pump(sim: BuildingSimulator) -> None:
@@ -101,6 +102,8 @@ def _update_pump(sim: BuildingSimulator) -> None:
     if "pump" in sim.sim_faults:
         _apply_pump_fault(sim, sd, dt)
         return
+    if sim._pump_start_grace_ticks > 0:
+        sim._pump_start_grace_ticks -= 1
     _run_pump_normal(sim, sd, dt)
 
 
