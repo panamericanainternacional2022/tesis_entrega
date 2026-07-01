@@ -368,14 +368,14 @@
         if (isDashboard) return;
 
         const POLL_INTERVAL_MS = 30000;   // 30 segundos
-        const COUNT_URL        = '/api/notifications/count/';
+        const COUNT_URL = '/api/notifications/count/';
 
         function applyCount(count) {
             if (count > 0) {
-                badgeEl.textContent   = count;
+                badgeEl.textContent = count;
                 badgeEl.classList.add('visible');
             } else {
-                badgeEl.textContent   = '';
+                badgeEl.textContent = '';
                 badgeEl.classList.remove('visible');
             }
         }
@@ -890,11 +890,11 @@
         };
 
         sseSource.onmessage = (event) => {
-            try { applyPayload(JSON.parse(event.data)); } catch (_) {}
+            try { applyPayload(JSON.parse(event.data)); } catch (_) { }
         };
 
         sseSource.addEventListener('notification', (event) => {
-            try { addLiveNotificationEvent(JSON.parse(event.data)); } catch (_) {}
+            try { addLiveNotificationEvent(JSON.parse(event.data)); } catch (_) { }
         });
 
         if (isMonitoring) fetchInitialData();
@@ -1789,7 +1789,7 @@
             btn.classList.toggle('btn-secondary', !isActive);
         });
         try { await csrfFetch(API.simSetSpeed(EDIFICIO_ID), { method: 'POST', body: JSON.stringify({ speed }) }); }
-        catch (_) {}
+        catch (_) { }
     }
 
     const setSimMessage = (msg, type) =>
@@ -1802,11 +1802,15 @@
             pumpBtn.classList.toggle('btn-success', pumpOn === true);
             pumpBtn.classList.toggle('btn-secondary', pumpOn !== true);
             pumpBtn.title = pumpOn ? 'Apagar la bomba de agua' : 'Encender la bomba de agua';
+            const pumpSpan = pumpBtn.querySelector('span');
+            if (pumpSpan) pumpSpan.textContent = pumpOn ? 'Apagar' : 'Encender';
         }
         if (elevBtn && elevOn !== undefined) {
             elevBtn.classList.toggle('btn-success', elevOn === true);
             elevBtn.classList.toggle('btn-secondary', elevOn !== true);
             elevBtn.title = elevOn ? 'Apagar el elevador' : 'Encender el elevador';
+            const elevSpan = elevBtn.querySelector('span');
+            if (elevSpan) elevSpan.textContent = elevOn ? 'Apagar' : 'Encender';
         }
     }
 
@@ -2084,17 +2088,17 @@
     }
 
     function setupAdminEvents() {
-        const pauseBtn    = document.getElementById('simPauseBtn');
-        const resetBtn    = document.getElementById('simResetBtn');
-        const faultPump   = document.getElementById('simFaultPump');
-        const faultElev   = document.getElementById('simFaultElevator');
+        const pauseBtn = document.getElementById('simPauseBtn');
+        const resetBtn = document.getElementById('simResetBtn');
+        const faultPump = document.getElementById('simFaultPump');
+        const faultElev = document.getElementById('simFaultElevator');
         const togglePumpBtn = document.getElementById('togglePumpBtn');
         const toggleElevBtn = document.getElementById('toggleElevatorBtn');
 
-        if (pauseBtn)    pauseBtn.addEventListener('click', togglePause);
-        if (resetBtn)    resetBtn.addEventListener('click', resetSim);
-        if (faultPump)   faultPump.addEventListener('change', () => injectFault('pump'));
-        if (faultElev)   faultElev.addEventListener('change', () => injectFault('elevator'));
+        if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+        if (resetBtn) resetBtn.addEventListener('click', resetSim);
+        if (faultPump) faultPump.addEventListener('change', () => injectFault('pump'));
+        if (faultElev) faultElev.addEventListener('change', () => injectFault('elevator'));
         if (togglePumpBtn) togglePumpBtn.addEventListener('click', () => toggleEquipmentPower('pump'));
         if (toggleElevBtn) toggleElevBtn.addEventListener('click', () => toggleEquipmentPower('elevator'));
 
@@ -2479,7 +2483,7 @@
                         if (data.exists) mostrarError(input, 'Este RIF ya está registrado en otro edificio.');
                         else limpiarError(input);
                         toggleSubmit(input.form);
-                    }).catch(() => {});
+                    }).catch(() => { });
             } else { limpiarError(input); }
             toggleSubmit(input.form);
         };
@@ -2500,7 +2504,7 @@
                         if (data.exists) mostrarError(input, 'Esta cédula ya está registrada por otro usuario.');
                         else limpiarError(input);
                         toggleSubmit(input.form);
-                    }).catch(() => {});
+                    }).catch(() => { });
             } else { limpiarError(input); }
             toggleSubmit(input.form);
         };

@@ -131,19 +131,6 @@
                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reiniciar
                     </button>
                 </div>
-                <div class="form-group">
-                    <span class="form-label" id="equipPowerLabel">Equipos (Encender/Apagar)</span>
-                    <div class="flex" role="group" aria-labelledby="equipPowerLabel">
-                        <button type="button" id="togglePumpBtn" class="btn btn-secondary"
-                                title="Encender o apagar la bomba de agua manualmente">
-                            <i class="fa-solid fa-power-off" aria-hidden="true"></i> Bomba
-                        </button>
-                        <button type="button" id="toggleElevatorBtn" class="btn btn-secondary"
-                                title="Encender o apagar el elevador manualmente">
-                            <i class="fa-solid fa-power-off" aria-hidden="true"></i> Elevador
-                        </button>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -154,7 +141,23 @@
                 </h2>
             </div>
             <div class="admin-controls-row" id="manualControlsRow">
-                <div class="form-group flex-1">
+                <div class="form-group">
+                    <span class="form-label">Bomba de agua</span>
+                    <button type="button" id="togglePumpBtn" class="btn btn-secondary"
+                            title="Encender o apagar la bomba de agua manualmente">
+                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                        <span>Encender</span>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <span class="form-label">Elevador</span>
+                    <button type="button" id="toggleElevatorBtn" class="btn btn-secondary"
+                            title="Encender o apagar el elevador manualmente">
+                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                        <span>Encender</span>
+                    </button>
+                </div>
+                <div class="form-group flex-1" style="max-width:170px">
                     <label class="form-label" for="manualEquipmentSelect">Equipo</label>
                     <select id="manualEquipmentSelect" class="custom-select-init">
                         <option value="pump">Bomba de agua</option>
@@ -162,11 +165,11 @@
                     </select>
                     <span id="manualEquipmentStatic" class="input-static d-none"></span>
                 </div>
-                <div class="form-group flex-1">
+                <div class="form-group flex-1" style="max-width:170px">
                     <label class="form-label" for="manualSensorSelect">Sensor</label>
                     <select id="manualSensorSelect" class="custom-select-init"></select>
                 </div>
-                <div class="form-group flex-1" id="manualValueContainer">
+                <div class="form-group flex-1" style="max-width:170px" id="manualValueContainer">
                     <label class="form-label" for="manualValueInput">Valor</label>
                     <input type="number" step="any" id="manualValueInput" class="form-input"
                            placeholder="Ej: 42.5">
@@ -174,8 +177,7 @@
                     <div class="error-msg" id="manualErrorMsg"></div>
                     <div id="manualRiskPreview" class="risk-preview"></div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label sr-only" for="sendManualBtn">Enviar</label>
+                <div class="form-group" style="display:flex;align-items:end;padding-bottom:1px">
                     <button type="button" id="sendManualBtn" class="btn btn-primary">
                         <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar
                     </button>

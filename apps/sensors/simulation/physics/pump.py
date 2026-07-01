@@ -20,7 +20,6 @@ _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH = SENSOR_RANGES["pump_energy"]
 _TANK_BUILDING_DEMAND = 12.0    # l/s constant building water consumption
 _TANK_FULL_THRESHOLD  = 85.0   # % – float switch cuts pump above this
 _TANK_LOW_THRESHOLD   = 80.0   # % – float switch starts pump below this
-_PUMP_ON_OVERRIDE_KEY = "pump_on_auto"  # key used in manual_overrides for user override
 
 
 def _clamp(value: float, lo: float, hi: float) -> float:
@@ -49,10 +48,9 @@ def _apply_float_switch(sim: BuildingSimulator, sd: dict) -> None:
     """Automatic float switch (boya) control loop.
     Turns pump ON when tank drops below _TANK_LOW_THRESHOLD,
     and OFF when it reaches _TANK_FULL_THRESHOLD.
-    Respects a user manual override for 90 seconds.
+    Blocked while the user has set a manual pump override.
     """
-    # Skip if user has manually overridden the pump state recently
-    if _is_locked(sim, _PUMP_ON_OVERRIDE_KEY):
+    if getattr(sim, "manual_pump_override", False):
         return
     # Skip if pump is in protection or has an active fault
     if "pump" in sim.protection_ends or "pump" in sim.sim_faults:

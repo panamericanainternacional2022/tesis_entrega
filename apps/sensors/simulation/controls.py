@@ -147,6 +147,8 @@ def reset_simulator(edificio_id: int) -> str:
     sim.sensor_data = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
     sim.pump_on = sim.has_pump
     sim.elevator_on = sim.has_elevator
+    sim.manual_pump_override = False
+    sim.manual_elevator_override = False
     sim.protection_ends.clear()
     sim.active_alerts.clear()
     sim.door_close_attempts = 0

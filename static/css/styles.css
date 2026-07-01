@@ -2267,10 +2267,18 @@ input.is-dirty.input-error-state:active {
 }
 
 #manualControlsRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr auto;
+    display: flex;
+    flex-wrap: wrap;
     gap: var(--sp-4);
     align-items: end;
+}
+
+#manualControlsRow .flex-1 {
+    min-width: 120px;
+}
+
+#manualControlsRow .flex-1 {
+    min-width: 120px;
 }
 
 #manualRiskPreview:empty {

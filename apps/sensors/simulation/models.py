@@ -25,6 +25,9 @@ class BuildingSimulator:
         self.manual_overrides: dict = {}
         self.manual_targets: dict = {}
 
+        self.manual_pump_override: bool = False
+        self.manual_elevator_override: bool = False
+
         self.sim_paused: bool = False
         self.sim_speed: float = 1.0
         self.sim_faults: dict = {}

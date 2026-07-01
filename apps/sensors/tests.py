@@ -244,7 +244,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim = _make_sim(self.building, tank_level=_TANK_LOW_THRESHOLD - 1.0, pump_on=False)
         sim.manual_overrides["tank_level"] = time.time() + 90.0
         # Register the manual override that blocks the float switch
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         _update_pump(sim)
         self.assertFalse(
             sim.pump_on,
@@ -264,7 +264,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim.sensor_data["current"]   = 3.0
         # Lock tank so float switch sees 50% and doesn't turn pump on
         sim.manual_overrides["tank_level"] = time.time() + 90.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         _update_pump(sim)
         self.assertEqual(sim.sensor_data["flow_rate"], 0.0, "flow_rate must be 0 when pump is OFF.")
         self.assertEqual(sim.sensor_data["pressure"],  0.0, "pressure must be 0 when pump is OFF.")
@@ -278,7 +278,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         """When pump is ON with a healthy tank, flow and pressure must be positive."""
         sim = _make_sim(self.building, tank_level=82.0, pump_on=True)
         sim.manual_overrides["tank_level"] = time.time() + 90.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         _update_pump(sim)
         self.assertGreater(sim.sensor_data["flow_rate"], 0.0, "flow_rate must be > 0 when pump is ON.")
         self.assertGreater(sim.sensor_data["pressure"],  0.0, "pressure must be > 0 when pump is ON.")
@@ -292,7 +292,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         # Force a high flow rate so inflow > building demand
         sim.sensor_data["flow_rate"] = 20.0
         sim.manual_overrides["flow_rate"] = time.time() + 90.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         initial_tank = sim.sensor_data["tank_level"]
         for _ in range(10):
             _update_pump(sim)
@@ -308,7 +308,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         """With pump OFF, the building demand should slowly drain the tank."""
         sim = _make_sim(self.building, tank_level=70.0, pump_on=False)
         # Do NOT lock tank_level — we need the physics to drain it
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         initial_tank = 70.0
         sim.sensor_data["tank_level"] = initial_tank
         for _ in range(20):
@@ -326,7 +326,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim = _make_sim(self.building, tank_level=8.0, pump_on=True)
         sim.sim_faults["pump"] = "dry_run"
         sim.sensor_data["tank_level"] = 8.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         initial_temp  = sim.sensor_data["temperature"]
         initial_tank  = sim.sensor_data["tank_level"]
         for _ in range(5):
@@ -344,7 +344,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim.sim_faults["pump"] = "pipe_burst"
         sim.sensor_data["flow_rate"] = 10.0
         sim.sensor_data["pressure"]  = 4.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         initial_flow    = sim.sensor_data["flow_rate"]
         initial_tank    = sim.sensor_data["tank_level"]
         for _ in range(5):
@@ -360,7 +360,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim = _make_sim(self.building, tank_level=60.0, pump_on=True)
         sim.sim_faults["pump"] = "power_outage"
         sim.sensor_data["voltage"] = 220.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         for _ in range(10):
             _update_pump(sim)
         self.assertEqual(sim.sensor_data["flow_rate"], 0.0, "power_outage must zero flow.")
@@ -376,7 +376,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim = _make_sim(self.building, tank_level=9.0, pump_on=True)
         sim.sensor_data["tank_level"] = 9.0  # strictly < 10.0 → starvation
         sim.manual_overrides["tank_level"] = time.time() + 90.0
-        sim.manual_overrides["pump_on_auto"] = time.time() + 90.0
+        sim.manual_pump_override = True
         # Pre-seed values above the expected starvation ceiling
         sim.sensor_data["flow_rate"] = 15.0
         sim.sensor_data["pressure"]  = 5.0
