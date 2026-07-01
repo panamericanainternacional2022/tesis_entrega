@@ -313,6 +313,11 @@
             menu.classList.remove('open');
             const trigger = menu.previousElementSibling;
             if (trigger) trigger.classList.remove('open');
+            menu.style.position = '';
+            menu.style.top = '';
+            menu.style.left = '';
+            menu.style.right = '';
+            menu.style.bottom = '';
         });
     };
 
@@ -326,11 +331,26 @@
                 if (!menu) return;
                 const isOpen = menu.classList.contains('open');
                 closeAllDropdowns();
-                if (!isOpen) { menu.classList.add('open'); trigger.classList.add('open'); }
+                if (!isOpen) {
+                    menu.classList.add('open');
+                    trigger.classList.add('open');
+                    if (trigger.closest('.table-wrapper')) {
+                        const rect = trigger.getBoundingClientRect();
+                        const menuWidth = menu.offsetWidth || 180;
+                        let left = rect.right - menuWidth;
+                        if (left < 8) left = 8;
+                        menu.style.position = 'fixed';
+                        menu.style.top = (rect.bottom + 4) + 'px';
+                        menu.style.left = left + 'px';
+                        menu.style.right = 'auto';
+                        menu.style.bottom = 'auto';
+                    }
+                }
             } else {
                 closeAllDropdowns();
             }
         });
+        document.addEventListener('scroll', closeAllDropdowns, { passive: true });
     };
 
     // Delegación de eventos para confirmaciones de borrado
