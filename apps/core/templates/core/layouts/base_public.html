@@ -22,6 +22,9 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script>
+        window.CSRF_TOKEN = "{{ csrf_token|escapejs }}";
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

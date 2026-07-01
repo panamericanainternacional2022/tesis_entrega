@@ -14,14 +14,22 @@
     --font: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
     /* Escala Tipográfica de Base 16px */
-    --text-xs: 0.75rem;     /* 12px */
-    --text-sm: 0.875rem;    /* 14px */
-    --text-base: 1rem;      /* 16px - Valor Base */
-    --text-md: 1.125rem;    /* 18px */
-    --text-lg: 1.25rem;     /* 20px */
-    --text-xl: 1.5rem;      /* 24px */
-    --text-2xl: 2rem;       /* 32px */
-    --text-3xl: 2.5rem;     /* 40px - Títulos gigantes */
+    --text-xs: 0.75rem;
+    /* 12px */
+    --text-sm: 0.875rem;
+    /* 14px */
+    --text-base: 1rem;
+    /* 16px - Valor Base */
+    --text-md: 1.125rem;
+    /* 18px */
+    --text-lg: 1.25rem;
+    /* 20px */
+    --text-xl: 1.5rem;
+    /* 24px */
+    --text-2xl: 2rem;
+    /* 32px */
+    --text-3xl: 2.5rem;
+    /* 40px - Títulos gigantes */
 
     /* Grosores */
     --weight-normal: 400;
@@ -44,14 +52,22 @@
        B. ESCALA DE COLORES (NEUTRALES & ESTADOS)
        ========================================== */
     /* Neutros Basados en Escala Gris */
-    --color-ink: #0a0a0a;               /* Negro absoluto (Tinta principal) */
-    --color-ink-soft: #2e2e2e;          /* Gris oscuro */
-    --color-text-primary: var(--color-ink); /* Texto principal */
-    --color-text-secondary: #5e5e5e;    /* Gris medio */
-    --color-text-placeholder: #9e9e9e;  /* Gris claro para placeholders */
-    --color-neutral-disabled: #cccccc;  /* Gris para elementos deshabilitados */
-    --color-surface: #ffffff;           /* Blanco puro de tarjetas/superficies */
-    --color-bg: #f5f5f5;                /* Gris ultra-claro para fondo general */
+    --color-ink: #0a0a0a;
+    /* Negro absoluto (Tinta principal) */
+    --color-ink-soft: #2e2e2e;
+    /* Gris oscuro */
+    --color-text-primary: var(--color-ink);
+    /* Texto principal */
+    --color-text-secondary: #5e5e5e;
+    /* Gris medio */
+    --color-text-placeholder: #9e9e9e;
+    /* Gris claro para placeholders */
+    --color-neutral-disabled: #cccccc;
+    /* Gris para elementos deshabilitados */
+    --color-surface: #ffffff;
+    /* Blanco puro de tarjetas/superficies */
+    --color-bg: #f5f5f5;
+    /* Gris ultra-claro para fondo general */
 
     /* Acento Azul */
     --color-accent: #2563eb;
@@ -66,7 +82,7 @@
     --state-critical: #b91c1c;
     --state-critical-hover: #991515;
     --state-critical-bg: #fef2f2;
-    
+
     /* Gris azulado para evitar mimetización con el fondo general #f5f5f5 */
     --state-info: #475569;
     --state-info-bg: #f1f5f9;
@@ -74,16 +90,26 @@
     /* ==========================================
        C. ESCALA DE ESPACIADOS (GRID BASE 4/8PX)
        ========================================== */
-    --sp-1: 4px;        /* 2xs */
-    --sp-2: 8px;        /* xs */
-    --sp-3: 12px;       /* sm */
-    --sp-4: 16px;       /* base (1rem) */
-    --sp-5: 20px;       /* sm-md */
-    --sp-6: 24px;       /* md */
-    --sp-7: 32px;       /* lg */
-    --sp-8: 48px;       /* xl */
-    --sp-9: 64px;       /* 2xl */
-    --sp-10: 96px;      /* 3xl */
+    --sp-1: 4px;
+    /* 2xs */
+    --sp-2: 8px;
+    /* xs */
+    --sp-3: 12px;
+    /* sm */
+    --sp-4: 16px;
+    /* base (1rem) */
+    --sp-5: 20px;
+    /* sm-md */
+    --sp-6: 24px;
+    /* md */
+    --sp-7: 32px;
+    /* lg */
+    --sp-8: 48px;
+    /* xl */
+    --sp-9: 64px;
+    /* 2xl */
+    --sp-10: 96px;
+    /* 3xl */
 
     /* Dimensiones de layout */
     --control-height: 36px;
@@ -99,20 +125,20 @@
     --border-width: 3px;
     --border-brutal: var(--border-width) solid var(--color-ink);
     --border-disabled: var(--border-width) solid var(--color-neutral-disabled);
-    
+
     /* Sombras Planas Brutalistas */
     --shadow-offset: 3px;
     --shadow-offset-hover: 6px;
-    
+
     --shadow-brutal: var(--shadow-offset) var(--shadow-offset) 0px var(--color-ink);
     --shadow-brutal-hover: var(--shadow-offset-hover) var(--shadow-offset-hover) 0px var(--color-ink);
-    
+
     --shadow-disabled: var(--shadow-offset) var(--shadow-offset) 0px var(--color-neutral-disabled);
 
     /* Radios */
     --radius: 0px;
     --radius-badge: 2px;
-    
+
     /* Miscelánea */
     --overlay-bg: rgba(10, 10, 10, 0.4);
     --transition-fast: 120ms ease;
@@ -1757,7 +1783,6 @@ button {
     letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
     padding-bottom: var(--sp-1);
-    border-bottom: var(--border-brutal);
     display: flex;
     align-items: center;
     gap: var(--sp-1);

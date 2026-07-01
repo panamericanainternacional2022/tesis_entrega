@@ -65,7 +65,7 @@
                 <div class="form-group">
                     <label for="cedula">Cédula (CI)</label>
                     <div class="input-with-icon">
-                        <input placeholder="V-12345678" type="text" id="cedula" name="cedula" value="{{ user.cedula|default:'' }}" data-validate="cedula" data-exclude-id="{% if editing %}{{ persona_id }}{% endif %}" maxlength="16" required class="form-input {% if form_errors.cedula or form_errors.cedula_long or form_errors.cedula_unico %}input-error-state{% endif %}" />
+                        <input placeholder="V-12345678" type="text" id="cedula" name="cedula" value="{{ user.cedula|default:'' }}" data-validate="cedula" data-exclude-id="{% if editing %}{{ persona_id }}{% endif %}" data-url="{% url 'check_cedula' %}" maxlength="16" required class="form-input {% if form_errors.cedula or form_errors.cedula_long or form_errors.cedula_unico %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
                     <div class="error-msg">{% if form_errors.cedula %}{{ form_errors.cedula }}{% elif form_errors.cedula_long %}{{ form_errors.cedula_long }}{% elif form_errors.cedula_unico %}{{ form_errors.cedula_unico }}{% endif %}</div>

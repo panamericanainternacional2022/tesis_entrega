@@ -2394,7 +2394,8 @@
             } else if (valor) {
                 limpiarError(input);
                 const excludeId = input.getAttribute('data-exclude-id') || '';
-                fetch(`/buildings/api/check-rif/?rif=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`)
+                const checkUrl = input.getAttribute('data-url') || '/api/check-rif/';
+                fetch(`${checkUrl}?rif=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.exists) mostrarError(input, 'Este RIF ya está registrado en otro edificio.');
@@ -2414,7 +2415,8 @@
             } else if (valor) {
                 limpiarError(input);
                 const excludeId = input.getAttribute('data-exclude-id') || '';
-                fetch(`/users/api/check-cedula/?cedula=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`)
+                const checkUrl = input.getAttribute('data-url') || '/api/check-cedula/';
+                fetch(`${checkUrl}?cedula=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.exists) mostrarError(input, 'Esta cédula ya está registrada por otro usuario.');

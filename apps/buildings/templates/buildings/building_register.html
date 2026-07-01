@@ -28,7 +28,7 @@
                 <div class="form-group">
                     <label for="rif">RIF</label>
                     <div class="input-with-icon">
-                        <input placeholder="J-00000000-0" type="text" id="rif" name="rif" value="{{ building.rif|default:'' }}" data-validate="rif" data-exclude-id="{% if editing %}{{ building.id }}{% endif %}" maxlength="16" required class="form-input {% if form_errors.rif or form_errors.rif_unico or form_errors.rif_long %}input-error-state{% endif %}" />
+                        <input placeholder="J-00000000-0" type="text" id="rif" name="rif" value="{{ building.rif|default:'' }}" data-validate="rif" data-exclude-id="{% if editing %}{{ building.id }}{% endif %}" data-url="{% url 'check_rif' %}" maxlength="16" required class="form-input {% if form_errors.rif or form_errors.rif_unico or form_errors.rif_long %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
                     <div class="error-msg">{% if form_errors.rif %}{{ form_errors.rif }}{% elif form_errors.rif_unico %}{{ form_errors.rif_unico }}{% elif form_errors.rif_long %}{{ form_errors.rif_long }}{% endif %}</div>
