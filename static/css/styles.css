@@ -833,7 +833,7 @@ button {
     font-family: var(--font);
     font-weight: var(--weight-medium);
     color: var(--color-text-primary);
-    background: none;
+    background: var(--color-surface);
     border: none;
     border-bottom: var(--border-brutal);
     width: 100%;
@@ -1027,7 +1027,6 @@ button {
     z-index: 100;
     display: none;
     flex-direction: column;
-    padding: var(--sp-1) 0;
 }
 
 .dropdown-menu.open {
@@ -1043,7 +1042,7 @@ button {
     font-family: var(--font);
     text-decoration: none;
     color: var(--color-text-primary);
-    background: none;
+    background: var(--color-surface);
     border: none;
     border-bottom: var(--border-brutal);
     width: 100%;
@@ -1361,9 +1360,7 @@ button {
     gap: var(--sp-1);
     font-size: var(--text-xs);
     font-weight: var(--weight-bold);
-    background: none;
-    padding: 0;
-    border: none;
+
 }
 
 /* ─── Estado vacío ─── */
