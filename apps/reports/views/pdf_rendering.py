@@ -152,25 +152,25 @@ def render_text_progress_bar(
         bar_text = (22, 101, 52)
         estado = "✓ Dentro del rango"
 
-    if pdf.get_y() + 16 > 270:
+    if pdf.get_y() + 28 > 270:
         pdf.add_page()
 
-    _pdf_font(pdf, "", 9)
+    _pdf_font(pdf, "B", 11)
     pdf.set_text_color(55, 65, 81)
-    pdf.cell(0, 5, safe_text(label), ln=1)
+    pdf.cell(0, 7, safe_text(label), ln=1)
 
     start_x = pdf.get_x()
     start_y = pdf.get_y()
 
     pdf.set_fill_color(*bar_fill)
     pdf.set_draw_color(*HEADER_BG)
-    pdf.set_line_width(0.4)
-    pdf.cell(0, 8, "", 1, 1, "L", True)
+    pdf.set_line_width(0.5)
+    pdf.cell(0, 16, "", 1, 1, "L", True)
 
-    bar_x = start_x + 4
-    bar_y = start_y + 2
-    bar_w = 80
-    bar_h = 4
+    bar_x = start_x + 5
+    bar_y = start_y + 4
+    bar_w = 130
+    bar_h = 8
 
     pdf.set_fill_color(229, 231, 235)
     pdf.rect(bar_x, bar_y, bar_w, bar_h, "F")
@@ -179,21 +179,21 @@ def render_text_progress_bar(
     pdf.set_fill_color(*fill_color)
     pdf.rect(bar_x, bar_y, bar_w * ratio, bar_h, "F")
 
-    text_x = bar_x + bar_w + 4
-    pdf.set_xy(text_x, start_y + 1)
-    _pdf_font(pdf, "B", 9)
+    text_x = bar_x + bar_w + 6
+    pdf.set_xy(text_x, start_y + 4)
+    _pdf_font(pdf, "B", 11)
     pdf.set_text_color(*bar_text)
-    
+
     safe_unit = safe_text(unit)
     info_text = f"{pct:.0f}%   ({value:.1f} / {max_value:.1f} {safe_unit})"
-    pdf.cell(0, 6, info_text, 0, 0, "L")
+    pdf.cell(0, 8, info_text, 0, 0, "L")
 
-    pdf.set_xy(start_x, start_y + 8)
+    pdf.set_xy(start_x, start_y + 16)
 
-    _pdf_font(pdf, "", 8)
+    _pdf_font(pdf, "", 10)
     pdf.set_text_color(95, 95, 95)
-    pdf.cell(0, 5, f"  {safe_text(estado)}", ln=1)
-    pdf.ln(2)
+    pdf.cell(0, 6, f"  {safe_text(estado)}", ln=1)
+    pdf.ln(3)
 
 
 def render_severity_legend(pdf: Any) -> None:
