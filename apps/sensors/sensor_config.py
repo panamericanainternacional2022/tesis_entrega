@@ -378,20 +378,21 @@ SENSOR_RANGES = {
 RISK_UNKNOWN = "Desconocido"
 
 FAULT_NAMES_ES = {
-    "dry_run":            "Sequía",
-    "blocked_discharge":  "Descarga bloqueada",
-    "pipe_burst":         "Ruptura de tubería",
-    "cavitation":         "Cavitación",
-    "overheat":           "Sobrecalentamiento",
-    "power_surge":        "Sobrecarga eléctrica",
-    "power_outage":       "Corte eléctrico",
-    "motor_stuck":        "Motor atascado",
-    "door_blocked":       "Puerta bloqueada",
-    "overspeed":          "Exceso de velocidad",
+    "dry_run":             "Sequía",
+    "blocked_discharge":   "Descarga bloqueada",
+    "pipe_burst":          "Ruptura de tubería",
+    "cavitation":          "Cavitación",
+    "overheat":            "Sobrecalentamiento",
+    "power_surge":         "Sobrecarga eléctrica",
+    "power_outage":        "Corte eléctrico",
+    "motor_stuck":         "Motor atascado",
+    "door_blocked":        "Puerta bloqueada",
+    "door_close_failure":  "Fallo de cierre de puerta",
+    "overspeed":           "Exceso de velocidad",
 }
 
 PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "overheat", "power_surge", "power_outage")
-ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed")
+ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "door_close_failure", "overspeed")
 
 UNKNOWN_PERSON_NAME: str = "Sin nombre"
 UNKNOWN_EMAIL_LABEL: str = "Sin correo"

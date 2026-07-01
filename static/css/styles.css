@@ -137,7 +137,7 @@
 
     /* Radios */
     --radius: 0px;
-    --radius-badge: 2px;
+    --radius-badge: 0px;
 
     /* Miscelánea */
     --overlay-bg: rgba(10, 10, 10, 0.4);
@@ -1290,19 +1290,19 @@ button {
 }
 
 .notif-item.risk-normal::before {
-    background: var(--state-normal);
+    background: var(--color-accent);
 }
 
 .notif-item.risk-high::before {
-    background: var(--state-high);
+    background: var(--color-accent);
 }
 
 .notif-item.risk-crit::before {
-    background: var(--state-critical);
+    background: var(--color-accent);
 }
 
 .notif-item.risk-info::before {
-    background: var(--state-info);
+    background: var(--color-accent);
 }
 
 .notif-icon {
@@ -1561,19 +1561,19 @@ button {
 }
 
 .status-cell.cell-normal::before {
-    background: var(--state-normal);
+    background: var(--color-accent);
 }
 
 .status-cell.cell-high::before {
-    background: var(--state-high);
+    background: var(--color-accent);
 }
 
 .status-cell.cell-crit::before {
-    background: var(--state-critical);
+    background: var(--color-accent);
 }
 
 .status-cell.cell-info::before {
-    background: var(--state-info);
+    background: var(--color-accent);
 }
 
 .status-cell-label {

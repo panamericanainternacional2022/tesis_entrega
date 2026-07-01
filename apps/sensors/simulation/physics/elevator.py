@@ -56,9 +56,10 @@ def _apply_elevator_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     temp_sd = sd.copy()
     
     _ELEV_FAULT_HANDLERS = {
-        "motor_stuck": _apply_motor_stuck,
-        "door_blocked": _apply_door_blocked,
-        "overspeed": _apply_overspeed,
+        "motor_stuck":        _apply_motor_stuck,
+        "door_blocked":       _apply_door_blocked,
+        "door_close_failure": _apply_door_close_failure,
+        "overspeed":          _apply_overspeed,
     }
     handler = _ELEV_FAULT_HANDLERS.get(fault_type)
     if handler:
@@ -83,6 +84,24 @@ def _apply_door_blocked(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["motor_stuck"] = False
     sd["speed"] = _clamp(sd.get("speed", 0.0) - 1.5 * dt, _SPEED_LOW, _SPEED_HIGH)
     sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.5 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
+
+
+def _apply_door_close_failure(sim: BuildingSimulator, sd: dict, dt: float) -> None:
+    """Puerta falla al cerrar gradualmente: 1 intento cada ~3 s.
+
+    A diferencia de door_blocked (que incrementa el contador cada tick),
+    esta falla simula el escenario realista donde el controlador lo intenta
+    varias veces antes de declarar la puerta bloqueada.
+    """
+    sd["door_status"] = "open"
+    sd["motor_stuck"] = False
+    sd["speed"] = _clamp(sd.get("speed", 0.0) - 0.3 * dt, _SPEED_LOW, _SPEED_HIGH)
+    sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.2 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
+    # Acumular tiempo; cada 3 segundos registrar un intento fallido de cierre
+    sim._elev_timer = getattr(sim, "_elev_timer", 0) + dt
+    if sim._elev_timer >= 3.0:
+        sim._elev_timer = 0.0
+        sim.door_close_attempts += 1
 
 
 def _apply_overspeed(sim: BuildingSimulator, sd: dict, dt: float) -> None:

@@ -1043,7 +1043,26 @@
         if (data.history) updateCharts(data.history);
 
         updateStatusBadge('pumpStatusBadge',     data.pump_status,     data.protection_pump);
-        updateStatusBadge('elevatorStatusBadge', data.elevator_status, data.protection_elevator);
+
+        // Badge del elevador: modo seguro tiene prioridad; si no, mostrar intentos de cierre de puerta
+        const _doorAttempts    = data.door_close_attempts ?? 0;
+        const _maxDoorAttempts = 2; // MAX_DOOR_CLOSE_ATTEMPTS del backend
+        const _elevProtected   = data.protection_elevator && data.protection_elevator.remaining > 0;
+        if (!_elevProtected && _doorAttempts >= 1) {
+            const elevBadge = document.getElementById('elevatorStatusBadge');
+            const elevCell  = document.getElementById('elevatorStatusRow');
+            if (elevBadge && elevCell) {
+                const isDoorBlocked = _doorAttempts >= _maxDoorAttempts;
+                elevCell.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
+                elevCell.classList.add(isDoorBlocked ? 'cell-crit' : 'cell-high');
+                elevBadge.className = isDoorBlocked ? 'badge badge-crit' : 'badge badge-high';
+                elevBadge.innerHTML = isDoorBlocked
+                    ? `<i class="fa-solid fa-door-open" aria-hidden="true"></i> Puerta bloqueada`
+                    : `<i class="fa-solid fa-door-open" aria-hidden="true"></i> Puerta: intento ${_doorAttempts}/${_maxDoorAttempts}`;
+            }
+        } else {
+            updateStatusBadge('elevatorStatusBadge', data.elevator_status, data.protection_elevator);
+        }
 
         const lastUpd = document.getElementById('lastUpdate');
         if (lastUpd) lastUpd.innerText = new Date().toLocaleTimeString();
