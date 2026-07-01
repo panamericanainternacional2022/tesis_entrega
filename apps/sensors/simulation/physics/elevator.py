@@ -38,16 +38,13 @@ def _update_elevator(sim: BuildingSimulator) -> None:
 
 def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "speed"):
-        sd["speed"] = 0.0
-    if not _is_locked(sim, "position"):
-        sd["position"] = 0.0
-        sim._elev_position_meters = 0.0
+        sd["speed"] = _clamp(sd.get("speed", 0.0) - 1.0 * dt, _SPEED_LOW, _SPEED_HIGH)
     if not _is_locked(sim, "load"):
-        sd["load"] = 0
+        sd["load"] = int(max(0, sd["load"] - 50 * dt))
     if not _is_locked(sim, "door_status"):
         sd["door_status"] = "closed"
     if not _is_locked(sim, "energy"):
-        sd["energy"] = 0.5
+        sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.3 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
     if not _is_locked(sim, "motor_stuck"):
         sd["motor_stuck"] = False
     sim.door_close_attempts = 0
@@ -73,10 +70,10 @@ def _apply_elevator_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _apply_motor_stuck(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    sd["speed"] = 0.0
+    sd["speed"] = _clamp(sd.get("speed", 0.0) - 1.5 * dt, _SPEED_LOW, _SPEED_HIGH)
     sd["motor_stuck"] = True
     sd["door_status"] = "closed"
-    sd["energy"] = 3.0
+    sd["energy"] = round(_clamp(sd.get("energy", 0) + 1.0 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
     sd["temperature"] = _clamp(sd.get("temperature", 50.0) + 1.5 * dt, _TEMP_LOW, _TEMP_HIGH)
 
 
@@ -84,8 +81,8 @@ def _apply_door_blocked(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["door_status"] = "open"
     sim.door_close_attempts += 1
     sd["motor_stuck"] = False
-    sd["speed"] = 0.0
-    sd["energy"] = 1.0
+    sd["speed"] = _clamp(sd.get("speed", 0.0) - 1.5 * dt, _SPEED_LOW, _SPEED_HIGH)
+    sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.5 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
 
 
 def _apply_overspeed(sim: BuildingSimulator, sd: dict, dt: float) -> None:

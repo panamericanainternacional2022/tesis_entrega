@@ -106,15 +106,15 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "flow_rate"):
-        sd["flow_rate"] = 0.0
+        sd["flow_rate"] = round(_clamp(sd["flow_rate"] - 3.0 * dt, 0.0, _FLOW_HIGH), 1)
     if not _is_locked(sim, "pressure"):
-        sd["pressure"] = 0.0
+        sd["pressure"] = round(_clamp(sd["pressure"] - 1.5 * dt, 0.0, _PRES_HIGH), 1)
     if not _is_locked(sim, "vibration"):
-        sd["vibration"] = 0.0
+        sd["vibration"] = round(_clamp(sd["vibration"] - 1.5 * dt, 0.0, _VIB_HIGH), 1)
     if not _is_locked(sim, "current"):
-        sd["current"] = 0.0
+        sd["current"] = round(_clamp(sd["current"] - 3.0 * dt, 0.0, _CURR_HIGH), 1)
     if not _is_locked(sim, "pump_energy"):
-        sd["pump_energy"] = 0.2
+        sd["pump_energy"] = round(_clamp(sd["pump_energy"] - 1.0 * dt, 0.0, _PUMP_ENERGY_HIGH), 1)
     if not _is_locked(sim, "temperature"):
         sd["temperature"] = round(
             _clamp(sd["temperature"] - 0.5 * dt, _TEMP_LOW, _TEMP_HIGH), 1
@@ -209,10 +209,10 @@ def _apply_power_surge(sd: dict, dt: float) -> None:
 
 def _apply_power_outage(sd: dict, dt: float) -> None:
     sd["voltage"]     = _clamp(sd["voltage"]     - 50 * dt, 0, 10)
-    sd["current"]     = 0.0
-    sd["flow_rate"]   = 0.0
-    sd["pressure"]    = 0.0
-    sd["vibration"]   = 0.0
+    sd["current"]     = _clamp(sd["current"]     - 10 * dt, 0, 10)
+    sd["flow_rate"]   = _clamp(sd["flow_rate"]   - 3.0 * dt, 0, 5)
+    sd["pressure"]    = _clamp(sd["pressure"]    - 0.8 * dt, 0, 2)
+    sd["vibration"]   = _clamp(sd["vibration"]   - 2.0 * dt, 0, 5)
     sd["temperature"] = _clamp(sd["temperature"] - 0.5 * dt, T_AMBIENT, _TEMP_HIGH)
 
 
@@ -243,9 +243,9 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         if not _is_locked(sim, "vibration"):
             sd["vibration"]  = round(_clamp(sd["vibration"]  - 2.0 * dt, 0.0, _VIB_HIGH),  1)
         if not _is_locked(sim, "current"):
-            sd["current"]    = 0.0
+            sd["current"]    = round(_clamp(sd["current"]    - 5.0 * dt, 0.0, _CURR_HIGH),  1)
         if not _is_locked(sim, "pump_energy"):
-            sd["pump_energy"] = 0.2
+            sd["pump_energy"] = round(_clamp(sd["pump_energy"] - 1.0 * dt, 0.0, _PUMP_ENERGY_HIGH), 1)
         if not _is_locked(sim, "temperature"):
             sd["temperature"] = round(
                 _clamp(sd["temperature"] + (T_AMBIENT - sd["temperature"]) * 0.02 * dt,
@@ -279,8 +279,23 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     else:
         sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, 10.0, 25.0)
         flow = sim._pump_demand
+        # Ramp flow_rate smoothly from current sensor value toward demand
+        # to prevent abrupt jumps when pump comes out of idle
+        current_flow = sd.get("flow_rate", 0)
+        max_flow_ramp = 3.0 * dt
+        if flow > current_flow + max_flow_ramp:
+            flow = current_flow + max_flow_ramp
+        elif flow < current_flow - max_flow_ramp:
+            flow = current_flow - max_flow_ramp
 
     pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
+    # Ramp pressure smoothly from current value toward target
+    current_press = sd.get("pressure", 0)
+    max_press_ramp = 1.5 * dt
+    if pressure > current_press + max_press_ramp:
+        pressure = current_press + max_press_ramp
+    elif pressure < current_press - max_press_ramp:
+        pressure = current_press - max_press_ramp
 
     # First-order thermal model
     target_temp = 50.0 + (flow * pressure * 0.1)

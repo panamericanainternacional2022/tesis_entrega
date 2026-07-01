@@ -80,6 +80,9 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
 
     _notify_faults_resolved(edificio_id, old_faults)
 
+    import time as _time
+    PROGRESSIVE_DURATION = 15.0
+
     if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):
         if device == "pump":
             for v in PUMP_VARS:
@@ -89,6 +92,15 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
                 sim.manual_overrides.pop(v, None)
         else:
             sim.manual_overrides.clear()
+    if hasattr(sim, "manual_targets") and isinstance(sim.manual_targets, dict):
+        if device == "pump":
+            for v in PUMP_VARS:
+                sim.manual_targets.pop(v, None)
+        elif device == "elevator":
+            for v in ELEVATOR_VARS:
+                sim.manual_targets.pop(v, None)
+        else:
+            sim.manual_targets.clear()
 
     if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
         if device == "pump":
@@ -107,16 +119,29 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
     else:
         msg = "Todas las fallas limpiadas"
     sd = sim.sensor_data
+    expiration = _time.time() + PROGRESSIVE_DURATION
     if device in (None, "pump"):
-        from apps.sensors.simulation.physics.pump import _clamp
-        sd["flow_rate"] = max(sd["flow_rate"], CLEAR_FAULT_MIN_FLOW)
-        sd["pressure"] = max(sd["pressure"], CLEAR_FAULT_MIN_PRESSURE)
-        sd["vibration"] = min(sd["vibration"], CLEAR_FAULT_MAX_VIBRATION)
-        sd["voltage"] = _clamp(sd["voltage"], CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
+        if sd.get("flow_rate", 0) < CLEAR_FAULT_MIN_FLOW:
+            sim.manual_overrides["flow_rate"] = expiration
+            sim.manual_targets["flow_rate"] = CLEAR_FAULT_MIN_FLOW
+        if sd.get("pressure", 0) < CLEAR_FAULT_MIN_PRESSURE:
+            sim.manual_overrides["pressure"] = expiration
+            sim.manual_targets["pressure"] = CLEAR_FAULT_MIN_PRESSURE
+        if sd.get("vibration", 0) > CLEAR_FAULT_MAX_VIBRATION:
+            sim.manual_overrides["vibration"] = expiration
+            sim.manual_targets["vibration"] = CLEAR_FAULT_MAX_VIBRATION
+        volt = sd.get("voltage", 220)
+        if volt < CLEAR_FAULT_VOLTAGE_LOW or volt > CLEAR_FAULT_VOLTAGE_HIGH:
+            sim.manual_overrides["voltage"] = expiration
+            sim.manual_targets["voltage"] = _clamp(volt, CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
     if device in (None, "elevator"):
         sd["motor_stuck"] = False
-        sd["speed"] = max(sd["speed"], 0.0)
-        sd["load"] = min(sd["load"], CLEAR_FAULT_MAX_LOAD)
+        if sd.get("speed", 0) < 0.0:
+            sim.manual_overrides["speed"] = expiration
+            sim.manual_targets["speed"] = 0.0
+        if sd.get("load", 0) > CLEAR_FAULT_MAX_LOAD:
+            sim.manual_overrides["load"] = expiration
+            sim.manual_targets["load"] = CLEAR_FAULT_MAX_LOAD
         sd["door_status"] = "closed"
         sim.door_close_attempts = 0
         sim._elev_state = "IDLE"
