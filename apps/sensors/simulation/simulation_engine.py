@@ -58,6 +58,7 @@ def _clear_expired_fault_device(sim: BuildingSimulator, device: str) -> None:
         sd["pressure"] = max(sd["pressure"], CLEAR_FAULT_MIN_PRESSURE)
         sd["vibration"] = min(sd["vibration"], CLEAR_FAULT_MAX_VIBRATION)
         sd["voltage"] = _clamp(sd["voltage"], CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
+        sim._pump_demand = CLEAR_FAULT_MIN_FLOW
     elif device == "elevator":
         sd["motor_stuck"] = False
         sd["speed"] = max(sd["speed"], 0.0)

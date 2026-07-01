@@ -61,7 +61,8 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     sensors = _build_sensors_list(
         ctx.sensor_data, relevant_vars, thresholds,
         pump_on=ctx.pump_on, speed=speed,
-        door_close_attempts=ctx.door_close_attempts
+        door_close_attempts=ctx.door_close_attempts,
+        protection_ends=ctx.protection_ends,
     )
     recommendations = ctx.generate_recommendations_fn(
         ctx.sensor_data, stats,
@@ -117,13 +118,18 @@ def _build_sensors_list(
     pump_on: bool = True,
     speed: float = 0.0,
     door_close_attempts: int = 0,
+    protection_ends: dict = None,
 ) -> list[dict[str, Any]]:
     from apps.core.services.risk_service import classify_risk
+    pump_inactive = not pump_on or (protection_ends and "pump" in protection_ends)
     sensors = []
     for var, value in sensor_data.items():
         if var not in relevant_vars:
             continue
-        if var in BOOLEAN_VARS:
+        pump_var_protected = pump_inactive and var in PUMP_VARS
+        if pump_var_protected:
+            risk, color = RISK_NORMAL, "green"
+        elif var in BOOLEAN_VARS:
             risk, color = (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
         else:
             risk, color = classify_risk(

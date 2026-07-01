@@ -32,6 +32,7 @@ def reset_critical_values(targets: set[str], sim: BuildingSimulator) -> None:
         for k in PUMP_RESET_KEYS:
             if k in SAFE_RESET_VALUES:
                 sd[k] = SAFE_RESET_VALUES[k]
+        sim._pump_demand = DEFAULT_SENSOR_DATA["flow_rate"]
     if "elevator" in targets:
         for k in ELEVATOR_RESET_KEYS:
             if k in SAFE_RESET_VALUES:
