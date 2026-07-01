@@ -37,6 +37,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "trip_count": 5000,
     "door_status": "closed",
     "energy": 5.0,
+    "pump_energy": 7.0,
     "voltage": 220.0,
     "current": 20.0,
     "motor_stuck": False,
@@ -69,6 +70,7 @@ SAFE_RESET_VALUES: dict = {
     "motor_stuck": False,
     "door_status": "closed",
     "energy": 5.0,
+    "pump_energy": 7.0,
     "voltage": 220.0,
     "current": 18.0,
 }

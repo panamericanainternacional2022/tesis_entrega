@@ -47,7 +47,7 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "door_status"):
         sd["door_status"] = "closed"
     if not _is_locked(sim, "energy"):
-        sd["energy"] = 0.0
+        sd["energy"] = 0.5
     if not _is_locked(sim, "motor_stuck"):
         sd["motor_stuck"] = False
     sim.door_close_attempts = 0
@@ -76,7 +76,7 @@ def _apply_motor_stuck(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["speed"] = 0.0
     sd["motor_stuck"] = True
     sd["door_status"] = "closed"
-    sd["energy"] = _clamp(sd["energy"] + 1.2 * dt, _ENERGY_LOW, _ENERGY_HIGH)
+    sd["energy"] = 3.0
     sd["temperature"] = _clamp(sd.get("temperature", 50.0) + 1.5 * dt, _TEMP_LOW, _TEMP_HIGH)
 
 
@@ -85,7 +85,7 @@ def _apply_door_blocked(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sim.door_close_attempts += 1
     sd["motor_stuck"] = False
     sd["speed"] = 0.0
-    sd["energy"] = _clamp(sd["energy"] - 0.1 * dt, _ENERGY_LOW, _ENERGY_HIGH)
+    sd["energy"] = 1.0
 
 
 def _apply_overspeed(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -96,7 +96,8 @@ def _apply_overspeed(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["door_status"] = "closed"
     sd["motor_stuck"] = False
     sd["load"] = _clamp(sd["load"] + random.uniform(-10, 10) * dt, _LOAD_LOW, _LOAD_HIGH)
-    sd["energy"] = sd["load"] * sd["speed"] * 0.004 + random.uniform(0.2, 0.5) * dt
+    load_imbalance = abs(sd["load"] - 400) / 400
+    sd["energy"] = 1.5 + load_imbalance * sd["speed"] * 1.5
 
 
 def _run_elevator_fsm(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -300,10 +301,21 @@ def _run_elevator_post_fsm(
 def _compute_elevator_energy(
     load: float, spd: float, state: str, sim: BuildingSimulator,
 ) -> float:
-    energy = (load / 500) * spd * 2 + 0.5
-    if "elevator" in sim.protection_ends:
-        energy = _clamp(energy, _ENERGY_LOW, _ENERGY_HIGH)
-    return energy
+    if state == "IDLE":
+        return 0.5
+    if state in ("DOOR_OPENING", "DOOR_CLOSING"):
+        return 1.5
+    if state == "DOORS_OPEN":
+        return 0.8
+
+    load_imbalance = abs(load - 400) / 400
+    base_power = 1.5 + load_imbalance * spd * 1.5
+
+    if state == "ACCELERATING":
+        return base_power * 1.3
+    if state == "DECELERATING":
+        return max(0.2, base_power * 0.3)
+    return base_power
 
 
 def _check_motor_stuck(state: str, speed: float, load: float, temperature: float) -> bool:

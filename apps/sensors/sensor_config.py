@@ -6,6 +6,7 @@ VAR_NAMES = {
     "tank_level":   "Nivel de tanque",
     "voltage":      "Voltaje",
     "current":      "Corriente",
+    "pump_energy":  "Consumo eléctrico",
     "speed":        "Velocidad",
     "load":         "Carga",
     "energy":       "Consumo eléctrico",
@@ -32,6 +33,7 @@ UNITS = {
     "energy":       "kW",
     "voltage":      "V",
     "current":      "A",
+    "pump_energy":  "kW",
     "trip_count":   "viajes",
     "position":     "piso",
     "door_status":  "",
@@ -127,6 +129,7 @@ PUMP_VARS = [
     "tank_level",
     "voltage",
     "current",
+    "pump_energy",
 ]
 
 ELEVATOR_VARS = [
@@ -155,6 +158,7 @@ PDF_BAR_LABELS = {
     "tank_level":  "Tanque (%)",
     "load":        "Carga (kg)",
     "energy":      "Energía (kW)",
+    "pump_energy": "Energía (kW)",
     "voltage":     "Voltaje (V)",
     "current":     "Corriente (A)",
 }
@@ -186,6 +190,7 @@ DEFAULT_THRESHOLDS = {
     "load":        {"direction": "higher", "low": 600,  "medium": 800, "high": 900},
     "trip_count":  {"direction": "higher", "low": 10000,"medium": 20000,"high": 30000},
     "energy":      {"direction": "higher", "low": 8,    "medium": 12,  "high": 15},
+    "pump_energy": {"direction": "higher", "low": 8,    "medium": 12,  "high": 15},
     "voltage":     {"direction": "range",  "low": 200,  "high": 240},
     "current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
 }
@@ -264,6 +269,11 @@ ACTIONS: dict[str, dict[str, str]] = {
         RISK_NORMAL: "Consumo de energía normal.",
         RISK_ALTO: "Consumo de energía inusualmente alto. Monitorea la eficiencia.",
         RISK_CRITICO: "Pico de energía crítico. Posible cortocircuito o sobreesfuerzo del motor. Verifica protecciones eléctricas.",
+    },
+    "pump_energy": {
+        RISK_NORMAL: "Consumo de energía normal de la bomba.",
+        RISK_ALTO: "Consumo de energía de la bomba inusualmente alto. Monitorea la eficiencia del motor.",
+        RISK_CRITICO: "Pico de energía crítico en la bomba. Posible sobreesfuerzo del motor. Verifica protecciones eléctricas.",
     },
     "voltage": {
         RISK_NORMAL: "Voltaje dentro del rango nominal (200-240 V).",
@@ -345,6 +355,7 @@ SENSOR_RANGES = {
     "speed":       (0, 6),
     "load":        (0, 1200),
     "energy":      (0, 20),
+    "pump_energy": (0, 20),
     "trip_count":  (0, 100000),
     "position":    (0, 100),
 }

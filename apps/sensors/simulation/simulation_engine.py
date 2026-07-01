@@ -154,6 +154,7 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
         "speed": 1.0,
         "load": 150.0,
         "energy": 2.0,
+        "pump_energy": 2.0,
         "position": 1.0,
         "trip_count": 1000.0,
     }

@@ -893,6 +893,7 @@
         hideAllStates();
 
         const simPaused = data.sim_paused === true;
+        const isFirstLoad = Object.keys(currentReadings).length === 0;
 
         if (IS_ADMIN) {
             if (data.sim_paused !== undefined) updatePauseBtn(data.sim_paused);
@@ -924,7 +925,7 @@
             }
         }
 
-        if (simPaused) return;
+        if (simPaused && !isFirstLoad) return;
 
         if (data.current) { currentReadings = data.current; updateCards(data.current); }
         if (data.history) updateCharts(data.history);
