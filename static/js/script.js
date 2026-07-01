@@ -417,6 +417,8 @@
         simInjectFault: (id) => `/api/sim/${id}/inject-fault/`,
         simClearFault: (id) => `/api/sim/${id}/clear-fault/`,
         simSetSpeed: (id) => `/api/sim/${id}/set-speed/`,
+        simTogglePump: (id) => `/api/sim/${id}/toggle-pump/`,
+        simToggleElevator: (id) => `/api/sim/${id}/toggle-elevator/`,
         status: (id) => id ? `/api/status/?edificio_id=${id}` : '/api/status/',
         thresholds: (id) => `/api/thresholds/?edificio_id=${id}`,
         sensorLimits: (id) => `/api/sensor-limits/?edificio_id=${id}`,
@@ -912,7 +914,10 @@
 
     function applyPayload(data) {
         if (data.thresholds) currentThresholds = data.thresholds;
-        if (data.pump_on !== undefined) currentPumpOn = data.pump_on;
+        if (data.pump_on !== undefined) {
+            currentPumpOn = data.pump_on;
+            updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
+        }
         if (data.door_close_attempts !== undefined) currentDoorCloseAttempts = data.door_close_attempts;
         hideAllStates();
 
@@ -1790,6 +1795,44 @@
     const setSimMessage = (msg, type) =>
         showToast(msg, type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
 
+    function updateEquipmentPowerBtns(pumpOn, elevOn) {
+        const pumpBtn = document.getElementById('togglePumpBtn');
+        const elevBtn = document.getElementById('toggleElevatorBtn');
+        if (pumpBtn) {
+            pumpBtn.classList.toggle('btn-success', pumpOn === true);
+            pumpBtn.classList.toggle('btn-secondary', pumpOn !== true);
+            pumpBtn.title = pumpOn ? 'Apagar la bomba de agua' : 'Encender la bomba de agua';
+        }
+        if (elevBtn && elevOn !== undefined) {
+            elevBtn.classList.toggle('btn-success', elevOn === true);
+            elevBtn.classList.toggle('btn-secondary', elevOn !== true);
+            elevBtn.title = elevOn ? 'Apagar el elevador' : 'Encender el elevador';
+        }
+    }
+
+    async function toggleEquipmentPower(device) {
+        if (!EDIFICIO_ID) return;
+        const url = device === 'pump'
+            ? API.simTogglePump(EDIFICIO_ID)
+            : API.simToggleElevator(EDIFICIO_ID);
+        try {
+            const resp = await csrfFetch(url, { method: 'POST', body: '{}' });
+            const data = await resp.json();
+            if (data.status === 'ok') {
+                const isOn = device === 'pump' ? data.pump_on : data.elevator_on;
+                const label = device === 'pump' ? 'Bomba' : 'Elevador';
+                const state = isOn ? 'encendida' : 'apagada';
+                setSimMessage(`${label} ${state} correctamente.`, 'success');
+                if (device === 'pump') updateEquipmentPowerBtns(data.pump_on, undefined);
+                else updateEquipmentPowerBtns(undefined, data.elevator_on);
+            } else {
+                setSimMessage(data.message || 'Error al cambiar el estado del equipo.', 'error');
+            }
+        } catch (_) {
+            setSimMessage('Error de conexión al cambiar el equipo.', 'error');
+        }
+    }
+
 
     // =============================================================================
     // 11. NOTIFICACIONES EN VIVO
@@ -2041,15 +2084,19 @@
     }
 
     function setupAdminEvents() {
-        const pauseBtn = document.getElementById('simPauseBtn');
-        const resetBtn = document.getElementById('simResetBtn');
-        const faultPump = document.getElementById('simFaultPump');
-        const faultElev = document.getElementById('simFaultElevator');
+        const pauseBtn    = document.getElementById('simPauseBtn');
+        const resetBtn    = document.getElementById('simResetBtn');
+        const faultPump   = document.getElementById('simFaultPump');
+        const faultElev   = document.getElementById('simFaultElevator');
+        const togglePumpBtn = document.getElementById('togglePumpBtn');
+        const toggleElevBtn = document.getElementById('toggleElevatorBtn');
 
-        if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
-        if (resetBtn) resetBtn.addEventListener('click', resetSim);
-        if (faultPump) faultPump.addEventListener('change', () => injectFault('pump'));
-        if (faultElev) faultElev.addEventListener('change', () => injectFault('elevator'));
+        if (pauseBtn)    pauseBtn.addEventListener('click', togglePause);
+        if (resetBtn)    resetBtn.addEventListener('click', resetSim);
+        if (faultPump)   faultPump.addEventListener('change', () => injectFault('pump'));
+        if (faultElev)   faultElev.addEventListener('change', () => injectFault('elevator'));
+        if (togglePumpBtn) togglePumpBtn.addEventListener('click', () => toggleEquipmentPower('pump'));
+        if (toggleElevBtn) toggleElevBtn.addEventListener('click', () => toggleEquipmentPower('elevator'));
 
         // Delegación de eventos para botones de velocidad
         document.addEventListener('click', (e) => {

@@ -231,6 +231,7 @@ def sim_set_speed(request, building_id: int) -> JsonResponse:
 @login_required
 @admin_required
 def sim_toggle_pump(request, building_id: int) -> JsonResponse:
+    import time as _time
     sim = get_simulator(building_id)
     if sim is None:
         return json_error_response("No hay simulador activo para este edificio", 404)
@@ -245,6 +246,9 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
     except (SimulatorError, Exception):
         sim.pump_on = not sim.pump_on
 
+    # Lock the float-switch auto-control for 90 s so user action is respected
+    sim.manual_overrides["pump_on_auto"] = _time.time() + 90.0
+
     return json_success_response({"pump_on": sim.pump_on})
 
 
@@ -252,6 +256,7 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
 @login_required
 @admin_required
 def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
+    import time as _time
     sim = get_simulator(building_id)
     if sim is None:
         return json_error_response("No hay simulador activo para este edificio", 404)
@@ -265,5 +270,8 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
             sim.elevator_on = not sim.elevator_on
     except (SimulatorError, Exception):
         sim.elevator_on = not sim.elevator_on
+
+    # Register manual override so automatic logic doesn't interfere for 90 s
+    sim.manual_overrides["elevator_on_auto"] = _time.time() + 90.0
 
     return json_success_response({"elevator_on": sim.elevator_on})
