@@ -59,7 +59,7 @@ CLEAR_FAULT_VOLTAGE_HIGH: float = 230.0
 CLEAR_FAULT_MAX_LOAD: float = 500.0
 
 SAFE_RESET_VALUES: dict = {
-    "flow_rate": 25.0,
+    "flow_rate": 18.0,
     "pressure": 4.0,
     "temperature": 50.0,
     "vibration": 1.5,

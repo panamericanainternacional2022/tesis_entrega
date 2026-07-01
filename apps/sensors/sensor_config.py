@@ -50,23 +50,23 @@ SEVERITY_LEVELS = [RISK_NORMAL, RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO]
 
 RISK_COLORS = {
     RISK_NORMAL: {
-        "pdf":     {"bg": (240, 253, 244), "text": (22, 101, 52)},
+        "pdf":     {"bg": (240, 253, 244), "text": (22, 163, 74)},
         "email":   {"bg": "#f0fdf4", "border": "#bbf7d0", "text": "#16a34a"},
         "desc":    "Valores normales de funcionamiento",
     },
     RISK_INFORMATIVO: {
-        "pdf":     {"bg": (245, 245, 245), "text": (107, 107, 107)},
-        "email":   {"bg": "#f5f5f5", "border": "#e0e0e0", "text": "#6b6b6b"},
+        "pdf":     {"bg": (241, 245, 249), "text": (71, 85, 105)},
+        "email":   {"bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569"},
         "desc":    "Eventos informativos del sistema",
     },
     RISK_ALTO: {
-        "pdf":     {"bg": (255, 247, 237), "text": (194, 65, 12)},
-        "email":   {"bg": "#fff7ed", "border": "#fed7aa", "text": "#c2410c"},
+        "pdf":     {"bg": (255, 247, 237), "text": (217, 119, 6)},
+        "email":   {"bg": "#fff7ed", "border": "#fed7aa", "text": "#d97706"},
         "desc":    "Fuera de rango seguro",
     },
     RISK_CRITICO: {
-        "pdf":     {"bg": (254, 242, 242), "text": (220, 38, 38)},
-        "email":   {"bg": "#fef2f2", "border": "#fecaca", "text": "#dc2626"},
+        "pdf":     {"bg": (254, 242, 242), "text": (185, 28, 28)},
+        "email":   {"bg": "#fef2f2", "border": "#fecaca", "text": "#b91c1c"},
         "desc":    "Estado de peligro, acción inmediata",
     },
 }
@@ -86,7 +86,7 @@ EMAIL_COLOR_PALETTE: dict[str, dict[str, str]] = {
     for risk, v in RISK_COLORS.items()
 }
 EMAIL_FALLBACK_COLORS: dict[str, str] = {
-    "bg": "#f5f5f5", "border": "#e0e0e0", "text": "#6b6b6b",
+    "bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569",
 }
 
 RISK_NAMES_ES = {

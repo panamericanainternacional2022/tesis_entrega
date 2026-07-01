@@ -28,7 +28,15 @@ _CONTEXT_DEFAULT = (
     "los parámetros del evento y la medida correctiva recomendada."
 )
 
-_NAVY = "#1e3a5f"
+# ─── Design tokens del correo (alineados con static/css/styles.css) ───────────
+_ACCENT          = "#2563eb"   # --color-accent
+_INK             = "#0a0a0a"   # --color-ink (bordes brutales)
+_BG              = "#f5f5f5"   # --color-bg
+_SURFACE         = "#ffffff"   # --color-surface
+_TEXT_PRIMARY    = "#0a0a0a"   # --color-text-primary
+_TEXT_SECONDARY  = "#5e5e5e"   # --color-text-secondary
+_TEXT_MUTED      = "#9e9e9e"   # --color-text-placeholder
+# ────────────────────────────────────────────────────────────────────────────────
 
 
 def get_unit(variable: str) -> str:
@@ -159,26 +167,30 @@ def _build_email_shell(inner_html: str) -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #0a0a0a;">
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0f2f5; padding: 32px 0;">
+<body style="margin: 0; padding: 0; background-color: {_BG}; font-family: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: {_TEXT_PRIMARY};">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: {_BG}; padding: 32px 16px;">
     <tr>
       <td align="center">
-        <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border: 1px solid #d1d5db; border-collapse: collapse; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+        <!-- Contenedor principal: borde brutal 3px negro + sombra plana -->
+        <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: {_SURFACE}; border: 3px solid {_INK}; border-collapse: separate; box-shadow: 4px 4px 0px {_INK}; max-width: 600px;">
 
-          <!-- Barra de acento navy (coherente con los PDFs) -->
+          <!-- Barra de acento azul superior (5px, igual que ::before de la página) -->
           <tr>
-            <td style="background-color: {_NAVY}; height: 4px; padding: 0; font-size: 0; line-height: 0;">&nbsp;</td>
+            <td style="background-color: {_ACCENT}; height: 5px; padding: 0; font-size: 0; line-height: 0;">&nbsp;</td>
           </tr>
 
-          <!-- Header con wordmark INES (sin border-bottom para que el banner fluya pegado) -->
+          <!-- Header con wordmark INES -->
           <tr>
-            <td style="padding: 18px 28px 18px 28px; background-color: #ffffff;">
+            <td style="padding: 18px 28px; background-color: {_SURFACE}; border-bottom: 3px solid {_INK};">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td style="border-left: 4px solid {_NAVY}; padding-left: 12px;">
-                    <span style="font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: {_NAVY}; display: block; line-height: 1.2;">{_BRAND_NAME}</span>
-                    <span style="font-size: 11px; font-weight: 500; color: #6b7280; display: block; margin-top: 2px;">{_BRAND_SUBTITLE}</span>
+                  <td style="border-left: 5px solid {_ACCENT}; padding-left: 12px;">
+                    <span style="font-size: 16px; font-weight: 700; letter-spacing: 0.06em; color: {_TEXT_PRIMARY}; display: block; line-height: 1.2; text-transform: uppercase;">{_BRAND_NAME}</span>
+                    <span style="font-size: 11px; font-weight: 500; color: {_TEXT_SECONDARY}; display: block; margin-top: 2px; letter-spacing: 0.03em;">{_BRAND_SUBTITLE}</span>
                   </td>
                 </tr>
               </table>
@@ -189,7 +201,7 @@ def _build_email_shell(inner_html: str) -> str:
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 16px 28px; border-top: 1px solid #e5e7eb; background-color: #f9fafb; font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.6;">
+            <td style="padding: 16px 28px; border-top: 3px solid {_INK}; background-color: {_BG}; font-size: 11px; color: {_TEXT_MUTED}; text-align: center; line-height: 1.6; letter-spacing: 0.01em;">
               {_FOOTER_TEXT}
             </td>
           </tr>
@@ -207,12 +219,12 @@ def _build_details_table(details: Dict[str, str]) -> str:
 
     rows = "".join(f"""
           <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; font-weight: 700; width: 38%; color: #374151; vertical-align: top;">{k}</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; color: #111827; vertical-align: top;">{v}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; font-weight: 700; width: 38%; color: {_TEXT_PRIMARY}; vertical-align: top; letter-spacing: 0.01em;">{k}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; color: {_TEXT_PRIMARY}; vertical-align: top;">{v}</td>
           </tr>""" for k, v in details.items())
     return f"""
-        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #6b7280; text-transform: uppercase;">{_DETAILS_LABEL}</p>
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border-top: 1px solid #f3f4f6; margin-bottom: 24px;">
+        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border-top: 2px solid {_INK}; margin-bottom: 24px;">
           {rows}
         </table>"""
 
@@ -221,9 +233,9 @@ def _build_action_box(action_text: str, colors: Dict[str, str]) -> str:
 
 
     return f"""
-        <div style="margin: 20px 0 0 0; padding: 16px 20px; background-color: {colors['bg']}; border: 1px solid {colors['border']}; border-left: 4px solid {colors['text']}; border-radius: 2px;">
+        <div style="margin: 20px 0 0 0; padding: 16px 20px; background-color: {colors['bg']}; border: 2px solid {_INK}; border-left: 5px solid {colors['text']}; border-radius: 0;">
           <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ACTION_LABEL}</span>
-          <p style="margin: 0; font-size: 13px; font-weight: 500; color: #111827; line-height: 1.5;">{action_text}</p>
+          <p style="margin: 0; font-size: 13px; font-weight: 500; color: {_TEXT_PRIMARY}; line-height: 1.6;">{action_text}</p>
         </div>"""
 
 
@@ -239,13 +251,13 @@ def _build_alert_html(
 
     banner = f"""
           <tr>
-            <td style="padding: 20px 28px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background-color: {colors['bg']}; border-left: 4px solid {colors['text']};">
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
               <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: {risk_level}</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: #111827;">{_ALERT_H1}</h1>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">{_ALERT_H1}</h1>
             </td>
           </tr>"""
 
-    inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #374151;">{context}</p>'
+    inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{context}</p>'
 
     if details:
         inner += _build_details_table(details)
@@ -255,7 +267,7 @@ def _build_alert_html(
 
     body_row = f"""
           <tr>
-            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: #374151;">
+            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               {inner}
             </td>
           </tr>"""
@@ -267,39 +279,39 @@ def build_activation_email_html(link: str) -> str:
 
 
     inner_html = f"""
-          <!-- Banner de cabecera (pegado al header sin gap) -->
+          <!-- Banner de cabecera -->
           <tr>
-            <td style="padding: 20px 28px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background-color: #f8fafc; border-left: 4px solid {_NAVY};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_NAVY}; display: block; margin-bottom: 6px; text-transform: uppercase;">Acceso al sistema</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: #111827;">Activaci&oacute;n de su cuenta</h1>
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: #eff6ff; border-left: 5px solid {_ACCENT};">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Acceso al sistema</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Activaci&oacute;n de su cuenta</h1>
             </td>
           </tr>
 
           <!-- Cuerpo -->
           <tr>
-            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: #374151;">
+            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               <p style="margin: 0 0 16px 0;">Estimado/a usuario/a:</p>
-              <p style="margin: 0 0 16px 0;">Su cuenta ha sido registrada en el <strong>Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contrase&ntilde;a.</p>
+              <p style="margin: 0 0 16px 0;">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contrase&ntilde;a.</p>
               <p style="margin: 0 0 24px 0;">Para ello, haga clic en el bot&oacute;n que figura a continuaci&oacute;n:</p>
 
-              <!-- Bot&oacute;n CTA -->
+              <!-- Bot&oacute;n CTA: estilo brutal (borde negro + sombra plana) -->
               <div style="margin: 0 0 28px 0; text-align: left;">
                 <a href="{link}" target="_blank"
-                   style="background-color: {_NAVY}; color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border-radius: 2px;">
+                   style="background-color: {_ACCENT}; color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 3px 3px 0 {_INK};">
                   Completar registro
                 </a>
               </div>
 
               <!-- Caja de informaci&oacute;n de seguridad -->
-              <div style="padding: 16px 20px; background-color: #f8fafc; border: 1px solid #e5e7eb; border-left: 4px solid {_NAVY}; border-radius: 2px; margin-bottom: 24px;">
-                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_NAVY}; display: block; margin-bottom: 8px; text-transform: uppercase;">Informaci&oacute;n de seguridad</span>
-                <p style="margin: 0 0 6px 0; font-size: 13px; color: #374151;">&bull; Este enlace es v&aacute;lido durante las pr&oacute;ximas <strong>24 horas</strong>.</p>
-                <p style="margin: 0; font-size: 13px; color: #374151;">&bull; Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
+              <div style="padding: 16px 20px; background-color: #eff6ff; border: 2px solid {_INK}; border-left: 5px solid {_ACCENT}; border-radius: 0; margin-bottom: 24px;">
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 8px; text-transform: uppercase;">Informaci&oacute;n de seguridad</span>
+                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">&#x2022; Este enlace es v&aacute;lido durante las pr&oacute;ximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
+                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">&#x2022; Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
               </div>
 
               <!-- Enlace de respaldo -->
-              <p style="margin: 0; font-size: 12px; color: #9ca3af;">Si el bot&oacute;n no funciona correctamente, copie y pegue la siguiente direcci&oacute;n en su navegador:<br>
-              <a href="{link}" style="color: {_NAVY}; text-decoration: underline; word-break: break-all;">{link}</a></p>
+              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el bot&oacute;n no funciona correctamente, copie y pegue la siguiente direcci&oacute;n en su navegador:<br>
+              <a href="{link}" style="color: {_ACCENT}; text-decoration: underline; word-break: break-all;">{link}</a></p>
             </td>
           </tr>"""
 
@@ -316,19 +328,19 @@ def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
         f"operación y un resumen del nivel de riesgo de cada parámetro monitoreado."
     )
     inner_html = f"""
-          <!-- Banner de cabecera (reporte de estado — tono neutro informativo) -->
+          <!-- Banner de cabecera (reporte de estado) -->
           <tr>
-            <td style="padding: 20px 28px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background-color: #f0f4f8; border-left: 4px solid {_NAVY};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_NAVY}; display: block; margin-bottom: 6px; text-transform: uppercase;">Reporte de monitoreo</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: #111827;">Estado actual del sistema de infraestructura</h1>
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: #eff6ff; border-left: 5px solid {_ACCENT};">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Reporte de monitoreo</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Estado actual del sistema de infraestructura</h1>
             </td>
           </tr>
 
           <!-- Cuerpo -->
           <tr>
-            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: #374151;">
+            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               <p style="margin: 0 0 20px 0;">{ctx}</p>
-              <p style="margin: 0; font-size: 13px; color: #6b7280;">El informe PDF se encuentra adjunto al presente correo.</p>
+              <p style="margin: 0; font-size: 13px; color: {_TEXT_MUTED};">El informe PDF se encuentra adjunto al presente correo.</p>
             </td>
           </tr>"""
     return _build_email_shell(inner_html)

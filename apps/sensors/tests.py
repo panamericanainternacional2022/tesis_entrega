@@ -265,7 +265,9 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         # Lock tank so float switch sees 50% and doesn't turn pump on
         sim.manual_overrides["tank_level"] = time.time() + 90.0
         sim.manual_pump_override = True
-        _update_pump(sim)
+        # Progressive idle decay: flow -3.0/tick, pressure -1.5/tick, etc.
+        for _ in range(10):
+            _update_pump(sim)
         self.assertEqual(sim.sensor_data["flow_rate"], 0.0, "flow_rate must be 0 when pump is OFF.")
         self.assertEqual(sim.sensor_data["pressure"],  0.0, "pressure must be 0 when pump is OFF.")
         self.assertEqual(sim.sensor_data["vibration"], 0.0, "vibration must be 0 when pump is OFF.")
@@ -396,7 +398,9 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim.elevator_on = False
         sim.sensor_data["speed"] = 2.0       # pre-seed a non-zero speed
         sim.sensor_data["door_status"] = "closed"
-        _update_elevator(sim)
+        # Progressive idle decay: speed -1.0/tick
+        for _ in range(5):
+            _update_elevator(sim)
         self.assertEqual(sim.sensor_data["speed"], 0.0, "Elevator OFF must have speed = 0.")
 
     # -----------------------------------------------------------------------
@@ -427,6 +431,8 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim.sensor_data["flow_rate"] = 15.0
         sim.sensor_data["pressure"]  = 5.0
         sim.manual_overrides["tank_level"] = time.time() + 90.0
-        _update_pump(sim)
+        # Progressive idle decay: flow -3.0/tick, pressure -1.5/tick
+        for _ in range(10):
+            _update_pump(sim)
         self.assertEqual(sim.sensor_data["flow_rate"], 0.0, "Protected pump must zero flow.")
         self.assertEqual(sim.sensor_data["pressure"],  0.0, "Protected pump must zero pressure.")
