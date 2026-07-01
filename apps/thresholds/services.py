@@ -16,6 +16,15 @@ def get_thresholds(building_id: int) -> Dict[str, Dict[str, Any]]:
 
     result: Dict[str, Dict[str, Any]] = {k: dict(v) for k, v in DEFAULT_THRESHOLDS.items()}
     try:
+        from apps.buildings.models import Building
+        building = Building.objects.filter(id=building_id).first()
+        if building and building.floors > 0:
+            if "position" in result:
+                result["position"]["high"] = float(building.floors)
+    except Exception as e:
+        logger.debug("Could not determine dynamic position threshold limit for building %s: %s", building_id, e)
+
+    try:
         for row in ThresholdConfig.objects.filter(building_id=building_id):
             result[row.variable] = {
                 "direction": row.direction,

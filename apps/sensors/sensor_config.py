@@ -107,9 +107,9 @@ DEVICE_NAMES_ES = {
     "chiller":    "enfriadora",
 }
 
-NO_RISK_VARS = ["position"]
+NO_RISK_VARS = []
 
-LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate"]
+LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position"]
 
 ZERO_IS_CRITICAL_VARS = {"flow_rate", "pressure"}
 
@@ -193,6 +193,7 @@ DEFAULT_THRESHOLDS = {
     "pump_energy": {"direction": "higher", "low": 8,    "medium": 12,  "high": 15},
     "voltage":     {"direction": "range",  "low": 200,  "high": 240},
     "current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
+    "position":    {"direction": "range",  "low": 0.0,  "high": 20.0},
 }
 
 RECOMMENDATION_THRESHOLDS = {
@@ -204,6 +205,11 @@ RECOMMENDATION_THRESHOLDS = {
     "load":        {"max_warn": 800},
     "voltage":     {"range_warn": (200, 240)},
     "current":     {"max_warn": 45},
+    "position":    {"range_warn": (0.0, 20.0)},
+    "trip_count":  {"max_warn": 10000, "max_crit": 30000},
+    "speed":       {"max_warn": 2.5, "max_crit": 4.0},
+    "energy":      {"max_warn": 8.0, "max_crit": 15.0},
+    "pump_energy": {"max_warn": 8.0, "max_crit": 15.0},
 }
 
 RECOMMENDATION_WARN_MSGS: dict[str, str] = {
@@ -214,12 +220,21 @@ RECOMMENDATION_WARN_MSGS: dict[str, str] = {
     "tank_level": "Nivel de tanque bajo.",
     "load": "Sobrecarga de elevador. Reducir carga.",
     "current": "Sobrecarga eléctrica.",
+    "position": "Posición de elevador fuera del rango seguro.",
+    "trip_count": "Conteo de viajes del elevador elevado. Se sugiere inspección preventiva.",
+    "speed": "Velocidad de elevador fuera del rango normal.",
+    "energy": "Consumo eléctrico de elevador elevado.",
+    "pump_energy": "Consumo eléctrico de bomba elevado.",
 }
 
 RECOMMENDATION_CRIT_MSGS: dict[str, str] = {
     "temperature": "Temperatura del motor muy alta. Verificar sistema de enfriamiento.",
     "flow_rate": "Caudal bajo. Verificar bomba.",
     "tank_level": "Nivel de tanque crítico. Relleno urgente.",
+    "trip_count": "Conteo de viajes crítico. Mantenimiento obligatorio inmediato.",
+    "speed": "Velocidad crítica del elevador. Frenado de emergencia sugerido.",
+    "energy": "Consumo eléctrico de elevador crítico.",
+    "pump_energy": "Consumo eléctrico de bomba crítico.",
 }
 
 RECOMMENDATION_RANGE_MSG: str = "Inestabilidad eléctrica. Verificar suministro eléctrico."

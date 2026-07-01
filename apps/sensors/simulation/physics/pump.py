@@ -230,7 +230,11 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
     pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
     
-    temp = sd["temperature"] + (flow * pressure * 0.01 - 0.3) * dt + random.uniform(-0.3, 0.3) * dt
+    if flow <= 0.1:
+        temp_step = 1.0 * dt
+    else:
+        temp_step = (flow * pressure * 0.01 - 0.3) * dt
+    temp = sd["temperature"] + temp_step + random.uniform(-0.3, 0.3) * dt
     
     vib = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
     

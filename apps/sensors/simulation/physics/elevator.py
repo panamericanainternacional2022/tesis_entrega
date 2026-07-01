@@ -226,7 +226,7 @@ def _handle_elev_moving(
 ) -> None:
     spd = CRUISING_SPEED + random.uniform(-0.1, 0.1) * dt
     door = "closed"
-    pos += spd * direction * 0.5 * dt
+    pos += spd * direction * dt
     if direction > 0 and pos >= target - 1.5:
         sim._elev_state = "DECELERATING"
         sim._elev_timer = 0

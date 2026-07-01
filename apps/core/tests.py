@@ -66,8 +66,9 @@ class ClassifyRiskTests(TestCase):
         self.assertEqual(color, "green")
 
     def test_no_risk_vars_return_normal(self):
-        for var in ("position", "door_status"):
-            risk, color = classify_risk(var, 42)
+        from unittest.mock import patch
+        with patch("apps.core.services.risk_service.NO_RISK_VARS", ["position"]):
+            risk, color = classify_risk("position", 42)
             self.assertEqual(risk, RISK_NORMAL)
             self.assertEqual(color, "green")
 
