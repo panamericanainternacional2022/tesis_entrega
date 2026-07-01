@@ -1984,7 +1984,7 @@
         const btn = document.getElementById('toggleAlertsBtn');
         if (!btn) return;
         btn.dataset.enabled = 'true'; btn.dataset.disabledUntilMs = '';
-        btn.className = 'btn btn-secondary';
+        btn.className = 'btn btn-critical';
         btn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
         await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: true }) });
         await showAlert('Alertas reactivadas.', 'success');
@@ -2004,7 +2004,7 @@
                 if (!isEnabled) {
                     if (alertCountdownInterval) { clearInterval(alertCountdownInterval); alertCountdownInterval = null; }
                     toggleBtn.dataset.enabled = 'true'; toggleBtn.dataset.disabledUntilMs = '';
-                    toggleBtn.className = 'btn btn-secondary';
+                    toggleBtn.className = 'btn btn-critical';
                     toggleBtn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
                     await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: true }) });
                     await showAlert('Alertas activadas con éxito.', 'success');
@@ -2012,7 +2012,7 @@
                 } else {
                     const minutes = await showDurationPicker();
                     if (minutes === undefined) return;
-                    toggleBtn.dataset.enabled = 'false'; toggleBtn.className = 'btn btn-critical';
+                    toggleBtn.dataset.enabled = 'false'; toggleBtn.className = 'btn btn-secondary';
                     if (minutes !== null) {
                         const untilMs = Date.now() + minutes * 60 * 1000;
                         toggleBtn.dataset.disabledUntilMs = untilMs;
@@ -2350,13 +2350,13 @@
                 const sessionEnabled = toggleBtn.dataset.enabled === 'true';
                 const disabledUntilMs = parseInt(toggleBtn.dataset.disabledUntilMs || '0', 10);
                 if (sessionEnabled) {
-                    toggleBtn.className = 'btn btn-secondary';
+                    toggleBtn.className = 'btn btn-critical';
                     toggleBtn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
                 } else if (disabledUntilMs && disabledUntilMs > Date.now()) {
-                    toggleBtn.className = 'btn btn-critical';
+                    toggleBtn.className = 'btn btn-secondary';
                     startAlertCountdown(disabledUntilMs);
                 } else {
-                    toggleBtn.className = 'btn btn-critical';
+                    toggleBtn.className = 'btn btn-secondary';
                     toggleBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> Activar alertas';
                 }
             }
