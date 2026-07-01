@@ -200,14 +200,40 @@ def render_severity_legend(pdf: Any) -> None:
 
     render_section_divider(pdf, "Leyenda de severidades")
     _pdf_font(pdf, "", 10)
+
+    row_h   = 9      # altura de cada fila (mm)
+    pad_h   = 2.5    # padding horizontal (mm)
+    pad_v   = 1.5    # padding vertical superior (mm)
+    w_lbl   = 36     # ancho columna etiqueta
+    w_desc  = 154    # ancho columna descripción (36+154=190)
+
     for lbl, fill, text_c, desc in SEVERITY_DISPLAY_LEVELS:
+        x0 = pdf.get_x()
+        y0 = pdf.get_y()
+
+        # Celda de etiqueta con color de severidad
         pdf.set_fill_color(*fill)
-        pdf.set_text_color(*text_c)
         pdf.set_draw_color(10, 10, 10)
-        pdf.cell(28, 6, f"  {safe_text(lbl)}", 1, 0, "L", True)
+        pdf.rect(x0, y0, w_lbl, row_h, "DF")
+
+        # Celda de descripción sin relleno
+        pdf.set_fill_color(255, 255, 255)
+        pdf.rect(x0 + w_lbl, y0, w_desc, row_h, "DF")
+
+        # Texto etiqueta con padding
+        pdf.set_xy(x0 + pad_h, y0 + pad_v)
+        pdf.set_text_color(*text_c)
+        pdf.cell(w_lbl - 2 * pad_h, row_h - 2 * pad_v, safe_text(lbl), 0, 0, "L")
+
+        # Texto descripción con padding
+        pdf.set_xy(x0 + w_lbl + pad_h, y0 + pad_v)
         pdf.set_text_color(95, 95, 95)
-        pdf.cell(162, 6, f" {safe_text(desc)}", 1, 1, "L")
+        pdf.cell(w_desc - 2 * pad_h, row_h - 2 * pad_v, safe_text(desc), 0, 0, "L")
+
+        pdf.set_xy(x0, y0 + row_h)
+
     pdf.ln(6)
+
 
 
 def render_stats_summary(pdf: Any, parsed_list: list) -> None:

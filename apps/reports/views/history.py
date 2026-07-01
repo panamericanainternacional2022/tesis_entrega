@@ -1,3 +1,4 @@
+from apps.reports.views.shared import draw_row
 import datetime as dt
 from typing import Any
 
@@ -17,38 +18,66 @@ from .pdf_rendering import (
     render_table_header,
 )
 from .shared import (
-    _apply_period_filter,
-    _apply_severity_filter,
-    _filter_by_role_and_building,
     _get_period_label,
-    _get_user_info,
-    _parse_and_filter_notifications,
-    _parse_query_params,
     _pdf_font,
-    draw_row,
     safe_text,
 )
 
 
 @login_required
 def history_pdf_view(request: Any) -> HttpResponse:
-    user_id, role = _get_user_info(request)
-    if not user_id:
+    import datetime as dt
+    from django.utils import timezone
+    from apps.events.shared import _build_notification_query, parse_notification_for_display
+    from apps.dashboard.shared import (
+        filter_date_range, parse_notifications,
+        filter_severity_python, filter_by_variable,
+    )
+    from apps.core.services.http_request import get_building_id_param
+
+    usuario_id = request.session.get("usuario_id")
+    if not usuario_id:
         return HttpResponse("No autorizado", status=401)
 
-    params = _parse_query_params(request)
+    rol = request.session.get("usuario_rol", "US")
+    building_id_raw = get_building_id_param(request, "building", "edificio")
 
-    notifications, building_name = _filter_by_role_and_building(
-        user_id, role, params["building_id"]
+    # Leer parámetros — mismos nombres que el template
+    severity       = request.GET.get("severidad", "").strip()
+    variable_filter = request.GET.get("variable", "").strip()
+    period         = request.GET.get("periodo", "1h").strip()
+    date_from      = request.GET.get("fecha_desde", "").strip()
+    date_to        = request.GET.get("fecha_hasta", "").strip()
+
+    # 1. Obtener queryset base (mismo que notifications_view)
+    notifications, building_name = _build_notification_query(usuario_id, rol, building_id_raw)
+
+    # 2. Aplicar timestamp de "limpiar alertas" (idéntico al template)
+    alerts_cleared_at = request.session.get("alerts_cleared_at")
+    if alerts_cleared_at:
+        cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
+        notifications = notifications.filter(date__gt=cleared_dt)
+
+    # 3. Filtrar por rango de fecha (misma función del template)
+    notifications = filter_date_range(notifications, period, date_from, date_to)
+
+    # 4. Ordenar y parsear
+    notifications = (
+        notifications
+        .select_related("user", "monitoring_equipment__building")
+        .distinct()
+        .order_by("-date")
     )
+    parsed_list = parse_notifications(notifications)
 
-    notifications = _apply_severity_filter(notifications, params["severity"])
-    notifications = _apply_period_filter(
-        notifications, params["period"], params["date_from"], params["date_to"]
-    )
+    # 5. Filtrar severidad y variable en Python (igual que el template)
+    parsed_list = filter_severity_python(parsed_list, severity)
+    parsed_list = filter_by_variable(parsed_list, variable_filter)
 
-    parsed_list = _parse_and_filter_notifications(notifications, params["variable"])
-    range_label = _get_period_label(params["period"], params["date_from"], params["date_to"])
+    # Etiqueta del período para el encabezado
+    range_label = _get_period_label(period, date_from, date_to)
+    if not building_name:
+        building_name = building_id_raw or "Todos los edificios"
 
     try:
         pdf = _create_report_pdf("Historial de eventos")
@@ -61,12 +90,12 @@ def history_pdf_view(request: Any) -> HttpResponse:
             meta_lines=[
                 f"Generado: {now.strftime('%d/%m/%Y %H:%M:%S')}",
                 f"Edificio: {building_name}",
-                f"Severidad: {params['severity'] if params['severity'] else 'Todas'}",
-                f"Variable: {params['variable'] if params['variable'] else 'Todas'}",
+                f"Severidad: {severity if severity else 'Todas'}",
+                f"Variable: {variable_filter if variable_filter else 'Todas'}",
                 f"Período: {range_label}",
                 (
-                    f"Rango personalizado: {params['date_from']} al {params['date_to']}"
-                    if params["date_from"] and params["date_to"]
+                    f"Rango personalizado: {date_from} al {date_to}"
+                    if date_from and date_to
                     else None
                 ),
                 f"Total de eventos: {len(parsed_list)}",
@@ -79,6 +108,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
         render_severity_legend(pdf)
 
         from collections import OrderedDict
+
         groups: OrderedDict[str, list[Any]] = OrderedDict()
         for n in parsed_list:
             bld = (
@@ -124,8 +154,8 @@ def history_pdf_view(request: Any) -> HttpResponse:
         )
 
 
-def _render_building_summary(pdf: Any, groups: dict) -> None:
 
+def _render_building_summary(pdf: Any, groups: dict) -> None:
 
     render_section_divider(pdf, "Distribución de eventos por edificio")
 

@@ -42,7 +42,7 @@ _EQUIP_TYPE_ES: dict[str, str] = {
 }
 
 
-def generate_building_report_bytes(edificio_id: int) -> tuple[bytes, str]:
+def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tuple[bytes, str]:
     from apps.core.services.risk_service import classify_risk
     from apps.thresholds.services import get_thresholds
     from apps.sensors.sensor_config import (
@@ -118,7 +118,12 @@ def generate_building_report_bytes(edificio_id: int) -> tuple[bytes, str]:
     if stats:
         _render_stats_table(pdf, stats, relevant_vars, VAR_NAMES, UNITS)
 
-    _render_alerts_section(pdf, edificio_id, now)
+    # Datos de sesión para filtrado de alertas (misma lógica que notifications_view)
+    usuario_id = request.session.get("usuario_id") if request else None
+    usuario_rol = request.session.get("usuario_rol", "US") if request else "US"
+    alerts_cleared_at = request.session.get("alerts_cleared_at") if request else None
+
+    _render_alerts_section(pdf, edificio_id, now, usuario_id, usuario_rol, alerts_cleared_at)
     _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
 
@@ -139,7 +144,7 @@ def generate_building_report_bytes(edificio_id: int) -> tuple[bytes, str]:
 @login_required
 def building_report_pdf_view(request: Any, edificio_id: int) -> HttpResponse:
     try:
-        pdf_bytes, filename = generate_building_report_bytes(edificio_id)
+        pdf_bytes, filename = generate_building_report_bytes(edificio_id, request=request)
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
@@ -426,17 +431,45 @@ def _render_rationing_section(pdf: Any, sensor_data: dict) -> None:
     pdf.ln(4)
 
 
-def _render_alerts_section(pdf: Any, edificio_id: int, now: dt.datetime) -> None:
+def _render_alerts_section(
+    pdf: Any,
+    edificio_id: int,
+    now: dt.datetime,
+    usuario_id: int | None = None,
+    usuario_rol: str = "US",
+    alerts_cleared_at: float | None = None,
+) -> None:
+    from apps.events.shared import _build_notification_query
+    from apps.dashboard.shared import filter_date_range, parse_notifications
+
     if pdf.get_y() > 230:
         pdf.add_page()
 
     render_section_divider(pdf, "Alertas detectadas en el período")
 
-    since = now - dt.timedelta(hours=24)
-    notifications = Notification.objects.filter(
-        monitoring_equipment__building_id=edificio_id,
-        date__gte=since,
-    ).order_by("-date")
+    # 1. Query base con control de acceso (igual que notifications_view)
+    if usuario_id:
+        notifications, _ = _build_notification_query(usuario_id, usuario_rol, str(edificio_id))
+    else:
+        # Fallback sin sesión: query directa al edificio
+        notifications = Notification.objects.filter(
+            monitoring_equipment__building_id=edificio_id,
+        )
+
+    # 2. Aplicar alerts_cleared_at (igual que el template)
+    if alerts_cleared_at:
+        cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
+        notifications = notifications.filter(date__gt=cleared_dt)
+
+    # 3. Filtrar últimas 24 horas (período del reporte de edificio)
+    notifications = filter_date_range(notifications, "24h", "", "")
+
+    notifications = (
+        notifications
+        .select_related("monitoring_equipment__building")
+        .distinct()
+        .order_by("-date")
+    )
 
     total = notifications.count()
     _pdf_font(pdf, "", 10)
@@ -444,11 +477,16 @@ def _render_alerts_section(pdf: Any, edificio_id: int, now: dt.datetime) -> None
     pdf.cell(0, 7, safe_text(f"Últimas 24 horas: {total} alerta(s) registrada(s)"), ln=1)
     pdf.ln(3)
 
+    # 4. Contar por severidad parseando el mensaje
+    parsed = parse_notifications(notifications)
     counts: dict[str, int] = {}
-    for n in notifications:
-        msg = n.message
-        risk = msg.get("risk", "") if isinstance(msg, dict) else ""
-        counts[risk] = counts.get(risk, 0) + 1
+    for n in parsed:
+        risk = n.parsed_data.get("risk", "") if hasattr(n, "parsed_data") else ""
+        if not risk:
+            msg = n.message
+            risk = msg.get("risk", "") if isinstance(msg, dict) else ""
+        if risk:
+            counts[risk] = counts.get(risk, 0) + 1
 
     if not counts:
         pdf.set_text_color(95, 95, 95)
