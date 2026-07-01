@@ -1,5 +1,6 @@
 import json
 import logging
+import smtplib
 import threading
 import time as time_module
 import datetime as dt
@@ -257,6 +258,22 @@ def _build_report_email_body(sim) -> tuple[str, str]:
     return subject, body
 
 
+def _smtp_error_message(exc: Exception) -> str:
+    """Traduce excepciones SMTP a mensajes claros para el admin."""
+    if isinstance(exc, smtplib.SMTPDataError):
+        code = exc.args[0]
+        raw = exc.args[1]
+        msg = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
+        if code == 550 and "limit" in msg.lower():
+            return "Límite diario de envío de Gmail excedido. Intente mañana o reduzca la frecuencia de alertas."
+        return f"Error SMTP ({code}): {msg[:200]}"
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        return "Error de autenticación SMTP. Verifique las credenciales en el archivo .env."
+    if isinstance(exc, smtplib.SMTPConnectError):
+        return "No se pudo conectar al servidor SMTP. Verifique SMTP_SERVER y SMTP_PORT."
+    return f"Error al enviar correo: {type(exc).__name__}: {exc}"
+
+
 @require_http_methods(["POST"])
 @login_required
 @admin_required
@@ -273,7 +290,7 @@ def send_test_email(request: HttpRequest) -> JsonResponse:
     from apps.sensors.simulation.globals import simulators
     sim = next(iter(simulators.values()), None)
     if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulación primero.", 503)
+        return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
 
     subject, html_body = _build_report_email_body(sim)
 
@@ -285,17 +302,18 @@ def send_test_email(request: HttpRequest) -> JsonResponse:
     except Exception as e:
         logger.warning("Could not generate building report PDF: %s", e)
 
-    threading.Thread(
-        target=send_email_raw,
-        kwargs={
-            "to_addrs": [email],
-            "subject": subject,
-            "html_body": html_body,
-            "attachment_pdf": pdf_bytes,
-            "attachment_name": pdf_name,
-        },
-        daemon=True,
-    ).start()
+    try:
+        send_email_raw(
+            to_addrs=[email],
+            subject=subject,
+            html_body=html_body,
+            attachment_pdf=pdf_bytes,
+            attachment_name=pdf_name,
+        )
+    except Exception as exc:
+        logger.error("send_test_email failed: %s", exc)
+        return json_error(_smtp_error_message(exc), 502)
+
     return json_ok({"message": f"Reporte enviado a {email}"})
 
 
@@ -317,7 +335,7 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
         eid = None
     sim = simulators.get(eid) if eid else next(iter(simulators.values()), None)
     if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulación primero.", 503)
+        return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
 
     # Usar siempre el edificio_id del simulador resuelto para garantizar que
     # los destinatarios, el cuerpo del correo y el PDF sean del mismo edificio.
@@ -337,18 +355,18 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
     except Exception as e:
         logger.warning("Could not generate building report PDF: %s", e)
 
-    for email in emails:
-        threading.Thread(
-            target=send_email_raw,
-            kwargs={
-                "to_addrs": [email],
-                "subject": subject,
-                "html_body": html_body,
-                "attachment_pdf": pdf_bytes,
-                "attachment_name": pdf_name,
-            },
-            daemon=True,
-        ).start()
+    try:
+        send_email_raw(
+            to_addrs=emails,
+            subject=subject,
+            html_body=html_body,
+            attachment_pdf=pdf_bytes,
+            attachment_name=pdf_name,
+        )
+    except Exception as exc:
+        logger.error("send_all_subscribers failed: %s", exc)
+        return json_error(_smtp_error_message(exc), 502)
+
     return json_ok({"message": f"Reporte enviado a {len(emails)} suscriptores"})
 
 
