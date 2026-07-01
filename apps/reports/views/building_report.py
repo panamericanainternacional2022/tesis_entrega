@@ -126,6 +126,7 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
     _render_alerts_section(pdf, edificio_id, now, usuario_id, usuario_rol, alerts_cleared_at)
     _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
+    _render_limits_section(pdf, edificio_id, relevant_vars, VAR_NAMES, UNITS)
 
     filename = f"reporte_{building.name}_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
     filename = "".join(c for c in filename if c.isalnum() or c in "._- ")
@@ -615,5 +616,50 @@ def _render_thresholds(
                 [var_name, dir_labels.get(d, d), str(low), str(med), str(high), unit],
                 row_index=idx,
             )
+
+    pdf.ln(4)
+
+
+def _render_limits_section(
+    pdf: Any,
+    edificio_id: int,
+    relevant_vars: set,
+    VAR_NAMES: dict,
+    UNITS: dict,
+) -> None:
+    """Renderiza los límites físicos de operación (rango mín-máx por sensor)."""
+    from apps.limits.services import get_sensor_limits
+
+    limits = get_sensor_limits(edificio_id)
+    if not limits:
+        return
+
+    # Solo variables relevantes al edificio que tengan límite definido
+    vars_with_limit = [v for v in sorted(relevant_vars) if v in limits]
+    if not vars_with_limit:
+        return
+
+    if pdf.get_y() > 230:
+        pdf.add_page()
+
+    render_section_divider(pdf, "Límites físicos de operación")
+
+    col_widths = [80, 36, 36, 38]
+    col_headers = ["Variable", "Mínimo", "Máximo", "Unidad"]
+    col_aligns  = ["L", "C", "C", "C"]
+
+    render_table_header(pdf, col_widths, col_aligns, col_headers)
+
+    _pdf_font(pdf, "", 9)
+    pdf.set_draw_color(10, 10, 10)
+    for idx, var in enumerate(vars_with_limit):
+        lo, hi   = limits[var]
+        unit     = UNITS.get(var, "")
+        var_name = VAR_NAMES.get(var, var)
+        draw_row(
+            pdf, col_widths, col_aligns,
+            [var_name, f"{lo:.1f}", f"{hi:.1f}", unit],
+            row_index=idx,
+        )
 
     pdf.ln(4)
