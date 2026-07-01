@@ -261,7 +261,7 @@ def _render_equipment_summary(
 
     render_section_divider(pdf, "Equipos registrados")
 
-    col_widths = [60, 50, 80]
+    col_widths = [80, 50, 60]
     col_headers = ["Nombre del equipo", "Tipo", "Estado"]
     col_aligns = ["L", "L", "C"]
 
@@ -296,7 +296,7 @@ def _render_critical_section(
 
     render_section_divider(pdf, f"Sensores en estado {RISK_CRITICO} / {RISK_ALTO}")
 
-    col_widths = [42, 24, 26, 88]
+    col_widths = [48, 26, 28, 88]
     col_headers = ["Variable", "Valor", "Severidad", "Acción recomendada"]
     col_aligns = ["L", "C", "C", "L"]
 
@@ -337,7 +337,7 @@ def _render_current_readings(
 
     render_section_divider(pdf, "Lecturas actuales de sensores")
 
-    col_widths = [42, 24, 26, 88]
+    col_widths = [48, 26, 28, 88]
     col_headers = ["Variable", "Valor", "Severidad", "Acción recomendada"]
     col_aligns = ["L", "C", "C", "L"]
 
@@ -457,7 +457,7 @@ def _render_alerts_section(pdf: Any, edificio_id: int, now: dt.datetime) -> None
         pdf.ln(4)
         return
 
-    col_widths = [38, 38]
+    col_widths = [140, 50]
     col_headers = ["Severidad", "Cantidad"]
     col_aligns = ["L", "C"]
 
@@ -509,7 +509,7 @@ def _render_stats_table(
 
     render_section_divider(pdf, "Estadísticas última hora (promedio, mínimo, máximo)")
 
-    col_widths = [42, 28, 28, 28]
+    col_widths = [82, 36, 36, 36]
     col_headers = ["Variable", "Promedio", "Mínimo", "Máximo"]
     col_aligns = ["L", "C", "C", "C"]
 
@@ -546,7 +546,7 @@ def _render_thresholds(
 
     render_section_divider(pdf, "Umbrales de riesgo configurados")
 
-    col_widths = [42, 22, 22, 22, 22, 30]
+    col_widths = [58, 38, 24, 24, 24, 22]
     col_headers = ["Variable", "Dirección", "Bajo", "Medio", "Alto", "Unidad"]
     col_aligns = ["L", "C", "C", "C", "C", "C"]
 
