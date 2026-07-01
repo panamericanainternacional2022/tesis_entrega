@@ -1798,15 +1798,15 @@
     function updateEquipmentPowerBtns(pumpOn, elevOn) {
         const pumpBtn = document.getElementById('togglePumpBtn');
         const elevBtn = document.getElementById('toggleElevatorBtn');
-        if (pumpBtn) {
-            pumpBtn.classList.toggle('btn-success', pumpOn === true);
+        if (pumpBtn && pumpOn !== undefined) {
+            pumpBtn.classList.toggle('btn-critical', pumpOn === true);
             pumpBtn.classList.toggle('btn-secondary', pumpOn !== true);
             pumpBtn.title = pumpOn ? 'Apagar la bomba de agua' : 'Encender la bomba de agua';
             const pumpSpan = pumpBtn.querySelector('span');
             if (pumpSpan) pumpSpan.textContent = pumpOn ? 'Apagar' : 'Encender';
         }
         if (elevBtn && elevOn !== undefined) {
-            elevBtn.classList.toggle('btn-success', elevOn === true);
+            elevBtn.classList.toggle('btn-critical', elevOn === true);
             elevBtn.classList.toggle('btn-secondary', elevOn !== true);
             elevBtn.title = elevOn ? 'Apagar el elevador' : 'Encender el elevador';
             const elevSpan = elevBtn.querySelector('span');
