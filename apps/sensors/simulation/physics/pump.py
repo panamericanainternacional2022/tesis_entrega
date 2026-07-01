@@ -278,10 +278,6 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sim._pump_demand = _clamp(flow, 8.0, 35.0)
     else:
         sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, 8.0, 25.0)
-        if random.random() < 0.02 * dt:
-            sim._pump_demand = _clamp(
-                sim._pump_demand + random.uniform(8.0, 15.0), 8.0, 35.0
-            )
         flow = sim._pump_demand
 
     pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
