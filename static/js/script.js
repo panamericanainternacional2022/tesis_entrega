@@ -877,14 +877,13 @@
     }
 
     function _countUnreadAlerts(alertLog) {
-        const EXCLUDED = [_RISK.normal, _RISK.informativo];
         const clearedAtMs = window.ALERTS_CLEARED_AT ? window.ALERTS_CLEARED_AT * 1000 : null;
         return (alertLog || []).filter(a => {
-            if (EXCLUDED.includes(a.risk)) return false;
             if (clearedAtMs) {
                 const alertMs = a.timestamp ? new Date(a.timestamp.replace(' ', 'T') + 'Z').getTime() : 0;
                 if (alertMs <= clearedAtMs) return false;
             }
+            if (a.risk === _RISK.normal) return false;
             return true;
         }).length;
     }
@@ -943,9 +942,12 @@
             updateStatsAndRecs(data.stats, data.recommendations, data.door_close_attempts);
         }
 
-        const totalAlerts = _countUnreadAlerts(data.alert_log);
-        unreadNotificationCount = totalAlerts;
-        setNotificationBadge(totalAlerts);
+        const isNotifPage = !!document.getElementById('live-notifications-list');
+        if (!isNotifPage) {
+            const totalAlerts = _countUnreadAlerts(data.alert_log);
+            unreadNotificationCount = totalAlerts;
+            setNotificationBadge(totalAlerts);
+        }
     }
 
     function updateSummaryValues(data) {

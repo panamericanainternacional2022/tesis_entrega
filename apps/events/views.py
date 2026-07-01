@@ -20,9 +20,8 @@ from apps.buildings.models import Building
 from apps.events.models import Notification
 from apps.events.shared import (
     parse_notification_for_display, _build_notification_query,
-    exclude_severity_levels,
 )
-from apps.sensors.sensor_config import RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO, PAGE_SIZE
+from apps.sensors.sensor_config import RISK_ALTO, RISK_CRITICO, PAGE_SIZE
 from apps.dashboard.shared import (
     filter_date_range, build_query_string,
     parse_notifications, extract_variables,
@@ -80,6 +79,9 @@ def notifications_view(request: HttpRequest):
         cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
         notifications = notifications.filter(date__gt=cleared_dt)
 
+    # Total global sin filtrar por fecha/severidad/variable (para el badge)
+    total_count = notifications.distinct().count()
+
     notifications = filter_date_range(notifications, period, date_from, date_to)
 
     notifications = (
@@ -136,7 +138,7 @@ def notifications_view(request: HttpRequest):
             "fecha_desde": date_from,
             "fecha_hasta": date_to,
             "periodo_seleccionado": period,
-            "total_count": len(parsed_list),
+            "total_count": total_count,
         },
     )
 
@@ -155,7 +157,6 @@ def view_notification_count(request: HttpRequest) -> JsonResponse:
         cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
         notifications = notifications.filter(date__gt=cleared_dt)
 
-    notifications = exclude_severity_levels(notifications, [RISK_INFORMATIVO])
     return JsonResponse({"count": notifications.distinct().count()})
 
 
