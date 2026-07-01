@@ -174,10 +174,12 @@
                     <input type="number" step="any" id="manualValueInput" class="form-input"
                            placeholder="Ej: 42.5">
                     <select id="manualValueSelect" aria-label="Valor manual del sensor" class="custom-select-init"></select>
-                    <div class="error-msg" id="manualErrorMsg"></div>
-                    <div id="manualRiskPreview" class="risk-preview"></div>
+                    <div class="form-group-messages">
+                        <div class="error-msg" id="manualErrorMsg"></div>
+                        <div id="manualRiskPreview" class="risk-preview"></div>
+                    </div>
                 </div>
-                <div class="form-group" style="display:flex;align-items:end;padding-bottom:1px">
+                <div class="form-group">
                     <button type="button" id="sendManualBtn" class="btn btn-primary">
                         <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar
                     </button>

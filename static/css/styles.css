@@ -2285,9 +2285,31 @@ input.is-dirty.input-error-state:active {
     visibility: hidden;
 }
 
+/* ─── Espacio compartido para mensajes y padding equilibrado ─── */
+#manualControlsRow .form-group {
+    padding-bottom: 24px;
+}
+
+#manualValueContainer {
+    position: relative;
+    padding-bottom: 0;
+}
+
+#manualValueContainer .form-group-messages {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+}
+
 #manualValueContainer .error-msg,
 #manualValueContainer .risk-preview {
-    margin-top: 4px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin-top: 0;
 }
 
 #simControls>.risk-preview {
