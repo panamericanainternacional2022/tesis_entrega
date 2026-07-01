@@ -12,8 +12,8 @@ from .shared import (
     safe_text,
 )
 
-ACCENT_COLOR = (30, 58, 95)
-ACCENT_LIGHT = (235, 241, 249)
+ACCENT_COLOR = (37, 99, 235)
+ACCENT_LIGHT = (239, 246, 255)
 
 DIVIDER_COLOR = (200, 205, 212)
 HEADER_BG     = (10, 10, 10)

@@ -183,6 +183,10 @@ def safe_text(txt: Any) -> str:
 
 _ZEBRA_FILL: tuple[int, int, int] = (248, 249, 250)
 
+# Padding interno de celda (mm)
+_CELL_PAD_H: float = 2.5   # horizontal (cada lado)
+_CELL_PAD_V: float = 1.2   # vertical (arriba y abajo)
+
 
 def draw_row(
     pdf: Any,
@@ -194,18 +198,22 @@ def draw_row(
     row_index: int | None = None,
 ) -> None:
 
-
     zebra = _ZEBRA_FILL if (row_index is not None and row_index % 2 == 0) else None
 
+    # Ancho interno disponible para el texto (descuenta padding horizontal)
+    inner_widths = [max(w - 2 * _CELL_PAD_H, 4.0) for w in widths]
+
+    # Calcular cuántas líneas ocupa cada celda usando el ancho interno
     lines_per_col: list[list[str]] = []
-    for w, text in zip(widths, data):
+    for iw, text in zip(inner_widths, data):
         t_str = safe_text(text)
-        lines = pdf.multi_cell(w, 4, t_str, split_only=True)
+        lines = pdf.multi_cell(iw, 4, t_str, split_only=True)
         lines_per_col.append(lines)
 
     max_lines = max(len(lines) for lines in lines_per_col) if lines_per_col else 1
     line_height: float = 5.8
-    row_height: float = max_lines * line_height
+    # Alto total de la fila = líneas * altura de línea + padding vertical (×2)
+    row_height: float = max_lines * line_height + 2 * _CELL_PAD_V
 
     if pdf.get_y() + row_height > 270:
         pdf.add_page()
@@ -213,30 +221,38 @@ def draw_row(
     start_x: float = pdf.get_x()
     start_y: float = pdf.get_y()
 
-    for i in range(max_lines):
-        pdf.set_xy(start_x, start_y + (i * line_height))
-        for j, lines in enumerate(lines_per_col):
-            w = widths[j]
-            explicit_fill = fills[j] if (fills and fills[j]) else None
-            effective_fill = explicit_fill if explicit_fill else zebra
-            if effective_fill:
-                pdf.set_fill_color(*effective_fill)
-                pdf.cell(w, line_height, "", border=0, fill=True)
-            else:
-                pdf.cell(w, line_height, "", border=0, fill=False)
+    # ── Paso 1: rellenos de fondo (rectángulo completo por columna) ──────────
+    curr_x = start_x
+    for j, w in enumerate(widths):
+        explicit_fill = fills[j] if (fills and fills[j]) else None
+        effective_fill = explicit_fill if explicit_fill else zebra
+        if effective_fill:
+            pdf.set_fill_color(*effective_fill)
+            pdf.rect(curr_x, start_y, w, row_height, "F")
+        curr_x += w
 
+    # ── Paso 2: texto con padding ────────────────────────────────────────────
     for i in range(max_lines):
-        pdf.set_xy(start_x, start_y + (i * line_height))
+        curr_x = start_x
         for j, lines in enumerate(lines_per_col):
-            w = widths[j]
+            iw = inner_widths[j]
             align = aligns[j]
             txt = lines[i] if i < len(lines) else ""
-            if align == "L" and txt:
-                txt = f" {txt}"
             text_c = colors[j] if (colors and colors[j]) else (26, 26, 26)
             pdf.set_text_color(*text_c)
-            pdf.cell(w, line_height, txt, border=0, align=align, fill=False)
+            # Desplazar X según alineación para respetar padding horizontal
+            if align == "L":
+                text_x = curr_x + _CELL_PAD_H
+            elif align == "R":
+                text_x = curr_x + _CELL_PAD_H
+            else:  # "C"
+                text_x = curr_x + _CELL_PAD_H
+            text_y = start_y + _CELL_PAD_V + i * line_height
+            pdf.set_xy(text_x, text_y)
+            pdf.cell(iw, line_height, txt, border=0, align=align, fill=False)
+            curr_x += widths[j]
 
+    # ── Paso 3: bordes ───────────────────────────────────────────────────────
     curr_x = start_x
     pdf.set_draw_color(10, 10, 10)
     for w in widths:
@@ -244,3 +260,4 @@ def draw_row(
         curr_x += w
 
     pdf.set_xy(start_x, start_y + row_height)
+
