@@ -124,9 +124,9 @@ def user_pdf_view(request: Any) -> HttpResponse:
             ],
         )
 
-        col_widths  = [20, 32, 32, 64, 24, 18]
-        col_headers = ["Cédula", "Nombre", "Apellido", "Correo electrónico", "Usuario", "Estado"]
-        col_aligns  = ["C", "L", "L", "L", "L", "C"]
+        col_widths  = [28, 32, 32, 70, 28]
+        col_headers = ["Cédula", "Nombre", "Apellido", "Correo electrónico", "Estado"]
+        col_aligns  = ["C", "L", "L", "L", "C"]
 
         for group_idx, (building_name, members) in enumerate(groups.items()):
             if pdf.get_y() > 240:
@@ -157,12 +157,11 @@ def user_pdf_view(request: Any) -> HttpResponse:
                         str(b["cedula"]),
                         b["nombre"][:22],
                         b["last_name"][:22],
-                        b["email"][:40],
-                        username_display,
+                        b["email"][:60],
                         estado_str,
                     ],
-                    [None, None, None, None, None, est_fill],
-                    [None, None, None, None, None, est_text],
+                    [None, None, None, None, est_fill],
+                    [None, None, None, None, est_text],
                     row_index=idx,
                 )
 
