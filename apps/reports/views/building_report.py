@@ -71,6 +71,10 @@ def generate_building_report_bytes(edificio_id: int) -> tuple[bytes, str]:
     history = sim.history if sim else []
     stats = _compute_stats(history, STATS_VARS)
 
+    pump_on = sim.pump_on if sim else False
+    speed = sensor_data.get("speed", 0.0)
+    door_close_attempts = sim.door_close_attempts if sim else 0
+
     relevant_vars = set()
     if "bomba" in equip_types:
         relevant_vars.update(PUMP_VARS)
@@ -91,22 +95,31 @@ def generate_building_report_bytes(edificio_id: int) -> tuple[bytes, str]:
         ],
     )
 
-    _render_executive_summary(pdf, sensor_data, thresholds, relevant_vars, pump_status, elevator_status, equip_types)
+    _render_executive_summary(
+        pdf, sensor_data, thresholds, relevant_vars, pump_status, elevator_status, equip_types,
+        pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
+    )
     _render_equipment_summary(pdf, equipment, pump_status, elevator_status)
     render_severity_legend(pdf)
 
-    critical_items = _get_critical_items(sensor_data, thresholds, relevant_vars)
+    critical_items = _get_critical_items(
+        sensor_data, thresholds, relevant_vars,
+        pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
+    )
     if critical_items:
         _render_critical_section(pdf, critical_items, VAR_NAMES, UNITS, ACTIONS, VALUE_DISPLAY_ES)
 
-    _render_current_readings(pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, ACTIONS, VALUE_DISPLAY_ES)
+    _render_current_readings(
+        pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, ACTIONS, VALUE_DISPLAY_ES,
+        pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
+    )
     _render_rationing_section(pdf, sensor_data)
 
     if stats:
         _render_stats_table(pdf, stats, relevant_vars, VAR_NAMES, UNITS)
 
     _render_alerts_section(pdf, edificio_id, now)
-    _render_recommendations_section(pdf, sensor_data)
+    _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
 
     filename = f"reporte_{building.name}_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
@@ -163,13 +176,19 @@ def _compute_stats(history: list, STATS_VARS: list) -> dict:
     return stats
 
 
-def _get_critical_items(sensor_data: dict, thresholds: dict, relevant_vars: set) -> list[dict]:
+def _get_critical_items(
+    sensor_data: dict, thresholds: dict, relevant_vars: set,
+    pump_on: bool = True, speed: float = 0.0, door_close_attempts: int = 0
+) -> list[dict]:
     from apps.core.services.risk_service import classify_risk
     items = []
     for var in sorted(relevant_vars):
         if var not in sensor_data:
             continue
-        risk, _ = classify_risk(var, sensor_data[var], thresholds)
+        risk, _ = classify_risk(
+            var, sensor_data[var], thresholds,
+            pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
+        )
         if risk in _CRITICAL_LEVELS:
             items.append({"var": var, "value": sensor_data[var], "risk": risk})
     return items
@@ -191,7 +210,8 @@ def _format_value(var: str, value, units: dict, value_display_map: dict = None) 
 def _render_executive_summary(
     pdf: Any, sensor_data: dict, thresholds: dict,
     relevant_vars: set, pump_status, elevator_status,
-    equip_types: set,
+    equip_types: set, pump_on: bool = True, speed: float = 0.0,
+    door_close_attempts: int = 0
 ) -> None:
     from apps.core.services.risk_service import classify_risk
 
@@ -200,7 +220,10 @@ def _render_executive_summary(
     counts = {rl: 0 for rl in list(SEVERITY_LEVELS) + [RISK_NORMAL]}
     for var in relevant_vars:
         if var in sensor_data:
-            risk, _ = classify_risk(var, sensor_data[var], thresholds)
+            risk, _ = classify_risk(
+                var, sensor_data[var], thresholds,
+                pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
+            )
             if risk in counts:
                 counts[risk] += 1
 
@@ -306,6 +329,7 @@ def _render_current_readings(
     relevant_vars: set, equip_types: set,
     VAR_NAMES: dict, UNITS: dict, ACTIONS: dict,
     VALUE_DISPLAY_ES: dict = None,
+    pump_on: bool = True, speed: float = 0.0, door_close_attempts: int = 0
 ) -> None:
     from apps.core.services.risk_service import classify_risk
     if pdf.get_y() > 230:
@@ -341,7 +365,10 @@ def _render_current_readings(
             if var not in sensor_data:
                 continue
             val = sensor_data[var]
-            risk, _ = classify_risk(var, val, thresholds)
+            risk, _ = classify_risk(
+                var, val, thresholds,
+                pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
+            )
             val_str = _format_value(var, val, UNITS, VALUE_DISPLAY_ES)
             var_name = VAR_NAMES.get(var, var)
             action = ACTIONS.get(var, {}).get(risk, "")[:55]
@@ -455,14 +482,14 @@ def _render_alerts_section(pdf: Any, edificio_id: int, now: dt.datetime) -> None
     pdf.ln(6)
 
 
-def _render_recommendations_section(pdf: Any, sensor_data: dict) -> None:
+def _render_recommendations_section(pdf: Any, sensor_data: dict, pump_on: bool = True) -> None:
     from apps.events.services.recommendation_engine import generate_recommendations
     if pdf.get_y() > 240:
         pdf.add_page()
 
     render_section_divider(pdf, "Diagnóstico y recomendaciones")
 
-    recs = generate_recommendations(sensor_data)
+    recs = generate_recommendations(sensor_data, pump_on=pump_on)
 
     _pdf_font(pdf, "", 10)
     pdf.set_text_color(26, 26, 26)

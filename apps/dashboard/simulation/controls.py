@@ -84,10 +84,13 @@ def manual_update(request) -> JsonResponse:
     thresholds = get_thresholds(sim.edificio_id)
     if variable in BOOLEAN_VARS:
         risk = RISK_CRITICO if parsed_value else RISK_NORMAL
-    elif variable in ENUM_VARS:
-        risk = RISK_CRITICO if parsed_value == "open" else RISK_NORMAL
     else:
-        risk, _ = classify_risk(variable, parsed_value, thresholds)
+        risk, _ = classify_risk(
+            variable, parsed_value, thresholds,
+            pump_on=sim.pump_on,
+            speed=sim.sensor_data.get("speed", 0.0),
+            door_close_attempts=sim.door_close_attempts
+        )
 
     timestamp = time_module.strftime("%Y-%m-%d %H:%M:%S")
     sensor_type = "Bomba" if variable in PUMP_VARS else "Elevador"

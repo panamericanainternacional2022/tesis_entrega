@@ -15,10 +15,13 @@ def generate_recommendations(
     data: Dict[str, Any],
     stats: Any = None,
     door_close_attempts: int = 0,
+    pump_on: bool = True,
 ) -> List[str]:
     recs: List[str] = []
 
     for var, cfg in RECOMMENDATION_THRESHOLDS.items():
+        if var in {"flow_rate", "pressure"} and not pump_on:
+            continue
         value = data.get(var)
         if value is None:
             continue

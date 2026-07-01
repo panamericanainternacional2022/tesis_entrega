@@ -10,7 +10,7 @@ from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 logger = logging.getLogger(__name__)
 
 
-def _noop_recommendations(sensor_data: dict, stats: dict) -> list:
+def _noop_recommendations(sensor_data: dict, stats: dict, *args, **kwargs) -> list:
     return []
 
 
@@ -57,8 +57,17 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     stats = _compute_stats(ctx.history)
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)
-    sensors = _build_sensors_list(ctx.sensor_data, relevant_vars, thresholds)
-    recommendations = ctx.generate_recommendations_fn(ctx.sensor_data, stats)
+    speed = ctx.sensor_data.get("speed", 0.0)
+    sensors = _build_sensors_list(
+        ctx.sensor_data, relevant_vars, thresholds,
+        pump_on=ctx.pump_on, speed=speed,
+        door_close_attempts=ctx.door_close_attempts
+    )
+    recommendations = ctx.generate_recommendations_fn(
+        ctx.sensor_data, stats,
+        door_close_attempts=ctx.door_close_attempts,
+        pump_on=ctx.pump_on
+    )
     pump_status, elevator_status = _fetch_equipment_status(
         ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts, ctx.protection_ends
     )
@@ -101,7 +110,14 @@ def _build_relevant_vars(equipment_types: set) -> set[str]:
     return relevant_vars
 
 
-def _build_sensors_list(sensor_data: dict, relevant_vars: set[str], thresholds: dict) -> list[dict[str, Any]]:
+def _build_sensors_list(
+    sensor_data: dict,
+    relevant_vars: set[str],
+    thresholds: dict,
+    pump_on: bool = True,
+    speed: float = 0.0,
+    door_close_attempts: int = 0,
+) -> list[dict[str, Any]]:
     from apps.core.services.risk_service import classify_risk
     sensors = []
     for var, value in sensor_data.items():
@@ -110,7 +126,11 @@ def _build_sensors_list(sensor_data: dict, relevant_vars: set[str], thresholds: 
         if var in BOOLEAN_VARS:
             risk, color = (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
         else:
-            risk, color = classify_risk(var, value, thresholds)
+            risk, color = classify_risk(
+                var, value, thresholds,
+                pump_on=pump_on, speed=speed,
+                door_close_attempts=door_close_attempts
+            )
         sensors.append({
             "id": var,
             "nombre": VAR_NAMES.get(var, var),

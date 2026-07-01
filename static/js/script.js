@@ -462,6 +462,8 @@
     let _limitsDirtyKeys = new Set();
     let _unsavedGuardDisabled = false;
     let currentReadings = {};
+    let currentPumpOn = false;
+    let currentDoorCloseAttempts = 0;
     let chart1, chart2;
     let unreadNotificationCount = 0;
     let alertCountdownInterval = null;
@@ -511,8 +513,17 @@
     }
 
     function getRiskClass(varName, value) {
-        if ((varName === 'flow_rate' || varName === 'pressure') && Number(value) === 0) {
-            return { badge: 'badge-crit', label: _RISK.critico };
+        if (varName === 'flow_rate' || varName === 'pressure') {
+            if (!currentPumpOn) {
+                const lowLimit = varName === 'flow_rate' ? 8.0 : 2.0;
+                const cfg = currentThresholds[varName];
+                const finalLow = cfg ? cfg.low : lowLimit;
+                if (Number(value) <= finalLow) {
+                    return { badge: 'badge-normal', label: _RISK.normal };
+                }
+            } else if (Number(value) === 0) {
+                return { badge: 'badge-crit', label: _RISK.critico };
+            }
         }
         if (_BOOLEAN_VARS.includes(varName)) {
             const crit = !!value;
@@ -520,7 +531,15 @@
         }
         if (_ENUM_VARS.includes(varName)) {
             const risky = _ENUM_RISK_VALUES[varName] || [];
-            const crit = risky.includes(String(value).toLowerCase());
+            let crit = risky.includes(String(value).toLowerCase());
+            if (varName === 'door_status' && crit) {
+                const speed = Number(currentReadings['speed'] || 0);
+                const isMoving = speed > 0.05;
+                const hasFailedToClose = currentDoorCloseAttempts >= 2;
+                if (!isMoving && !hasFailedToClose) {
+                    crit = false;
+                }
+            }
             return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
         }
         if (_NO_RISK_VARS.includes(varName)) {
@@ -893,6 +912,8 @@
 
     function applyPayload(data) {
         if (data.thresholds) currentThresholds = data.thresholds;
+        if (data.pump_on !== undefined) currentPumpOn = data.pump_on;
+        if (data.door_close_attempts !== undefined) currentDoorCloseAttempts = data.door_close_attempts;
         hideAllStates();
 
         const simPaused = data.sim_paused === true;

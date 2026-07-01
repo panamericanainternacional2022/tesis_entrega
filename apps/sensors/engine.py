@@ -71,7 +71,12 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
             continue
         from apps.events.alerts.engine import send_alert
         from apps.events.services.alert_service import get_professional_action
-        risk, _ = classify_risk(var, value, thresholds)
+        risk, _ = classify_risk(
+            var, value, thresholds,
+            pump_on=sim.pump_on,
+            speed=sim.sensor_data.get("speed", 0.0),
+            door_close_attempts=sim.door_close_attempts
+        )
         if risk in (RISK_ALTO, RISK_CRITICO):
             action = get_professional_action(var, risk, value)
             send_alert(var, value, risk, action, sim=sim)
@@ -133,7 +138,12 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str]) -> None
         if var not in all_tracked_vars:
             continue
         risk, color = (
-            classify_risk(var, value, thresholds) if var not in BOOLEAN_VARS
+            classify_risk(
+                var, value, thresholds,
+                pump_on=sim.pump_on,
+                speed=sim.sensor_data.get("speed", 0.0),
+                door_close_attempts=sim.door_close_attempts
+            ) if var not in BOOLEAN_VARS
             else (RISK_CRITICO if value else RISK_NORMAL, "red" if value else "green")
         )
         sensor_type = "Bomba" if var in PUMP_VARS else "Elevador"

@@ -72,13 +72,38 @@ class ClassifyRiskTests(TestCase):
             self.assertEqual(risk, RISK_NORMAL)
             self.assertEqual(color, "green")
 
-    def test_zero_flow_rate_returns_critico(self):
-        risk, color = classify_risk("flow_rate", 0)
+    def test_zero_flow_rate_returns_critico_when_pump_on(self):
+        risk, color = classify_risk("flow_rate", 0, pump_on=True)
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
-    def test_zero_pressure_returns_critico(self):
-        risk, color = classify_risk("pressure", 0)
+    def test_zero_flow_rate_returns_normal_when_pump_off(self):
+        risk, color = classify_risk("flow_rate", 0, pump_on=False)
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    def test_zero_pressure_returns_critico_when_pump_on(self):
+        risk, color = classify_risk("pressure", 0, pump_on=True)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_zero_pressure_returns_normal_when_pump_off(self):
+        risk, color = classify_risk("pressure", 0, pump_on=False)
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    def test_door_status_returns_normal_when_idle_and_no_failures(self):
+        risk, color = classify_risk("door_status", "open", speed=0.0, door_close_attempts=0)
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    def test_door_status_returns_critico_when_moving(self):
+        risk, color = classify_risk("door_status", "open", speed=1.5, door_close_attempts=0)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_door_status_returns_critico_when_failed_closing(self):
+        risk, color = classify_risk("door_status", "open", speed=0.0, door_close_attempts=2)
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
