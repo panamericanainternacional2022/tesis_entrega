@@ -319,7 +319,11 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
     if not sim:
         return json_error("No hay un simulador activo. Inicie la simulación primero.", 503)
 
-    emails = get_building_emails(eid or sim.edificio_id)
+    # Usar siempre el edificio_id del simulador resuelto para garantizar que
+    # los destinatarios, el cuerpo del correo y el PDF sean del mismo edificio.
+    actual_eid = sim.edificio_id
+
+    emails = get_building_emails(actual_eid)
     if not emails:
         return json_error("No subscribers for this building")
 
@@ -327,10 +331,9 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
 
     pdf_bytes = None
     pdf_name = "reporte.pdf"
-    target_id = eid or sim.edificio_id
     try:
         from apps.reports.views.building_report import generate_building_report_bytes
-        pdf_bytes, pdf_name = generate_building_report_bytes(target_id)
+        pdf_bytes, pdf_name = generate_building_report_bytes(actual_eid)
     except Exception as e:
         logger.warning("Could not generate building report PDF: %s", e)
 
@@ -347,6 +350,7 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
             daemon=True,
         ).start()
     return json_ok({"message": f"Reporte enviado a {len(emails)} suscriptores"})
+
 
 
 def _update_alert_disabled_state(request: HttpRequest, usuario_id: int) -> None:
