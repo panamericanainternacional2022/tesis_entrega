@@ -38,11 +38,17 @@ class BuildingSimulator:
 
         self._elev_state: str = "IDLE"
         self._elev_timer: float = 0
-        self._elev_target_floor: int = random.randint(1, floors)
+        if self.has_elevator:
+            initial_floor = random.randint(0, floors)
+            self.sensor_data["position"] = initial_floor
+            self._elev_position_meters = float(initial_floor * 3.5)
+            self._elev_target_floor = initial_floor
+        else:
+            self._elev_target_floor = 0
+            self._elev_position_meters = 0.0
         self._elev_direction: int = 1
         self._elev_at_floor: bool = True
         self._elev_prev_position: float = 0
-        self._elev_position_meters: float = float(self.sensor_data.get("position", 0.0) * 3.5)
 
     def __repr__(self) -> str:
         return (

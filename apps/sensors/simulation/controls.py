@@ -166,9 +166,15 @@ def reset_simulator(edificio_id: int) -> str:
     sim._pump_refill_timer = 0
     sim._elev_state = "IDLE"
     sim._elev_timer = 0
-    sim._elev_target_floor = random.randint(1, sim.floors)
+    if sim.has_elevator:
+        initial_floor = random.randint(0, sim.floors)
+        sim.sensor_data["position"] = initial_floor
+        sim._elev_position_meters = float(initial_floor * 3.5)
+        sim._elev_target_floor = initial_floor
+    else:
+        sim._elev_target_floor = 0
+        sim._elev_position_meters = 0.0
     sim._elev_direction = 1
     sim._elev_at_floor = True
-    sim._elev_position_meters = 0.0
     logger.info("Simulador reiniciado: edificio=%s", edificio_id)
     return "Simulador reiniciado al estado normal"

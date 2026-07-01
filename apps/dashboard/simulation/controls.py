@@ -66,8 +66,17 @@ def manual_update(request) -> JsonResponse:
     if not hasattr(sim, "manual_targets") or not isinstance(sim.manual_targets, dict):
         sim.manual_targets = {}
 
-    sim.manual_overrides[variable] = time.time() + 90.0
-    sim.manual_targets[variable] = parsed_value
+    if variable == "position":
+        # Posición manual es una solicitud de viaje del elevador, no bloquea el sensor
+        sim._elev_target_floor = int(parsed_value)
+        floor_num = round(sim.sensor_data.get("position", 0.0))
+        sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
+        if sim._elev_state in ("IDLE", "DOORS_OPEN"):
+            sim._elev_state = "DOOR_CLOSING"
+            sim._elev_timer = 0.0
+    else:
+        sim.manual_overrides[variable] = time.time() + 90.0
+        sim.manual_targets[variable] = parsed_value
 
     from apps.core.services.risk_service import classify_risk
     from apps.thresholds.services import get_thresholds
@@ -85,7 +94,7 @@ def manual_update(request) -> JsonResponse:
     sim.history.append({
         "timestamp": timestamp,
         "type": sensor_type,
-        "variable": f"{variable} (manual)",
+        "variable": variable,
         "value": parsed_value,
         "risk": risk,
         "color": "red" if risk in (RISK_ALTO, RISK_CRITICO) else "green",

@@ -46,7 +46,9 @@ def main():
                 eid = eq.building.id
                 enombre = eq.building.name or f"Edificio #{eid}"
                 if eid not in simulators:
-                    simulators[eid] = BuildingSimulator(eid, enombre)
+                    simulators[eid] = BuildingSimulator(
+                        eid, enombre, floors=eq.building.floors
+                    )
                 simulators[eid].equipment_types.add(eq.equipment_type)
                 simulators[eid].has_pump = "bomba" in simulators[eid].equipment_types
                 simulators[eid].has_elevator = "elevador" in simulators[eid].equipment_types

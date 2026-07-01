@@ -42,7 +42,25 @@ def _compute_pump_energy(flow: float, pressure: float, volt: float) -> float:
 def _update_pump(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
-    _update_pump_refill(sim, sd, dt)
+
+    # Continuous Water Tank Level simulation (Homeostatic float valve model)
+    if not _is_locked(sim, "tank_level"):
+        is_pumping = sim.pump_on and "pump" not in sim.protection_ends and "pump" not in sim.sim_faults
+        outflow = sd.get("flow_rate", 0.0) if is_pumping else 0.0
+        
+        is_dry_run = sim.sim_faults.get("pump") == "dry_run"
+        inflow = 0.0
+        if not is_dry_run:
+            if sd["tank_level"] < 80.0:
+                inflow = 16.0  # refill rate slightly higher than normal outflow
+            elif sd["tank_level"] < 85.0:
+                inflow = 8.0   # slow down refill near top
+        
+        net_flow = inflow - outflow
+        fluctuation = random.uniform(-0.5, 0.5) if is_pumping else random.uniform(-0.1, 0.1)
+        d_tank = (net_flow * 0.05 + fluctuation) * dt
+        sd["tank_level"] = round(_clamp(sd["tank_level"] + d_tank, 0.0, 100.0), 1)
+
     if not sim.pump_on or "pump" in sim.protection_ends:
         _set_pump_idle(sim, sd, dt)
         return
@@ -50,17 +68,6 @@ def _update_pump(sim: BuildingSimulator) -> None:
         _apply_pump_fault(sim, sd, dt)
         return
     _run_pump_normal(sim, sd, dt)
-
-
-def _update_pump_refill(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    if sim.sim_faults.get("pump") == "dry_run":
-        return
-    from apps.sensors.simulation.constants import REFILL_TIMER_TICKS
-    sim._pump_refill_timer += dt
-    if sim._pump_refill_timer >= REFILL_TIMER_TICKS:
-        sim._pump_refill_timer = 0
-        if not _is_locked(sim, "tank_level"):
-            sd["tank_level"] = round(_clamp(sd["tank_level"] + random.uniform(10, 25), 0, 100), 1)
 
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -194,12 +201,6 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
             sd["temperature"] = round(_clamp(sd["temperature"] + (T_AMBIENT - sd["temperature"]) * 0.02 * dt, _TEMP_LOW, _TEMP_HIGH), 1)
         return
 
-    if not _is_locked(sim, "tank_level"):
-        tank = sd["tank_level"] - sd["flow_rate"] * 0.08 * dt
-        if random.random() < 0.02 * dt:
-            tank += random.uniform(5, 15)
-        sd["tank_level"] = round(_clamp(tank, _TANK_LOW, _TANK_HIGH), 1)
-
     tank = sd["tank_level"]
 
     if tank < 10.0:
@@ -230,11 +231,10 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
     pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
     
-    if flow <= 0.1:
-        temp_step = 1.0 * dt
-    else:
-        temp_step = (flow * pressure * 0.01 - 0.3) * dt
-    temp = sd["temperature"] + temp_step + random.uniform(-0.3, 0.3) * dt
+    # First-order thermal model: temperature converges towards a normal operating temperature
+    target_temp = 50.0 + (flow * pressure * 0.1)
+    temp_diff = target_temp - sd["temperature"]
+    temp = sd["temperature"] + temp_diff * 0.02 * dt + random.uniform(-0.1, 0.1) * dt
     
     vib = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
     

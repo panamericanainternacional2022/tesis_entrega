@@ -511,6 +511,9 @@
     }
 
     function getRiskClass(varName, value) {
+        if ((varName === 'flow_rate' || varName === 'pressure') && Number(value) === 0) {
+            return { badge: 'badge-crit', label: _RISK.critico };
+        }
         if (_BOOLEAN_VARS.includes(varName)) {
             const crit = !!value;
             return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };

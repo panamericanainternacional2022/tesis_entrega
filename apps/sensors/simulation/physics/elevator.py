@@ -90,9 +90,11 @@ def _apply_door_blocked(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 def _apply_overspeed(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["speed"] = _clamp(sd["speed"] + 0.5 * dt, _SPEED_LOW, _SPEED_HIGH)
+    direction = getattr(sim, "_elev_direction", 1)
     sim._elev_position_meters = _clamp(
-        sim._elev_position_meters + sd["speed"] * dt * 0.5, 0, sim.floors * FLOOR_HEIGHT,
+        sim._elev_position_meters + sd["speed"] * dt * direction, 0, sim.floors * FLOOR_HEIGHT,
     )
+    sd["position"] = round(sim._elev_position_meters / FLOOR_HEIGHT, 1)
     sd["door_status"] = "closed"
     sd["motor_stuck"] = False
     sd["load"] = _clamp(sd["load"] + random.uniform(-10, 10) * dt, _LOAD_LOW, _LOAD_HIGH)
@@ -101,6 +103,15 @@ def _apply_overspeed(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _run_elevator_fsm(sim: BuildingSimulator, sd: dict, dt: float) -> None:
+    # Emergency stop / safety interlock check:
+    # If the door is not closed, the elevator must not be moving.
+    # If it is in a moving state and doors are not closed, force an emergency stop and open doors!
+    is_moving_state = sim._elev_state in ("ACCELERATING", "MOVING", "DECELERATING")
+    if is_moving_state and sd.get("door_status") != "closed":
+        sd["speed"] = 0.0
+        sim._elev_state = "DOOR_OPENING"
+        sim._elev_timer = 0.0
+
     sim._elev_timer += dt
     prev_pos = sim._elev_position_meters
     pos = sim._elev_position_meters
@@ -157,7 +168,8 @@ def _handle_elev_door_opening(
     if sim._elev_timer >= 1:
         sim._elev_timer = 0
         if not _is_locked(sim, "load"):
-            load = _clamp(load + random.randint(-50, 150), _LOAD_LOW, _LOAD_HIGH)
+            # Keep load within normal limits [0, 500] kg
+            load = _clamp(load + random.randint(-150, 150), 0, 500)
         sim._elev_state = "DOORS_OPEN"
     sd["speed"] = spd
     sd["door_status"] = door
@@ -174,7 +186,8 @@ def _handle_elev_doors_open(
     if sim._elev_timer >= PASSENGER_WAIT_TICKS / max(sim.sim_speed, 0.1):
         sim._elev_timer = 0
         if not _is_locked(sim, "load"):
-            load = _clamp(load + random.randint(-100, 100), _LOAD_LOW, _LOAD_HIGH)
+            # Keep load within normal limits [0, 500] kg
+            load = _clamp(load + random.randint(-150, 150), 0, 500)
         sim._elev_state = "DOOR_CLOSING"
     sd["speed"] = spd
     sd["door_status"] = door
@@ -194,14 +207,43 @@ def _handle_elev_door_closing(
         sim._elev_timer = 0
         sd["door_status"] = "open"
         sd["speed"] = 0.0
+        sim.door_close_attempts += 1
         return
 
     if sim._elev_timer >= 1:
-        sim._elev_timer = 0
-        sim._elev_state = "ACCELERATING"
-        sim._elev_at_floor = False
-    sd["speed"] = spd
-    sd["door_status"] = door
+        from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
+        is_locked_open = _is_locked(sim, "door_status") and sd.get("door_status") != "closed"
+        random_fail = random.random() < 0.02 * dt
+        
+        if is_locked_open or random_fail:
+            sim.door_close_attempts += 1
+            if sim.door_close_attempts >= MAX_DOOR_CLOSE_ATTEMPTS:
+                sim._elev_state = "DOORS_OPEN"
+                sim._elev_timer = 0
+                sd["door_status"] = "open"
+                sd["speed"] = 0.0
+                return
+            else:
+                sim._elev_state = "DOOR_OPENING"
+                sim._elev_timer = 0
+                sd["door_status"] = "opening"
+                sd["speed"] = 0.0
+                return
+
+        floor_num = round(pos / FLOOR_HEIGHT)
+        if floor_num == sim._elev_target_floor:
+            sim._elev_timer = 0
+            sim._elev_state = "IDLE"
+            sd["door_status"] = "closed"
+            sd["speed"] = 0.0
+            return
+        else:
+            sim._elev_timer = 0
+            sim._elev_state = "ACCELERATING"
+            sim._elev_at_floor = False
+            sd["door_status"] = "closed"
+            sd["speed"] = 0.0
+            return
 
 
 def _handle_elev_accelerating(
@@ -250,7 +292,7 @@ def _handle_elev_decelerating(
         spd = 0.0
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_timer = 0
-        sim._elev_state = "IDLE"
+        sim._elev_state = "DOOR_OPENING"
         sim._elev_at_floor = True
     sd["speed"] = spd
     sd["door_status"] = door
