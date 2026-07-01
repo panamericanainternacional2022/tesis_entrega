@@ -137,6 +137,16 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         else:
             sim.last_email_sent_time_per_var.clear()
 
+    if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
+        if device == "pump":
+            for v in PUMP_VARS:
+                sim._alert_consecutive.pop(v, None)
+        elif device == "elevator":
+            for v in ELEVATOR_VARS:
+                sim._alert_consecutive.pop(v, None)
+        else:
+            sim._alert_consecutive.clear()
+
     _DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
     if device:
         nombre_dispositivo = _DEVICE_ES.get(device, device)
@@ -214,6 +224,8 @@ def reset_simulator(edificio_id: int) -> str:
         sim.manual_targets.clear()
     if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
         sim.last_email_sent_time_per_var.clear()
+    if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
+        sim._alert_consecutive.clear()
     sim.sim_paused = False
     sim.sim_speed = 1.0
     sim._pump_demand = 15.0

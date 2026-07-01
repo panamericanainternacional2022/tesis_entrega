@@ -60,7 +60,7 @@ def _apply_float_switch(sim: BuildingSimulator, sd: dict) -> None:
         sim.pump_on = False
     elif tank < _TANK_LOW_THRESHOLD and not sim.pump_on:
         sim.pump_on = True
-        sim._pump_start_grace_ticks = 5
+        sim._pump_start_grace_ticks = 10
 
 
 def _update_pump(sim: BuildingSimulator) -> None:
@@ -276,11 +276,14 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         return
 
     # ── Normal operating regime ────────────────────────────────────────────
+    # MAX demand capped at 16.0 l/s to ensure pressure never drops
+    # below the 2.0 bar alert threshold (P = 7.0 - 0.012*16^2 = 3.93 bar).
+    _DEMAND_MAX = 16.0
     if _is_locked(sim, "flow_rate"):
         flow = sd["flow_rate"]
-        sim._pump_demand = _clamp(flow, 8.0, 35.0)
+        sim._pump_demand = _clamp(flow, 8.0, _DEMAND_MAX)
     else:
-        sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, 10.0, 25.0)
+        sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, 10.0, _DEMAND_MAX)
         flow = sim._pump_demand
         # Ramp flow_rate smoothly from current sensor value toward demand
         # to prevent abrupt jumps when pump comes out of idle

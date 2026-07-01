@@ -68,7 +68,7 @@ def _reset_device(device: str, sim: Optional['BuildingSimulator']) -> None:
         logger.exception("Error resetting critical values for %s", device)
 
 
-def _clear_device_alerts(device: str, active_alerts_dict: dict[str, str]) -> None:
+def _clear_device_alerts(device: str, active_alerts_dict: dict[str, str], sim=None) -> None:
     from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS
     try:
         if device == "pump":
@@ -77,6 +77,14 @@ def _clear_device_alerts(device: str, active_alerts_dict: dict[str, str]) -> Non
         elif device == "elevator":
             for v in ELEVATOR_VARS:
                 active_alerts_dict.pop(v, None)
+        # Also clear debounce counters so values don't immediately re-alert
+        if sim is not None and hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
+            if device == "pump":
+                for v in PUMP_VARS + ["rationing"]:
+                    sim._alert_consecutive.pop(v, None)
+            elif device == "elevator":
+                for v in ELEVATOR_VARS:
+                    sim._alert_consecutive.pop(v, None)
     except Exception:
         pass
 
@@ -108,7 +116,7 @@ def update_protection_state(sim: Optional['BuildingSimulator'] = None) -> None:
     expired = _get_expired_devices(pe)
     for device in expired:
         _reset_device(device, sim)
-        _clear_device_alerts(device, aa)
+        _clear_device_alerts(device, aa, sim=sim)
         del pe[device]
         logger.info("Protection ended for %s. Device restored.", device)
         _notify_protection_ended(device, sim, pn)

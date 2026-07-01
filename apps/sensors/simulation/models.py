@@ -33,7 +33,7 @@ class BuildingSimulator:
         self.sim_faults: dict = {}
         self.fault_injected_at: dict = {}
 
-        self._pump_demand: float = 20.0
+        self._pump_demand: float = 15.0
         self._pump_refill_timer: float = 0
         self._pump_failure_timer: float = 0
         self._pump_failure_active: bool = False

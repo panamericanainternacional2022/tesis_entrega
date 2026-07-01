@@ -42,6 +42,13 @@ def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
     return alert_vars
 
 
+# Minimum consecutive ticks a sensor must stay in Alto/Crítico before an
+# alert notification is generated.  At sim_speed=1 each tick ≈ 1 second.
+# This eliminates single-tick pressure/flow spikes caused by pump start-up
+# or minor demand oscillations from creating spurious notifications.
+ALERT_DEBOUNCE_TICKS: int = 3
+
+
 def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None:
     from apps.core.services.risk_service import classify_risk
     from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS
@@ -52,6 +59,10 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
     pump_protected = "pump" in sim.protection_ends or not sim.pump_on
     elev_protected = "elevator" in sim.protection_ends or not sim.elevator_on
 
+    # Per-variable consecutive-high-risk tick counter (debounce)
+    if not hasattr(sim, "_alert_consecutive"):
+        sim._alert_consecutive = {}
+
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
             continue
@@ -59,18 +70,22 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
         # Skip alerts while variable is in progressive transition
         if var in getattr(sim, "manual_overrides", {}):
             sim.active_alerts.pop(var, None)
+            sim._alert_consecutive.pop(var, None)
             continue
 
         # Skip alerts during pump startup transient (avoids false protection triggers)
         if var in {"flow_rate", "pressure"} and getattr(sim, "_pump_start_grace_ticks", 0) > 0:
             sim.active_alerts.pop(var, None)
+            sim._alert_consecutive.pop(var, None)
             continue
 
         if pump_protected and var in PUMP_VARS:
             sim.active_alerts.pop(var, None)
+            sim._alert_consecutive.pop(var, None)
             continue
         if elev_protected and var in ELEVATOR_VARS:
             sim.active_alerts.pop(var, None)
+            sim._alert_consecutive.pop(var, None)
             continue
 
         if var in BOOLEAN_VARS:
@@ -88,10 +103,15 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
             door_close_attempts=sim.door_close_attempts
         )
         if risk in (RISK_ALTO, RISK_CRITICO):
-            action = get_professional_action(var, risk, value)
-            send_alert(var, value, risk, action, sim=sim)
+            # Increment debounce counter; only fire once threshold is met
+            consecutive = sim._alert_consecutive.get(var, 0) + 1
+            sim._alert_consecutive[var] = consecutive
+            if consecutive >= ALERT_DEBOUNCE_TICKS:
+                action = get_professional_action(var, risk, value)
+                send_alert(var, value, risk, action, sim=sim)
         else:
             sim.active_alerts.pop(var, None)
+            sim._alert_consecutive.pop(var, None)
     from apps.events.alerts.engine import check_rationing
     _skip_rationing = (
         pump_protected
