@@ -118,6 +118,7 @@ def sim_status(request, building_id: int) -> JsonResponse:
         "edificio_id": sim.edificio_id,
         "nombre": sim.nombre,
         "paused": sim.sim_paused,
+        "started": sim.sim_started,
         "speed": sim.sim_speed,
         "pump_on": sim.pump_on,
         "elevator_on": sim.elevator_on,
@@ -147,7 +148,10 @@ def sim_pause(request, building_id: int) -> JsonResponse:
     except (SimulatorError, Exception):
         sim.sim_paused = not sim.sim_paused
 
-    return json_success_response({"paused": sim.sim_paused})
+    if not sim.sim_paused and not sim.sim_started:
+        sim.sim_started = True
+
+    return json_success_response({"paused": sim.sim_paused, "started": sim.sim_started})
 
 
 @require_http_methods(["POST"])

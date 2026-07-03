@@ -28,7 +28,8 @@ class BuildingSimulator:
         self.manual_pump_override: bool = False
         self.manual_elevator_override: bool = False
 
-        self.sim_paused: bool = False
+        self.sim_paused: bool = True
+        self.sim_started: bool = False
         self.sim_speed: float = 1.0
         self.sim_faults: dict = {}
         self.fault_injected_at: dict = {}

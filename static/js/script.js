@@ -1008,7 +1008,7 @@
         const isFirstLoad = Object.keys(currentReadings).length === 0;
 
         if (IS_ADMIN) {
-            if (data.sim_paused !== undefined) updatePauseBtn(data.sim_paused);
+            if (data.sim_paused !== undefined) updatePauseBtn(data.sim_paused, data.sim_started);
 
             if (data.sim_speed !== undefined) {
                 document.querySelectorAll('[data-speed]').forEach(btn => {
@@ -1838,20 +1838,33 @@
         catch (_) { return null; }
     }
 
+    let _simStarted = false;
+
     async function togglePause() {
         if (!EDIFICIO_ID) return;
         try {
             const resp = await csrfFetch(API.simPause(EDIFICIO_ID), { method: 'POST', body: '{}' });
             const data = await resp.json();
-            if (data.status === 'ok') updatePauseBtn(data.paused);
+            if (data.status === 'ok') {
+                if (!data.paused && !_simStarted) _simStarted = true;
+                updatePauseBtn(data.paused, _simStarted);
+            }
         } catch (_) { setSimMessage('Error al pausar o reanudar la simulación.', 'error'); }
     }
 
-    function updatePauseBtn(paused) {
+    function updatePauseBtn(paused, started) {
         const btn = document.getElementById('simPauseBtn');
         if (!btn) return;
-        btn.innerHTML = paused ? '<i class="fas fa-play"></i> <span>Reanudar</span>' : '<i class="fas fa-pause"></i> <span>Pausar</span>';
-        btn.className = paused ? 'btn btn-primary' : 'btn btn-secondary';
+        if (!paused) {
+            btn.innerHTML = '<i class="fas fa-pause"></i> <span>Pausar</span>';
+            btn.className = 'btn btn-secondary';
+        } else if (!started) {
+            btn.innerHTML = '<i class="fas fa-play"></i> <span>Iniciar</span>';
+            btn.className = 'btn btn-primary';
+        } else {
+            btn.innerHTML = '<i class="fas fa-play"></i> <span>Reanudar</span>';
+            btn.className = 'btn btn-primary';
+        }
     }
 
     async function resetSim() {
@@ -1862,7 +1875,8 @@
             const data = await resp.json();
             if (data.status === 'ok') {
                 setSimMessage(data.message, 'success');
-                updatePauseBtn(false);
+                _simStarted = false;
+                updatePauseBtn(true, false);
                 _csSetValue(document.getElementById('simFaultPump'), '');
                 _csSetValue(document.getElementById('simFaultElevator'), '');
             } else { setSimMessage(data.message, 'error'); }
@@ -2262,7 +2276,8 @@
 
         fetchSimStatus().then(data => {
             if (!data) return;
-            updatePauseBtn(data.paused);
+            _simStarted = data.started || false;
+            updatePauseBtn(data.paused, _simStarted);
             document.querySelectorAll('[data-speed]').forEach(btn => {
                 const isActive = parseFloat(btn.dataset.speed) === data.speed;
                 btn.classList.toggle('btn-primary', isActive);
