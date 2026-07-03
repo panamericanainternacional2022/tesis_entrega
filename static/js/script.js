@@ -1855,6 +1855,7 @@
     function updatePauseBtn(paused, started) {
         const btn = document.getElementById('simPauseBtn');
         if (!btn) return;
+        if (started === undefined) started = _simStarted;
         if (!paused) {
             btn.innerHTML = '<i class="fas fa-pause"></i> <span>Pausar</span>';
             btn.className = 'btn btn-secondary';

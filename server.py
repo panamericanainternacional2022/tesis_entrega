@@ -67,6 +67,7 @@ if _first:
     _sim_globals.active_alerts.update(_first.active_alerts)
     _sim_globals.door_close_attempts = _first.door_close_attempts
     _sim_globals.sim_paused = _first.sim_paused
+    _sim_globals.sim_started = _first.sim_started
     _sim_globals.sim_speed = _first.sim_speed
     logger.info("Variables globales legacy sincronizadas con simulador #%s", _first.edificio_id)
 

@@ -19,4 +19,5 @@ last_email_sent_time: float = 0.0
 last_email_sent_time_per_var: dict = {}
 manual_overrides: dict = {}
 sim_paused: bool = False
+sim_started: bool = False
 sim_speed: float = 1.0

@@ -26,6 +26,7 @@ class PayloadContext:
     rationing_threshold: float
     sim_paused: bool
     sim_speed: float
+    sim_started: bool = False
     generate_recommendations_fn: Callable = _noop_recommendations
     active_edificio_id: int = None
     django_connected: bool = False
@@ -98,6 +99,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "elevator_status": elevator_status,
         "sim_paused": ctx.sim_paused,
         "sim_speed": ctx.sim_speed,
+        "sim_started": ctx.sim_started,
     }
 
 
