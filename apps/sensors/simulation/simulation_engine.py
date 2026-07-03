@@ -1,0 +1,230 @@
+import random
+import time
+import logging
+
+from apps.sensors.sensor_config import PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS
+from apps.sensors.simulation.constants import (
+    RANDOM_FAULT_PROB, FAULT_AUTO_CLEAR_SECONDS,
+    SIMULTANEOUS_FAIL_PROB, LOG_SIM,
+    CLEAR_FAULT_MIN_FLOW, CLEAR_FAULT_MIN_PRESSURE, CLEAR_FAULT_MAX_VIBRATION,
+    CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH, CLEAR_FAULT_MAX_LOAD,
+)
+from apps.sensors.simulation.models import BuildingSimulator
+
+logger = logging.getLogger(__name__)
+
+
+def update_sensor_data(active_sim: BuildingSimulator) -> None:
+    if active_sim.sim_paused:
+        return
+    _auto_clear_expired_faults(active_sim)
+    _apply_manual_override_transitions(active_sim)
+    if active_sim.has_pump:
+        from apps.sensors.simulation.physics.pump import _update_pump
+        _update_pump(active_sim)
+    if active_sim.has_elevator:
+        from apps.sensors.simulation.physics.elevator import _update_elevator
+        _update_elevator(active_sim)
+    _inject_random_faults(active_sim)
+
+
+def _auto_clear_expired_faults(sim: BuildingSimulator) -> None:
+    expired = _get_expired_faults(sim)
+    for device in expired:
+        _clear_expired_fault_device(sim, device)
+
+
+def _get_expired_faults(sim: BuildingSimulator) -> list:
+    now = time.time()
+    return [
+        device
+        for device, injected_at in sim.fault_injected_at.items()
+        if now - injected_at >= FAULT_AUTO_CLEAR_SECONDS
+    ]
+
+
+def _clear_expired_fault_device(sim: BuildingSimulator, device: str) -> None:
+    sim.sim_faults.pop(device, None)
+    sim.fault_injected_at.pop(device, None)
+    if LOG_SIM:
+        print(
+            f"[SIM] {time.strftime('%H:%M:%S')} "
+            f"AUTO-CLEAR: falla de {device} expirada tras {FAULT_AUTO_CLEAR_SECONDS}s"
+        )
+    sd = sim.sensor_data
+    PROGRESSIVE_DURATION = 15.0
+    expiration = time.time() + PROGRESSIVE_DURATION
+    if device == "pump":
+        from apps.sensors.simulation.physics.pump import _clamp
+        sim._pump_start_grace_ticks = 5
+        if sd.get("flow_rate", 0) < CLEAR_FAULT_MIN_FLOW:
+            sim.manual_overrides["flow_rate"] = expiration
+            sim.manual_targets["flow_rate"] = CLEAR_FAULT_MIN_FLOW
+        if sd.get("pressure", 0) < CLEAR_FAULT_MIN_PRESSURE:
+            sim.manual_overrides["pressure"] = expiration
+            sim.manual_targets["pressure"] = CLEAR_FAULT_MIN_PRESSURE
+        if sd.get("vibration", 0) > CLEAR_FAULT_MAX_VIBRATION:
+            sim.manual_overrides["vibration"] = expiration
+            sim.manual_targets["vibration"] = CLEAR_FAULT_MAX_VIBRATION
+        volt = sd.get("voltage", 220)
+        if volt < CLEAR_FAULT_VOLTAGE_LOW or volt > CLEAR_FAULT_VOLTAGE_HIGH:
+            sim.manual_overrides["voltage"] = expiration
+            sim.manual_targets["voltage"] = _clamp(volt, CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
+        sim._pump_demand = CLEAR_FAULT_MIN_FLOW
+    elif device == "elevator":
+        sd["motor_stuck"] = False
+        if sd.get("speed", 0) < 0.0:
+            sim.manual_overrides["speed"] = expiration
+            sim.manual_targets["speed"] = 0.0
+        if sd.get("load", 0) > CLEAR_FAULT_MAX_LOAD:
+            sim.manual_overrides["load"] = expiration
+            sim.manual_targets["load"] = CLEAR_FAULT_MAX_LOAD
+        sd["door_status"] = "closed"
+        sim.door_close_attempts = 0
+        sim._elev_state = "IDLE"
+
+
+def _inject_random_faults(sim: BuildingSimulator) -> None:
+    if sim.sim_faults:
+        return
+    dt = sim.sim_speed
+    pump_can_fault = (
+        "pump" not in sim.protection_ends
+        and sim.pump_on
+        and random.random() < RANDOM_FAULT_PROB * dt
+    )
+    elev_can_fault = (
+        "elevator" not in sim.protection_ends
+        and sim.elevator_on
+        and random.random() < RANDOM_FAULT_PROB * dt
+    )
+    pump_faulted = False
+    elev_faulted = False
+    if pump_can_fault:
+        _inject_random_pump_fault(sim)
+        pump_faulted = True
+    if elev_can_fault:
+        _inject_random_elevator_fault(sim)
+        elev_faulted = True
+    if pump_faulted and not elev_faulted:
+        _maybe_simultaneous_elevator_fault(sim)
+    elif elev_faulted and not pump_faulted:
+        _maybe_simultaneous_pump_fault(sim)
+
+
+def _maybe_simultaneous_elevator_fault(sim: BuildingSimulator) -> None:
+    if (
+        "elevator" not in sim.protection_ends
+        and sim.elevator_on
+        and random.random() < SIMULTANEOUS_FAIL_PROB
+    ):
+        _inject_random_elevator_fault(sim)
+
+
+def _maybe_simultaneous_pump_fault(sim: BuildingSimulator) -> None:
+    if (
+        "pump" not in sim.protection_ends
+        and sim.pump_on
+        and random.random() < SIMULTANEOUS_FAIL_PROB
+    ):
+        _inject_random_pump_fault(sim)
+
+
+def _inject_random_pump_fault(sim: BuildingSimulator) -> None:
+    fault_type = random.choice(list(PUMP_FAULT_KEYS))
+    sim.sim_faults["pump"] = fault_type
+    sim.fault_injected_at["pump"] = time.time()
+    logger.info("Falla aleatoria de bomba inyectada (vía sim_faults): %s", fault_type)
+    if LOG_SIM:
+        print(f"[SIM] {time.strftime('%H:%M:%S')} INYECCION: pump {fault_type}")
+
+
+def _inject_random_elevator_fault(sim: BuildingSimulator) -> None:
+    fault_type = random.choice(list(ELEVATOR_FAULT_KEYS))
+    sim.sim_faults["elevator"] = fault_type
+    sim.fault_injected_at["elevator"] = time.time()
+    logger.info("Falla aleatoria de elevador inyectada (vía sim_faults): %s", fault_type)
+    if LOG_SIM:
+        print(f"[SIM] {time.strftime('%H:%M:%S')} INYECCION: elevator {fault_type}")
+
+
+def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
+    import time as time_lib
+    now = time_lib.time()
+    dt = sim.sim_speed
+
+    if not hasattr(sim, "manual_overrides") or not isinstance(sim.manual_overrides, dict):
+        sim.manual_overrides = {}
+    if not hasattr(sim, "manual_targets") or not isinstance(sim.manual_targets, dict):
+        sim.manual_targets = {}
+
+    from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS
+
+    MAX_STEPS_PER_SECOND = {
+        "flow_rate": 5.0,
+        "pressure": 1.0,
+        "temperature": 5.0,
+        "vibration": 2.0,
+        "tank_level": 10.0,
+        "voltage": 15.0,
+        "current": 5.0,
+        "speed": 1.0,
+        "load": 150.0,
+        "energy": 2.0,
+        "pump_energy": 2.0,
+        "position": 1.0,
+        "trip_count": 1000.0,
+    }
+
+    for var, expiration in list(sim.manual_overrides.items()):
+        if now >= expiration:
+            sim.manual_overrides.pop(var, None)
+            sim.manual_targets.pop(var, None)
+            continue
+
+        if var not in sim.manual_targets:
+            continue
+
+        target = sim.manual_targets[var]
+        current = sim.sensor_data.get(var)
+
+        if current is None:
+            sim.sensor_data[var] = target
+            continue
+
+        if var in BOOLEAN_VARS or var in ENUM_VARS:
+            sim.sensor_data[var] = target
+            continue
+
+        try:
+            target_f = float(target)
+            current_f = float(current)
+        except (ValueError, TypeError):
+            sim.sensor_data[var] = target
+            continue
+
+        diff = target_f - current_f
+        if abs(diff) < 0.01:
+            sim.sensor_data[var] = target_f
+            continue
+
+        max_step = MAX_STEPS_PER_SECOND.get(var, 999999.0) * dt
+        if abs(diff) <= max_step:
+            new_val = target_f
+        else:
+            new_val = current_f + (max_step if diff > 0 else -max_step)
+
+        bounds = SENSOR_RANGES.get(var)
+        if bounds:
+            new_val = max(bounds[0], min(bounds[1], new_val))
+
+        if var in ("load", "trip_count"):
+            new_val = int(round(new_val))
+        else:
+            new_val = round(new_val, 1)
+
+        sim.sensor_data[var] = new_val
+
+        if var == "position":
+            sim._elev_position_meters = float(new_val * 3.5)
+

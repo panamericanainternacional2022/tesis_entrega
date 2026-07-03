@@ -1,0 +1,85 @@
+{% load static %}
+<script>
+(function(){
+    // ─── BLOQUEO TOTAL DE NAVEGACIÓN ATRÁS/ADELANTE ───────────
+    window.history.pushState(null, null, window.location.href);
+    window.addEventListener('popstate', function () {
+        window.history.pushState(null, null, window.location.href);
+    });
+    // ─── DETECTA bfcache (caché de retroceso del navegador) ──
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) {
+            window.location.reload();
+        }
+    });
+    // ─── REMOVER PRELOAD DE TRANSICIONES AL CARGAR ──────────
+    window.addEventListener('load', function () {
+        document.body.classList.remove('preload');
+    });
+    // ─── DESTACAR LINK ACTIVO EN EL SIDEBAR ────────────────
+    window.addEventListener('DOMContentLoaded', function () {
+        var currentPath = window.location.pathname.replace(/\/+$/, '');
+        var links = document.querySelectorAll('.sidebar-link');
+        for (var i = 0; i < links.length; i++) {
+            var linkPath = links[i].getAttribute('href').replace(/\/+$/, '');
+            if (linkPath === currentPath) {
+                links[i].classList.add('active');
+                break;
+            }
+        }
+    });
+})();
+</script>
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <span class="sidebar-logo" role="img" aria-label="INES Logo">INES</span>
+        <span class="sidebar-system-name">Sistema inteligente de automatización</span>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Navegación lateral">
+        {% if request.session.usuario_es_admin %}
+        <a href="{% url 'monitor' %}" class="sidebar-link">
+            <i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Panel de control
+        </a>
+        <a href="{% url 'user_list' %}" class="sidebar-link">
+            <i class="fa-solid fa-users" aria-hidden="true"></i> Usuarios
+        </a>
+        <a href="{% url 'building_list' %}" class="sidebar-link">
+            <i class="fa-solid fa-building" aria-hidden="true"></i> Edificios
+        </a>
+        <a href="{% url 'notifications' %}" class="sidebar-link">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <span>Eventos</span>
+            <span id="notificationBadgeSidebar" class="sidebar-notif-badge{% if unread_notifications_count > 0 %} visible{% endif %}" aria-label="eventos sin leer" aria-live="polite">{% if unread_notifications_count > 0 %}{{ unread_notifications_count }}{% endif %}</span>
+        </a>
+        <a href="{% url 'thresholds' %}" class="sidebar-link">
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i> Umbrales
+        </a>
+        <a href="{% url 'sensor_limits' %}" class="sidebar-link">
+            <i class="fa-solid fa-maximize" aria-hidden="true"></i> Límites
+        </a>
+        <a href="{% url 'configuration' %}" class="sidebar-link">
+            <i class="fa-solid fa-gears" aria-hidden="true"></i> Configuración
+        </a>
+        {% else %}
+        <a href="{% url 'monitor' %}" class="sidebar-link">
+            <i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Panel de control
+        </a>
+        <a href="{% url 'notifications' %}" class="sidebar-link">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <span>Eventos</span>
+            <span id="notificationBadgeSidebar" class="sidebar-notif-badge{% if unread_notifications_count > 0 %} visible{% endif %}" aria-label="eventos sin leer" aria-live="polite">{% if unread_notifications_count > 0 %}{{ unread_notifications_count }}{% endif %}</span>
+        </a>
+        <a href="{% url 'configuration' %}" class="sidebar-link">
+            <i class="fa-solid fa-gears" aria-hidden="true"></i> Configuración
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <span class="sidebar-user" aria-label="Usuario actual: {% if request.session.usuario_es_admin %}Administrador{% else %}{{ request.session.usuario_nombre_completo }}{% endif %}">{% if request.session.usuario_es_admin %}Administrador{% else %}{{ request.session.usuario_nombre_completo }}{% endif %}</span>
+        <a href="{% url 'logout' %}" class="sidebar-link sidebar-logout">
+            <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión
+        </a>
+    </div>
+</aside>

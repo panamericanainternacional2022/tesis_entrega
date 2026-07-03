@@ -1,0 +1,24 @@
+{% load date_extras %}
+<li class="notif-item{% if notif.parsed_data.parsed %} {{ notif.parsed_data.risk_css }}{% endif %}">
+    <div class="notif-body">
+        {% if notif.parsed_data.parsed %}
+            <h3 class="notif-title" style="margin: 0 0 4px; font-size: var(--text-base); font-weight: var(--weight-bold);">{{ notif.parsed_data.variable }}{% if notif.parsed_data.value %} ({{ notif.parsed_data.value }}{% if notif.parsed_data.unit %} {{ notif.parsed_data.unit }}{% endif %}){% endif %}</h3>
+            <p class="notif-meta-text">{{ notif.parsed_data.action }}</p>
+        {% else %}
+            <h3 class="notif-title" style="margin: 0 0 4px; font-size: var(--text-base); font-weight: var(--weight-bold);">Notificación</h3>
+            <p class="notif-body-text">{{ notif.mensaje }}</p>
+        {% endif %}
+        <div class="notif-meta mt-1">
+            {% if notif.parsed_data.parsed %}
+            <span class="risk-icon {{ notif.parsed_data.risk_css }}">
+                <i class="fa-solid {{ notif.parsed_data.risk_icon }}" aria-hidden="true"></i>
+                {{ notif.parsed_data.risk }}
+            </span>
+            {% endif %}
+            <span title="{{ notif.date|date:'d/m/Y H:i' }}"><i class="fa-solid fa-clock" aria-hidden="true"></i> {{ notif.date|naturaltime_es }}</span>
+            {% if notif.monitoring_equipment.building %}
+            <span><i class="fa-solid fa-building" aria-hidden="true"></i> {{ notif.monitoring_equipment.building.name }}</span>
+            {% endif %}
+        </div>
+    </div>
+</li>
