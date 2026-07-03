@@ -8,6 +8,7 @@ from apps.sensors.simulation.constants import (
     SIMULTANEOUS_FAIL_PROB, LOG_SIM,
     CLEAR_FAULT_MIN_FLOW, CLEAR_FAULT_MIN_PRESSURE, CLEAR_FAULT_MAX_VIBRATION,
     CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH, CLEAR_FAULT_MAX_LOAD,
+    FLOOR_HEIGHT,
 )
 from apps.sensors.simulation.models import BuildingSimulator
 
@@ -226,5 +227,9 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
         sim.sensor_data[var] = new_val
 
         if var == "position":
-            sim._elev_position_meters = float(new_val * 3.5)
+            sim._elev_position_meters = float(new_val * FLOOR_HEIGHT)
+            sim._elev_target_floor = round(new_val)
+            sim._elev_state = "IDLE"
+            sim._elev_timer = 0
+            sim._elev_current_accel = 0
 

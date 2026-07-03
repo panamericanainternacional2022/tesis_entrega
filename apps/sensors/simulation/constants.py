@@ -25,6 +25,22 @@ FLOOR_HEIGHT: float = 3.5
 DOOR_CYCLE_TICKS: int = 3
 PASSENGER_WAIT_TICKS: int = 8
 
+# Physical constants
+G: float = 9.81                         # Gravity (m/s²)
+JERK: float = 0.5                       # Jerk limit for S-curve comfort (m/s³)
+CABIN_EMPTY_MASS: float = 800.0         # Empty cabin mass (kg)
+RATED_LOAD: float = 500.0               # Rated load capacity (kg)
+COUNTERWEIGHT_MASS: float = 1025.0      # M_cw = M_empty + 0.45 * M_rated = 800 + 0.45*500
+MOTOR_EFFICIENCY: float = 0.85          # Motor + drive system efficiency
+
+# Door timing (seconds, real-world range: 1.5–2.5 s)
+DOOR_OPEN_TIME: float = 2.0
+DOOR_CLOSE_TIME: float = 2.0
+
+# Motor stall detection
+STUCK_THRESHOLD_TICKS: int = 3          # Consecutive ticks at speed≈0 before alarm
+STUCK_SPEED_EPSILON: float = 0.01       # Speed threshold considered "zero"
+
 DEFAULT_SENSOR_DATA: dict = {
     "flow_rate": 15.0,
     "pressure": 4.0,

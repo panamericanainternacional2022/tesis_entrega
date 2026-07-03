@@ -43,6 +43,9 @@ class BuildingSimulator:
 
         self._elev_state: str = "IDLE"
         self._elev_timer: float = 0
+        self._elev_current_accel: float = 0.0    # Actual acceleration (for S-curve)
+        self._elev_stuck_timer: float = 0.0      # Consecutive stall ticks
+        self._elev_prev_spd: float = 0.0         # Speed at start of tick
         if self.has_elevator:
             initial_floor = random.randint(0, floors)
             self.sensor_data["position"] = initial_floor
