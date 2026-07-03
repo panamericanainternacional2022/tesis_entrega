@@ -5,7 +5,7 @@ from typing import Optional
 
 from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_INFORMATIVO, SENSOR_RANGES
 from apps.sensors.simulation.constants import (
-    DEFAULT_SENSOR_DATA, FLOOR_COUNT, SAFE_RESET_VALUES,
+    DEFAULT_SENSOR_DATA, FLOOR_COUNT,
     CLEAR_FAULT_MIN_FLOW, CLEAR_FAULT_MIN_PRESSURE, CLEAR_FAULT_MAX_VIBRATION,
     CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH, CLEAR_FAULT_MAX_LOAD,
 )
@@ -23,47 +23,6 @@ from apps.sensors.simulation.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
-
-PUMP_RESET_KEYS = [v for v in PUMP_VARS if v in SAFE_RESET_VALUES]
-ELEVATOR_RESET_KEYS = [v for v in ELEVATOR_VARS if v in SAFE_RESET_VALUES] + ["temperature"]
-
-
-def reset_critical_values(targets: set[str], sim: BuildingSimulator) -> None:
-    if not targets:
-        return
-    import time as _time
-    from apps.sensors.sensor_config import BOOLEAN_VARS, ENUM_VARS
-    PROGRESSIVE_DURATION = 15.0
-    expiration = _time.time() + PROGRESSIVE_DURATION
-    sd = sim.sensor_data
-    if "pump" in targets:
-        sim._pump_start_grace_ticks = 5
-        for k in PUMP_RESET_KEYS:
-            if k in SAFE_RESET_VALUES:
-                target_val = SAFE_RESET_VALUES[k]
-                current_val = sd.get(k)
-                if k in BOOLEAN_VARS or k in ENUM_VARS:
-                    sd[k] = target_val
-                elif current_val is not None and current_val != target_val:
-                    sim.manual_overrides[k] = expiration
-                    sim.manual_targets[k] = target_val
-                else:
-                    sd[k] = target_val
-        sim._pump_demand = DEFAULT_SENSOR_DATA["flow_rate"]
-    if "elevator" in targets:
-        for k in ELEVATOR_RESET_KEYS:
-            if k in SAFE_RESET_VALUES:
-                target_val = SAFE_RESET_VALUES[k]
-                current_val = sd.get(k)
-                if k in BOOLEAN_VARS or k in ENUM_VARS:
-                    sd[k] = target_val
-                elif current_val is not None and current_val != target_val:
-                    sim.manual_overrides[k] = expiration
-                    sim.manual_targets[k] = target_val
-                else:
-                    sd[k] = target_val
-    sim.door_close_attempts = 0
-
 
 def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
     sim = simulators.get(edificio_id)

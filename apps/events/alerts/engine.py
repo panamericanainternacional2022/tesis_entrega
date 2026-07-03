@@ -138,7 +138,7 @@ def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None)
     from apps.sensors.simulation.constants import RATIONING_THRESHOLD
     from apps.events.services.alert_service import get_professional_action
     if flow_rate < RATIONING_THRESHOLD:
-        # Skip si la bomba está en arranque, en transición manual o en protección
+        # Skip si la bomba está en arranque o en transición manual
         if sim is not None:
             if getattr(sim, "_pump_start_grace_ticks", 0) > 0:
                 return

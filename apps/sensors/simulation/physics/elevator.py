@@ -48,6 +48,7 @@ def _clear_elevator_fault_params(sim: BuildingSimulator) -> None:
     sim._elev_power_available = True
     sim._elev_brake_failed = False
     sim._elev_power_outage_timer = 0.0
+    sim._elev_power_outage_complete = False
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +166,16 @@ def _handle_power_outage_fsm(
       0–BRAKE_TIME    : Emergency brake engages (rapid deceleration)
       BRAKE–WAIT      : Standby, waiting for battery power-up
       WAIT+           : Battery rescue at low speed toward nearest floor
+
+    Once battery rescue completes, the elevator stays at the rescue floor
+    with doors open (no infinite loop).
     """
+    if sim._elev_power_outage_complete:
+        sd["speed"] = 0.0
+        sd["door_status"] = "open"
+        sd["energy"] = 0.0
+        return
+
     sim._elev_power_outage_timer += dt
     timer = sim._elev_power_outage_timer
 
@@ -207,13 +217,13 @@ def _handle_power_outage_fsm(
     sd["speed"] = round(spd, 1)
     sd["door_status"] = "closed"
 
-    # Arrived at the rescue floor
+    # Arrived at the rescue floor → stay here with doors open
     if abs(sim._elev_position_meters - target_m) < 0.3:
         sd["speed"] = 0.0
         sd["door_status"] = "open"
         sim._elev_state = "DOORS_OPEN"
         sd["energy"] = 0.0
-        sim._elev_power_outage_timer = 0.0
+        sim._elev_power_outage_complete = True
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +398,15 @@ def _handle_elev_accelerating(
     target: float, direction: int,
 ) -> None:
     prev_spd = spd
-    # Effective jerk scales with motor torque (0 if motor stuck)
+    # If motor torque is zero, the elevator cannot accelerate
+    if sim._elev_motor_torque_factor <= 0:
+        sim._elev_state = "MOVING"
+        sim._elev_current_accel = 0.0
+        sd["speed"] = 0.0
+        sd["door_status"] = "closed"
+        sim._elev_position_meters = pos
+        return
+
     effective_jerk = JERK * sim._elev_motor_torque_factor
     max_accel = ACCELERATION * sim._elev_motor_torque_factor
     sim._elev_current_accel = min(
@@ -594,7 +612,11 @@ def _check_motor_stuck(
         ELEVATOR_LOAD_ALERT, ELEVATOR_TEMP_ALERT,
         STUCK_THRESHOLD_TICKS, STUCK_SPEED_EPSILON,
     )
-    if abs(speed) < STUCK_SPEED_EPSILON and (load > ELEVATOR_LOAD_ALERT or temperature > ELEVATOR_TEMP_ALERT):
+    if abs(speed) < STUCK_SPEED_EPSILON and (
+        load > ELEVATOR_LOAD_ALERT
+        or temperature > ELEVATOR_TEMP_ALERT
+        or sim._elev_motor_torque_factor <= 0
+    ):
         sim._elev_stuck_timer += dt
     else:
         sim._elev_stuck_timer = 0.0
