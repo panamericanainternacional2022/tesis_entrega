@@ -73,6 +73,8 @@ def _clear_expired_fault_device(sim: BuildingSimulator, device: str) -> None:
             sim.manual_targets["voltage"] = _clamp(volt, CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
         sim._pump_demand = CLEAR_FAULT_MIN_FLOW
     elif device == "elevator":
+        from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
+        _clear_elevator_fault_params(sim)
         sd["motor_stuck"] = False
         if sd.get("speed", 0) < 0.0:
             sim.manual_overrides["speed"] = expiration

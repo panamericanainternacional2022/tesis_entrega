@@ -171,6 +171,8 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
             sim.manual_overrides["voltage"] = expiration
             sim.manual_targets["voltage"] = _clamp(volt, CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
     if device in (None, "elevator"):
+        from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
+        _clear_elevator_fault_params(sim)
         sd["motor_stuck"] = False
         if sd.get("speed", 0) < 0.0:
             sim.manual_overrides["speed"] = expiration
@@ -235,6 +237,8 @@ def reset_simulator(edificio_id: int) -> str:
     sim._elev_state = "IDLE"
     sim._elev_timer = 0
     if sim.has_elevator:
+        from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
+        _clear_elevator_fault_params(sim)
         initial_floor = random.randint(0, sim.floors)
         sim.sensor_data["position"] = initial_floor
         sim._elev_position_meters = float(initial_floor * 3.5)

@@ -389,10 +389,13 @@ FAULT_NAMES_ES = {
     "door_blocked":        "Puerta bloqueada",
     "door_close_failure":  "Fallo de cierre de puerta",
     "overspeed":           "Exceso de velocidad",
+    "overload":            "Sobrecarga",
+    "pos_sensor_fail":     "Fallo del sensor de posición",
+    "commercial_power_outage": "Corte de energía comercial",
 }
 
 PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "overheat", "power_surge", "power_outage")
-ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "door_close_failure", "overspeed")
+ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "door_close_failure", "overspeed", "overload", "pos_sensor_fail", "commercial_power_outage")
 
 UNKNOWN_PERSON_NAME: str = "Sin nombre"
 UNKNOWN_EMAIL_LABEL: str = "Sin correo"

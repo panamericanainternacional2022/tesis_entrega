@@ -37,6 +37,21 @@ MOTOR_EFFICIENCY: float = 0.85          # Motor + drive system efficiency
 DOOR_OPEN_TIME: float = 2.0
 DOOR_CLOSE_TIME: float = 2.0
 
+# Overload fault
+OVERLOAD_EXTRA_KG: float = 500.0        # Extra virtual mass during overload fault (kg)
+
+# Power outage phases (seconds)
+POWER_OUTAGE_BRAKE_TIME: float = 1.0    # Emergency brake deceleration phase
+POWER_OUTAGE_BATTERY_WAIT: float = 3.0  # Wait before battery rescue activates
+BATTERY_RESCUE_SPEED: float = 0.3       # Low-speed rescue (m/s)
+
+# Safety brake overspeed threshold (× CRUISING_SPEED)
+OVERSPEED_GOVERNOR_TRIGGER: float = 1.25
+OVERSPEED_ACCEL_RATE: float = 0.5       # Acceleration rate when governor failed (m/s²)
+
+# Door obstruction retry interval (seconds)
+DOOR_OBSTRUCTION_RETRY_INTERVAL: float = 3.0
+
 # Motor stall detection
 STUCK_THRESHOLD_TICKS: int = 3          # Consecutive ticks at speed≈0 before alarm
 STUCK_SPEED_EPSILON: float = 0.01       # Speed threshold considered "zero"

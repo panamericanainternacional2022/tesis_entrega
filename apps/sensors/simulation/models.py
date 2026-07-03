@@ -58,6 +58,16 @@ class BuildingSimulator:
         self._elev_at_floor: bool = True
         self._elev_prev_position: float = 0
 
+        # Fault physical parameters (mutated by fault handlers, consumed by FSM)
+        self._elev_motor_torque_factor: float = 1.0     # 0.0 = motor stuck
+        self._elev_door_obstructed: bool = False         # Door physically blocked
+        self._elev_speed_governor_failed: bool = False   # Overspeed governor failed
+        self._elev_overload_extra_kg: float = 0.0        # Extra virtual load for overload fault
+        self._elev_pos_sensor_stuck: bool = False        # Position sensor frozen
+        self._elev_power_available: bool = True          # False = power outage
+        self._elev_brake_failed: bool = False            # Mechanical brake failed
+        self._elev_power_outage_timer: float = 0.0       # Timer for power outage phases
+
     def __repr__(self) -> str:
         return (
             f"<BuildingSimulator edificio_id={self.edificio_id} "
