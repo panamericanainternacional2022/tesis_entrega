@@ -125,8 +125,6 @@ def sim_status(request, building_id: int) -> JsonResponse:
         "has_pump": sim.has_pump,
         "has_elevator": sim.has_elevator,
         "faults": dict(sim.sim_faults),
-        "protection_active": bool(sim.protection_ends),
-        "protection_targets": list(sim.protection_ends.keys()),
     })
 
 

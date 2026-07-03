@@ -15,7 +15,6 @@ class BuildingSimulator:
         self.has_elevator: bool = "elevador" in self.equipment_types
         self.pump_on: bool = self.has_pump
         self.elevator_on: bool = self.has_elevator
-        self.protection_ends: dict = {}
         self.active_alerts: dict = {}
         self.door_close_attempts: int = 0
         self.history: list = []

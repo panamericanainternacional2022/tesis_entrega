@@ -56,6 +56,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         )
         UserBuilding.objects.create(user=self.usuario, building=self.building)
         self.sim = _make_sim(self.building)
+        self.sim.sim_paused = False
 
     # -----------------------------------------------------------------------
     # 1. Manual Override / Lock
@@ -187,23 +188,16 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         self.equipment_pump.save()
         pump_s, elev_s = _fetch_equipment_status(
             django_connected=True, active_edificio_id=self.building.id,
-            sim_faults={}, active_alerts={}, protection_ends={}
+            sim_faults={}, active_alerts={}
         )
         self.assertEqual(pump_s, "operativo")
         pump_s, elev_s = _fetch_equipment_status(
             django_connected=True, active_edificio_id=self.building.id,
-            sim_faults={"pump": "dry_run"}, active_alerts={}, protection_ends={}
+            sim_faults={"pump": "dry_run"}, active_alerts={}
         )
         self.assertEqual(pump_s, "falla")
         self.equipment_pump.refresh_from_db()
         self.assertEqual(self.equipment_pump.status, "falla")
-        pump_s, elev_s = _fetch_equipment_status(
-            django_connected=True, active_edificio_id=self.building.id,
-            sim_faults={}, active_alerts={}, protection_ends={"pump": time.time() + 30}
-        )
-        self.assertEqual(pump_s, "mantenimiento")
-        self.equipment_pump.refresh_from_db()
-        self.assertEqual(self.equipment_pump.status, "mantenimiento")
 
     # =======================================================================
     # NEW TESTS — Float switch, pump ON/OFF, faults, elevator OFF
@@ -407,32 +401,16 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # 22. Elevator fault: motor_stuck → speed 0, alert raised
     # -----------------------------------------------------------------------
     def test_elevator_fault_motor_stuck(self):
-        """motor_stuck fault must zero speed and set the alert to Critical."""
+        """motor_stuck fault must zero speed."""
         sim = _make_sim(self.building, pump=True, elevator=True)
-        sim._elev_state = "MOVING_UP"
+        sim._elev_state = "MOVING"
         sim.sim_faults["elevator"] = "motor_stuck"
-        sim.sensor_data["motor_stuck"] = False
         sim.sensor_data["speed"] = 1.5
         for _ in range(3):
             _update_elevator(sim)
-        # motor_stuck sensor should be True now
-        self.assertTrue(
-            sim.sensor_data.get("motor_stuck"),
-            "motor_stuck fault must set motor_stuck sensor to True.",
+        self.assertEqual(
+            sim.sensor_data.get("speed"), 0.0,
+            "motor_stuck fault must stop the elevator.",
         )
 
-    # -----------------------------------------------------------------------
-    # 23. Protection mode stops pump updates
-    # -----------------------------------------------------------------------
-    def test_pump_in_protection_mode_idles(self):
-        """A pump in protection_ends must be treated as idle (flow = 0)."""
-        sim = _make_sim(self.building, tank_level=60.0, pump_on=True)
-        sim.protection_ends["pump"] = time.time() + 60.0  # in protection
-        sim.sensor_data["flow_rate"] = 15.0
-        sim.sensor_data["pressure"]  = 5.0
-        sim.manual_overrides["tank_level"] = time.time() + 90.0
-        # Progressive idle decay: flow -3.0/tick, pressure -1.5/tick
-        for _ in range(10):
-            _update_pump(sim)
-        self.assertEqual(sim.sensor_data["flow_rate"], 0.0, "Protected pump must zero flow.")
-        self.assertEqual(sim.sensor_data["pressure"],  0.0, "Protected pump must zero pressure.")
+

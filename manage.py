@@ -67,7 +67,6 @@ def main():
                 _sim_globals.elevator_on = _first.elevator_on
                 _sim_globals.equipment_types.clear()
                 _sim_globals.equipment_types.update(_first.equipment_types)
-                _sim_globals.protection_ends.update(_first.protection_ends)
                 _sim_globals.active_alerts.update(_first.active_alerts)
                 _sim_globals.door_close_attempts = _first.door_close_attempts
                 _sim_globals.sim_paused = _first.sim_paused

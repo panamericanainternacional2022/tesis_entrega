@@ -10,7 +10,6 @@ sensor_data: dict = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
 pump_on: bool = False
 elevator_on: bool = False
 equipment_types: set = set()
-protection_ends: dict = {}
 active_alerts: dict = {}
 door_close_attempts: int = 0
 history: list = []

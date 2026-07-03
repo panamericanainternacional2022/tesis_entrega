@@ -213,7 +213,6 @@ def reset_simulator(edificio_id: int) -> str:
     sim.elevator_on = sim.has_elevator
     sim.manual_pump_override = False
     sim.manual_elevator_override = False
-    sim.protection_ends.clear()
     sim.active_alerts.clear()
     sim.door_close_attempts = 0
     sim.history.clear()

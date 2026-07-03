@@ -102,7 +102,7 @@ def _set_power_outage_params(sim: BuildingSimulator, sd: dict, dt: float) -> Non
 def _update_elevator(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
-    if not sim.elevator_on or "elevator" in sim.protection_ends:
+    if not sim.elevator_on:
         _set_elevator_idle(sim, sd, dt)
         _clear_elevator_fault_params(sim)
         return

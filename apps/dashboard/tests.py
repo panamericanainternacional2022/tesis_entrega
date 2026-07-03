@@ -42,7 +42,6 @@ class SseStreamTests(TestCase):
         mock_sim.pending_notifications = []
         mock_sim.pump_on = False
         mock_sim.elevator_on = False
-        mock_sim.protection_ends = {}
         mock_sim.active_alerts = {}
         mock_sim.edificio_id = 1
         mock_sim.history = []

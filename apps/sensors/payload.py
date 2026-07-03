@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def build_live_payload() -> dict:
     from apps.sensors.simulation.globals import (
-        sensor_data, protection_ends, history,
+        sensor_data, history,
         door_close_attempts, pump_on, elevator_on, equipment_types,
         sim_paused, sim_speed, active_alerts,
     )
@@ -16,7 +16,6 @@ def build_live_payload() -> dict:
     from apps.events.services.alert_service import generate_recommendations
     ctx = PayloadContext(
         sensor_data=sensor_data,
-        protection_ends=protection_ends,
         history=history,
         door_close_attempts=door_close_attempts,
         pump_on=pump_on,
@@ -40,7 +39,6 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
     from apps.events.services.alert_service import generate_recommendations
     ctx = PayloadContext(
         sensor_data=sim.sensor_data,
-        protection_ends=sim.protection_ends,
         history=sim.history,
         door_close_attempts=sim.door_close_attempts,
         pump_on=sim.pump_on,

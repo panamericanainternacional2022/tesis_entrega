@@ -15,9 +15,6 @@ VAR_NAMES = {
     "position":     "Posición",
     "door_status":  "Estado de puerta",
     "rationing":                "Racionamiento",
-    "auto_protection":          "Protección automática",
-    "protection_pump":          "Protección para la bomba de agua",
-    "protection_elevator":      "Protección para el elevador",
     "fault_resolved_pump":      "Falla de bomba resuelta",
     "fault_resolved_elevator":  "Falla de elevador resuelta",
 }
@@ -321,15 +318,6 @@ ACTIONS: dict[str, dict[str, str]] = {
     "rationing": {
         RISK_CRITICO: "Caudal por debajo del mínimo admisible (racionamiento activo). Restringe el consumo general.",
     },
-    "auto_protection": {
-        RISK_CRITICO: "Protección automática activada. Operación forzada / Estado seguro activado.",
-    },
-    "protection_pump": {
-        RISK_INFORMATIVO: "Protección para la bomba de agua finalizada. Operación normal restaurada.",
-    },
-    "protection_elevator": {
-        RISK_INFORMATIVO: "Protección para el elevador finalizada. Operación normal restaurada.",
-    },
     "fault_resolved_pump": {
         RISK_INFORMATIVO: "Falla en la bomba de agua resuelta. Operación normal restaurada.",
     },
@@ -338,14 +326,9 @@ ACTIONS: dict[str, dict[str, str]] = {
     },
 }
 
-SYSTEM_VARS = ["rationing", "auto_protection", "protection_pump", "protection_elevator", "fault_resolved_pump", "fault_resolved_elevator"]
+SYSTEM_VARS = ["rationing", "fault_resolved_pump", "fault_resolved_elevator"]
 
 ALERT_VARS = list(set(PUMP_VARS + ELEVATOR_VARS + SYSTEM_VARS))
-
-PROTECTION_VARS = {
-    "pump":     [v for v in PUMP_VARS if v != "tank_level"],
-    "elevator": [v for v in ELEVATOR_VARS if v not in ("position", "trip_count", "door_status")],
-}
 
 SIM_TICK_INTERVAL = 1
 MAX_CONSECUTIVE_FAILURES = 5

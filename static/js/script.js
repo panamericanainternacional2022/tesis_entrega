@@ -469,36 +469,8 @@
     );
 
     const CSS_CLASSES = {
-        statusBadge: { falla: 'badge badge-crit', mantenimiento: 'badge badge-high' },
+        statusBadge: { falla: 'badge badge-crit' },
     };
-
-    // Intervalos de countdown por badge (para limpiarlos al actualizar)
-    const _protectionIntervals = {};
-
-    function _formatRemaining(seconds) {
-        if (seconds <= 0) return '0s';
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return m > 0 ? `${m}m ${String(s).padStart(2, '0')}s` : `${s}s`;
-    }
-
-    async function _autoResetAfterProtection() {
-        if (!EDIFICIO_ID) return;
-        try {
-            const resp = await csrfFetch(API.simReset(EDIFICIO_ID), { method: 'POST', body: '{}' });
-            const data = await resp.json();
-            if (data.status === 'ok') {
-                // Limpiar selectores de falla en la UI (solo si existen)
-                const faultPump = document.getElementById('simFaultPump');
-                const faultElev = document.getElementById('simFaultElevator');
-                if (faultPump) _csSetValue(faultPump, '');
-                if (faultElev) _csSetValue(faultElev, '');
-                showToast('Modo seguro finalizado — sistema restaurado.', 'success');
-            }
-        } catch (_) {
-            // Fallo silencioso: el próximo payload SSE sincronizará el estado
-        }
-    }
 
     let EDIFICIO_ID = _CONFIG.edificio_id || window.SELECTED_EDIFICIO_ID || 0;
     let SSE_URL = EDIFICIO_ID ? `/sse/${EDIFICIO_ID}/` : null;
@@ -802,51 +774,16 @@
         else showState('stateOffline');
     }
 
-    function updateStatusBadge(badgeId, statusVal, protectionInfo) {
+    function updateStatusBadge(badgeId, statusVal) {
         const badgeEl = document.getElementById(badgeId);
         if (!badgeEl) return;
 
-        // Limpiar countdown anterior si existe
-        if (_protectionIntervals[badgeId]) {
-            clearInterval(_protectionIntervals[badgeId]);
-            delete _protectionIntervals[badgeId];
-        }
-
         const cellEl = badgeEl.closest('.status-cell');
 
-        // Modo seguro activo: mostrar countdown en el badge
-        if (protectionInfo && protectionInfo.remaining > 0) {
-            if (cellEl) {
-                cellEl.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
-                cellEl.classList.add('cell-high');
-            }
-            let remaining = protectionInfo.remaining;
-            const render = () => {
-                badgeEl.innerHTML = `<i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Modo seguro &mdash; ${_formatRemaining(remaining)}`;
-                badgeEl.className = 'badge badge-high';
-            };
-            render();
-            _protectionIntervals[badgeId] = setInterval(() => {
-                remaining--;
-                if (remaining <= 0) {
-                    clearInterval(_protectionIntervals[badgeId]);
-                    delete _protectionIntervals[badgeId];
-                    // Auto-reset: el backend ya restauró el dispositivo;
-                    // la llamada al API limpia fallas residuales y sincroniza la UI.
-                    _autoResetAfterProtection();
-                    // El próximo payload del SSE actualizará el badge al estado real
-                }
-                render();
-            }, 1000);
-            return;
-        }
-
-        // Estado normal
         if (cellEl) {
             cellEl.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
             if (statusVal === 'operativo') cellEl.classList.add('cell-normal');
             else if (statusVal === 'falla') cellEl.classList.add('cell-crit');
-            else if (statusVal === 'mantenimiento') cellEl.classList.add('cell-high');
             else cellEl.classList.add('cell-normal');
         }
 
@@ -1042,13 +979,12 @@
         if (data.current) { currentReadings = data.current; updateCards(data.current); }
         if (data.history) updateCharts(data.history);
 
-        updateStatusBadge('pumpStatusBadge',     data.pump_status,     data.protection_pump);
+        updateStatusBadge('pumpStatusBadge', data.pump_status);
 
-        // Badge del elevador: modo seguro tiene prioridad; si no, mostrar intentos de cierre de puerta
+        // Badge del elevador: mostrar intentos de cierre de puerta si aplica
         const _doorAttempts    = data.door_close_attempts ?? 0;
-        const _maxDoorAttempts = 2; // MAX_DOOR_CLOSE_ATTEMPTS del backend
-        const _elevProtected   = data.protection_elevator && data.protection_elevator.remaining > 0;
-        if (!_elevProtected && _doorAttempts >= 1) {
+        const _maxDoorAttempts = 2;
+        if (_doorAttempts >= 1) {
             const elevBadge = document.getElementById('elevatorStatusBadge');
             const elevCell  = document.getElementById('elevatorStatusRow');
             if (elevBadge && elevCell) {
@@ -1061,7 +997,7 @@
                     : `<i class="fa-solid fa-door-open" aria-hidden="true"></i> Puerta: intento ${_doorAttempts}/${_maxDoorAttempts}`;
             }
         } else {
-            updateStatusBadge('elevatorStatusBadge', data.elevator_status, data.protection_elevator);
+            updateStatusBadge('elevatorStatusBadge', data.elevator_status);
         }
 
         const lastUpd = document.getElementById('lastUpdate');

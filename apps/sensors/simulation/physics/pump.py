@@ -52,8 +52,7 @@ def _apply_float_switch(sim: BuildingSimulator, sd: dict) -> None:
     """
     if getattr(sim, "manual_pump_override", False):
         return
-    # Skip if pump is in protection or has an active fault
-    if "pump" in sim.protection_ends or "pump" in sim.sim_faults:
+    if "pump" in sim.sim_faults:
         return
     tank = sd.get("tank_level", 50.0)
     if tank >= _TANK_FULL_THRESHOLD and sim.pump_on:
@@ -73,7 +72,6 @@ def _update_pump(sim: BuildingSimulator) -> None:
     if not _is_locked(sim, "tank_level"):
         is_pumping = (
             sim.pump_on
-            and "pump" not in sim.protection_ends
             and "pump" not in sim.sim_faults
         )
         # Inflow = water from mains pumped into tank
@@ -96,7 +94,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
     _apply_float_switch(sim, sd)
 
     # ── Dispatch to correct operating mode ─────────────────────────────────
-    if not sim.pump_on or "pump" in sim.protection_ends:
+    if not sim.pump_on:
         _set_pump_idle(sim, sd, dt)
         return
     if "pump" in sim.sim_faults:

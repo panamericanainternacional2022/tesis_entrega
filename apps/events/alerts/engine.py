@@ -10,24 +10,11 @@ if TYPE_CHECKING:
 
 from .utils import (
     COOLDOWN_SECONDS, get_attribute, set_attribute,
-    translate_variable_to_spanish, translate_device_to_spanish,
+    translate_variable_to_spanish,
 )
-from .protection import enter_protection_mode
 from apps.sensors.sensor_config import RISK_CRITICO, RISK_ALTO
 
 logger = logging.getLogger(__name__)
-
-
-def _determine_device_target(variable: str) -> Optional[str]:
-    from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS
-    try:
-        if variable in PUMP_VARS or variable == "rationing":
-            return "pump"
-        elif variable in ELEVATOR_VARS:
-            return "elevator"
-    except Exception:
-        pass
-    return None
 
 
 def _build_alert_email_subject(variable: str, risk_level: str) -> str:
@@ -38,7 +25,6 @@ def _build_alert_email_subject(variable: str, risk_level: str) -> str:
 def _build_alert_email_body(
     variable: str, value: float, risk_level: str, recommended_action: str,
     edificio_nombre: str = "",
-    device_target: Optional[str] = None,
 ) -> str:
     from apps.events.services.alert_service import build_standard_email_body, get_unit
     var_display = translate_variable_to_spanish(variable)
@@ -51,13 +37,6 @@ def _build_alert_email_body(
         "Lectura":         f"{value} {unit}".strip(),
         "Nivel de riesgo": risk_level,
     }
-    if device_target:
-        device_es = translate_device_to_spanish(device_target)
-        article = "el" if device_target == "elevator" else "la"
-        detalles["Respuesta automática"] = (
-            f"Protección activada. Se ha puesto en modo seguro {article} {device_es} "
-            f"de forma preventiva."
-        )
     return build_standard_email_body(
         titulo="Anomalía detectada en los sensores de infraestructura",
         contexto=(
@@ -77,7 +56,6 @@ def _send_alert_email(
     recommended_action: str,
     last_email_time: float,
     sim: Optional['BuildingSimulator'],
-    device_target: Optional[str] = None,
 ) -> float:
     from apps.events.services.alert_service import send_email_alert, get_building_emails
     new_les = last_email_time
@@ -98,7 +76,7 @@ def _send_alert_email(
         edificio_id = getattr(sim, "edificio_id", None)
         subject = _build_alert_email_subject(variable, risk_level)
         body = _build_alert_email_body(
-            variable, value, risk_level, recommended_action, edificio_nombre, device_target
+            variable, value, risk_level, recommended_action, edificio_nombre
         )
         recipients = get_building_emails(edificio_id)
         if not recipients:
@@ -130,41 +108,15 @@ def send_alert(
         return
     aa[variable] = risk_level
 
-    device_target = _determine_device_target(variable)
-
     from apps.sensors.simulation.constants import LOG_SIM
     if LOG_SIM:
         print(
-            f"[SIM] {time.strftime('%H:%M:%S')} ALERT: {variable}={value} level={risk_level} mapped={device_target}"
+            f"[SIM] {time.strftime('%H:%M:%S')} ALERT: {variable}={value} level={risk_level}"
         )
 
-    # Construir el mensaje combinado (alerta + acción de protección si aplica)
     combined_action = recommended_action
-    if risk_level in (RISK_ALTO, RISK_CRITICO):
-        if device_target:
-            from apps.sensors.sensor_config import RISK_NAMES_ES
-            device_es = translate_device_to_spanish(device_target)
-            article = "el" if device_target == "elevator" else "la"
-            combined_action = (
-                f"{recommended_action}. Se ha puesto en modo seguro {article} "
-                f"{device_es} de forma preventiva."
-            )
-            # Activar protección sin generar notificación separada:
-            # la información ya está embebida en combined_action.
-            enter_protection_mode(
-                f"alert {RISK_NAMES_ES.get(risk_level, risk_level.lower())} of "
-                f"{translate_variable_to_spanish(variable).lower()}",
-                targets={device_target},
-                sim=sim,
-                create_notification=False,
-            )
-        else:
-            logger.warning(
-                "Critical alert for %s without device mapping; automatic protection will not be activated.",
-                variable,
-            )
 
-    new_les = _send_alert_email(variable, value, risk_level, recommended_action, les, sim, device_target)
+    new_les = _send_alert_email(variable, value, risk_level, recommended_action, les, sim)
     set_attribute(sim, "last_email_sent_time", new_les)
 
     pn = get_attribute(sim, "pending_notifications")

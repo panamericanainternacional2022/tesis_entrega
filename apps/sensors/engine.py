@@ -25,8 +25,6 @@ _MAX_BACKOFF_TICKS: int = 30
 def _run_sim_tick(sim: BuildingSimulator) -> None:
     if sim.sim_paused:
         return
-    from apps.events.alerts.protection import update_protection_state
-    update_protection_state(sim=sim)
     update_sensor_data(active_sim=sim)
     alert_vars = _get_alert_vars(sim)
     _process_sensor_alerts(sim, alert_vars)
@@ -56,9 +54,6 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
 
     thresholds = get_thresholds(sim.edificio_id)
 
-    pump_protected = "pump" in sim.protection_ends or not sim.pump_on
-    elev_protected = "elevator" in sim.protection_ends or not sim.elevator_on
-
     # Per-variable consecutive-high-risk tick counter (debounce)
     if not hasattr(sim, "_alert_consecutive"):
         sim._alert_consecutive = {}
@@ -73,17 +68,8 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
             sim._alert_consecutive.pop(var, None)
             continue
 
-        # Skip alerts during pump startup transient (avoids false protection triggers)
+        # Skip alerts during pump startup transient
         if var in {"flow_rate", "pressure"} and getattr(sim, "_pump_start_grace_ticks", 0) > 0:
-            sim.active_alerts.pop(var, None)
-            sim._alert_consecutive.pop(var, None)
-            continue
-
-        if pump_protected and var in PUMP_VARS:
-            sim.active_alerts.pop(var, None)
-            sim._alert_consecutive.pop(var, None)
-            continue
-        if elev_protected and var in ELEVATOR_VARS:
             sim.active_alerts.pop(var, None)
             sim._alert_consecutive.pop(var, None)
             continue
@@ -114,8 +100,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
             sim._alert_consecutive.pop(var, None)
     from apps.events.alerts.engine import check_rationing
     _skip_rationing = (
-        pump_protected
-        or getattr(sim, "_pump_start_grace_ticks", 0) > 0
+        getattr(sim, "_pump_start_grace_ticks", 0) > 0
         or "flow_rate" in getattr(sim, "manual_overrides", {})
     )
     if _skip_rationing:

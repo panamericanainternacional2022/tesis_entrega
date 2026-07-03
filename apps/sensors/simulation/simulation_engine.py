@@ -92,13 +92,11 @@ def _inject_random_faults(sim: BuildingSimulator) -> None:
         return
     dt = sim.sim_speed
     pump_can_fault = (
-        "pump" not in sim.protection_ends
-        and sim.pump_on
+        sim.pump_on
         and random.random() < RANDOM_FAULT_PROB * dt
     )
     elev_can_fault = (
-        "elevator" not in sim.protection_ends
-        and sim.elevator_on
+        sim.elevator_on
         and random.random() < RANDOM_FAULT_PROB * dt
     )
     pump_faulted = False
@@ -117,8 +115,7 @@ def _inject_random_faults(sim: BuildingSimulator) -> None:
 
 def _maybe_simultaneous_elevator_fault(sim: BuildingSimulator) -> None:
     if (
-        "elevator" not in sim.protection_ends
-        and sim.elevator_on
+        sim.elevator_on
         and random.random() < SIMULTANEOUS_FAIL_PROB
     ):
         _inject_random_elevator_fault(sim)
@@ -126,8 +123,7 @@ def _maybe_simultaneous_elevator_fault(sim: BuildingSimulator) -> None:
 
 def _maybe_simultaneous_pump_fault(sim: BuildingSimulator) -> None:
     if (
-        "pump" not in sim.protection_ends
-        and sim.pump_on
+        sim.pump_on
         and random.random() < SIMULTANEOUS_FAIL_PROB
     ):
         _inject_random_pump_fault(sim)
