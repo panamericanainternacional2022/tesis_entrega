@@ -1866,6 +1866,8 @@
             btn.innerHTML = '<i class="fas fa-play"></i> <span>Reanudar</span>';
             btn.className = 'btn btn-primary';
         }
+        const resetBtn = document.getElementById('simResetBtn');
+        if (resetBtn) resetBtn.disabled = paused && !started;
     }
 
     async function resetSim() {
@@ -1877,9 +1879,11 @@
             if (data.status === 'ok') {
                 setSimMessage(data.message, 'success');
                 _simStarted = false;
+                currentReadings = {};
                 updatePauseBtn(true, false);
                 _csSetValue(document.getElementById('simFaultPump'), '');
                 _csSetValue(document.getElementById('simFaultElevator'), '');
+                fetchInitialData();
             } else { setSimMessage(data.message, 'error'); }
         } catch (_) { setSimMessage('Error al reiniciar la simulación.', 'error'); }
     }

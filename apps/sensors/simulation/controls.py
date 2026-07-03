@@ -226,7 +226,8 @@ def reset_simulator(edificio_id: int) -> str:
         sim.last_email_sent_time_per_var.clear()
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
-    sim.sim_paused = False
+    sim.sim_paused = True
+    sim.sim_started = False
     sim.sim_speed = 1.0
     sim._pump_demand = 15.0
     sim._pump_start_grace_ticks = 5
