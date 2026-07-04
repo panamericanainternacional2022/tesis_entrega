@@ -515,6 +515,14 @@
     const getUnit = (variable) => _UNITS[variable] || '';
 
     function translateSensorValue(variable, value) {
+        if (variable === 'position') {
+            const floor = Math.round(Number(value));
+            const posRange = _SENSOR_RANGES['position'];
+            const maxFloor = posRange ? posRange[1] : null;
+            if (floor === 0) return 'PB';
+            if (maxFloor !== null && floor === maxFloor) return 'PH';
+            return `Piso ${floor}`;
+        }
         if (_VALUE_DISPLAY[variable]) {
             const tr = _VALUE_DISPLAY[variable][String(value)];
             if (tr !== undefined) return tr;
@@ -1620,18 +1628,26 @@
         if (!span || !v) return;
 
         const errorMsg = document.getElementById('manualErrorMsg');
+        const posErrorMsg = document.getElementById('manualPositionErrorMsg');
         const status = validateManualInput();
-        if (status.hasError) {
-            if (errorMsg) { errorMsg.textContent = status.errorText; errorMsg.style.visibility = 'visible'; }
+        
+        if (errorMsg) { 
+            errorMsg.textContent = status.errorText; 
+            errorMsg.style.visibility = status.hasError ? 'visible' : 'hidden'; 
+        }
+        if (posErrorMsg) { 
+            posErrorMsg.textContent = status.posErrorText; 
+            posErrorMsg.style.visibility = status.posHasError ? 'visible' : 'hidden'; 
+        }
+
+        if (status.hasError || status.posHasError) {
             span.innerHTML = '';
             return;
         }
         if (status.empty) {
-            if (errorMsg) { errorMsg.textContent = ''; errorMsg.style.visibility = 'hidden'; }
             span.innerHTML = '';
             return;
         }
-        if (errorMsg) { errorMsg.textContent = ''; errorMsg.style.visibility = 'hidden'; }
 
         const isEnum = v === 'door_status' || v === 'motor_stuck';
         const raw = isEnum ? sel.value : inp.value;
@@ -1656,10 +1672,11 @@
         const inp = document.getElementById('manualValueInput');
         const sendBtn = document.getElementById('sendManualBtn');
         const posInp = document.getElementById('manualPositionInput');
-        if (!v) return { hasError: false, empty: true };
+        if (!v) return { hasError: false, posHasError: false, empty: true, errorText: '', posErrorText: '' };
 
         const isEnum = v === 'door_status' || v === 'motor_stuck';
         let hasError = false, errorText = '', empty = false;
+        let posHasError = false, posErrorText = '', posEmpty = false;
 
         if (!isEnum && inp) {
             const raw = inp.value.trim();
@@ -1678,15 +1695,16 @@
         }
         if (v === 'speed' && posInp) {
             const posRaw = posInp.value.trim();
-            if (!posRaw) {
-                hasError = true;
-                if (!errorText) errorText = 'Indique el piso destino.';
+            posEmpty = !posRaw;
+            if (posEmpty) {
+                posHasError = true;
+                posErrorText = 'Indique el piso destino.';
             } else {
                 const posVal = parseInt(posRaw, 10);
                 const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
                 if (isNaN(posVal) || posVal < posMin || posVal > posMax) {
-                    hasError = true;
-                    if (!errorText) errorText = `El valor debe estar entre ${posMin} y ${posMax} piso.`;
+                    posHasError = true;
+                    posErrorText = `El piso debe estar entre ${posMin} y ${posMax}.`;
                 }
             }
         }
@@ -1695,8 +1713,17 @@
             if (hasError) inp.setAttribute('aria-invalid', 'true');
             else inp.removeAttribute('aria-invalid');
         }
-        if (sendBtn) sendBtn.disabled = empty || hasError || !_simStarted || _simPaused;
-        return { hasError, errorText, empty };
+        if (posInp) {
+            posInp.classList.toggle('input-error-state', posHasError);
+            if (posHasError) posInp.setAttribute('aria-invalid', 'true');
+            else posInp.removeAttribute('aria-invalid');
+        }
+
+        const totalEmpty = empty || (v === 'speed' && posEmpty);
+        const totalHasError = hasError || posHasError;
+
+        if (sendBtn) sendBtn.disabled = totalEmpty || totalHasError || !_simStarted || _simPaused;
+        return { hasError, posHasError, errorText, posErrorText, empty: totalEmpty };
     }
 
     async function sendManualValue() {
