@@ -1525,7 +1525,20 @@
 
         inp.style.display = isEnum ? 'none' : 'block';
         if (csWrapper) csWrapper.style.display = isEnum ? 'block' : 'none';
-        if (speedExtra) speedExtra.classList.toggle('d-none', v !== 'speed');
+        if (speedExtra) {
+            speedExtra.classList.toggle('d-none', v !== 'speed');
+            if (v === 'speed') {
+                const posInp = document.getElementById('manualPositionInput');
+                if (posInp) {
+                    const posRange = _SENSOR_RANGES['position'];
+                    if (posRange) {
+                        posInp.min = posRange[0]; posInp.max = posRange[1];
+                        posInp.placeholder = `Ej: ${posRange[0]} - ${posRange[1]} piso`;
+                        posInp.step = '1';
+                    }
+                }
+            }
+        }
 
         if (v === 'door_status') {
             sel.innerHTML = '';
@@ -1673,7 +1686,7 @@
                 const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
                 if (isNaN(posVal) || posVal < posMin || posVal > posMax) {
                     hasError = true;
-                    if (!errorText) errorText = `El piso debe estar entre ${posMin} y ${posMax}.`;
+                    if (!errorText) errorText = `El valor debe estar entre ${posMin} y ${posMax} piso.`;
                 }
             }
         }
@@ -1714,7 +1727,7 @@
             if (!posRaw) { showToast('Indique el piso destino.', 'error'); return; }
             position = parseInt(posRaw, 10);
             const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
-            if (isNaN(position) || position < posMin || position > posMax) { showToast(`El piso debe estar entre ${posMin} y ${posMax}.`, 'error'); return; }
+            if (isNaN(position) || position < posMin || position > posMax) { showToast(`El valor debe estar entre ${posMin} y ${posMax} piso.`, 'error'); return; }
         }
         const body = { variable: v, value: val, edificio_id: EDIFICIO_ID };
         if (position !== undefined) body.position = position;

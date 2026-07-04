@@ -77,7 +77,15 @@ def manual_update(request) -> JsonResponse:
         sim.manual_targets["speed"] = parsed_value
         position = body.get("position")
         if position is not None:
-            sim._elev_target_floor = int(position)
+            try:
+                pos_val = int(position)
+            except (ValueError, TypeError):
+                return json_error_response("El piso destino debe ser un número entero")
+            from apps.sensors.sensor_config import SENSOR_RANGES
+            pos_range = SENSOR_RANGES.get("position", (0, 100))
+            if not (pos_range[0] <= pos_val <= pos_range[1]):
+                return json_error_response(f"El piso destino debe estar entre {pos_range[0]} y {pos_range[1]}")
+            sim._elev_target_floor = pos_val
             floor_num = round(sim._elev_position_meters / FLOOR_HEIGHT)
             sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
             if sim._elev_state in ("IDLE", "DOORS_OPEN"):

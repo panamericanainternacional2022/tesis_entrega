@@ -108,7 +108,7 @@ DEVICE_NAMES_ES = {
 
 NO_RISK_VARS = []
 
-LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position"]
+LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position", "door_close_attempts"]
 
 ZERO_IS_CRITICAL_VARS = {"flow_rate", "pressure"}
 
@@ -182,6 +182,9 @@ VALUE_DISPLAY_ES = {
         "0": "Sin intentos",
         "1": "1 intento",
         "2": "2 intentos",
+        "3": "3 intentos",
+        "4": "4 intentos",
+        "5": "5 intentos",
     },
 }
 
@@ -199,6 +202,7 @@ DEFAULT_THRESHOLDS = {
     "voltage":     {"direction": "range",  "low": 200,  "high": 240},
     "current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
     "position":    {"direction": "range",  "low": 0.0,  "high": 20.0},
+    "door_close_attempts": {"direction": "higher", "low": 0, "medium": 1, "high": 3},
 }
 
 RECOMMENDATION_THRESHOLDS = {
@@ -368,6 +372,7 @@ SENSOR_RANGES = {
     "pump_energy": (0, 20),
     "trip_count":  (0, 100000),
     "position":    (0, 100),
+    "door_close_attempts": (0, 5),
 }
 
 RISK_UNKNOWN = "Desconocido"
