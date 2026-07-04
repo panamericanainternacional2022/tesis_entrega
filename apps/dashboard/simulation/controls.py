@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @login_required
 @admin_required
 def manual_update(request) -> JsonResponse:
-    from apps.sensors.sensor_config import PUMP_VARS, RISK_CRITICO, RISK_ALTO, RISK_NORMAL, BOOLEAN_VARS, ENUM_VARS
+    from apps.sensors.sensor_config import PUMP_VARS, RISK_CRITICO, RISK_ALTO, RISK_NORMAL, BOOLEAN_VARS
     from apps.sensors.simulation.constants import MAX_HISTORY_SIZE, FLOOR_HEIGHT
     try:
         body = parse_json_body(request)
@@ -42,12 +42,10 @@ def manual_update(request) -> JsonResponse:
     if variable not in sim.sensor_data:
         return json_error_response("Variable no válida")
 
-    if variable in ENUM_VARS:
-        if variable == "door_status":
-            if value not in ("open", "closed"):
-                return json_error_response('door_status debe ser "open" o "closed"')
-            parsed_value = str(value)
-    elif variable in BOOLEAN_VARS:
+    if variable in ("door_status", "trip_count"):
+        return json_error_response(f"La variable '{variable}' no puede controlarse manualmente")
+
+    if variable in BOOLEAN_VARS:
         if isinstance(value, str) and value.lower() == "false":
             parsed_value = False
         else:

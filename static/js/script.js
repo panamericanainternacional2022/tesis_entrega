@@ -1565,7 +1565,7 @@
 
         sel.innerHTML = '';
         const eq = eqSel.value || 'pump';
-        const vars = eq === 'pump' ? _BOMBA_VARS : _ELEVADOR_VARS;
+        const vars = eq === 'pump' ? _BOMBA_VARS : _ELEVADOR_VARS.filter(v => v !== 'door_status' && v !== 'trip_count');
         const container = sel.closest('.form-group');
 
         if (vars.length <= 1) {
