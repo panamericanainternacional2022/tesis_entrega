@@ -265,7 +265,6 @@ button {
 .sensor-section,
 .chart-panel,
 .form-card,
-.status-cell,
 .table-wrapper,
 .sensor-card,
 .toolbar,
@@ -1530,73 +1529,6 @@ button {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: var(--sp-4);
     margin-bottom: var(--sp-5);
-}
-
-/* Status grid (resetea la sombra del grupo de superficie compartida) */
-.status-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--sp-5);
-    margin-bottom: var(--sp-5);
-    background: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.status-cell {
-    padding: var(--sp-5);
-    position: relative;
-}
-
-/* Barra de acento en el borde izquierdo según estado */
-.status-cell::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 5px;
-    background: var(--state-normal);
-    transition: background var(--transition-base);
-}
-
-.status-cell.cell-normal::before {
-    background: var(--color-accent);
-}
-
-.status-cell.cell-high::before {
-    background: var(--color-accent);
-}
-
-.status-cell.cell-crit::before {
-    background: var(--color-accent);
-}
-
-.status-cell.cell-info::before {
-    background: var(--color-accent);
-}
-
-.status-cell-label {
-    font-size: var(--text-md);
-    font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-ink);
-    margin-bottom: var(--sp-3);
-    display: flex;
-    align-items: center;
-    gap: var(--sp-1-5);
-}
-
-.status-cell-label i {
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-}
-
-.status-cell-value {
-    font-size: var(--text-sm);
-    font-weight: var(--weight-bold);
-    color: var(--color-ink);
-    line-height: var(--leading-tight);
 }
 
 /* ─── Sensor section ─── */

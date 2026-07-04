@@ -14,6 +14,7 @@ VAR_NAMES = {
     "trip_count":   "Conteo de viajes",
     "position":     "Posición",
     "door_status":  "Estado de puerta",
+    "door_close_attempts": "Intentos de cierre de puerta",
     "rationing":                "Racionamiento",
     "fault_resolved_pump":      "Falla de bomba resuelta",
     "fault_resolved_elevator":  "Falla de elevador resuelta",
@@ -36,6 +37,7 @@ UNITS = {
     "door_status":  "",
     "motor_stuck":  "",
     "rationing":    "l/s",
+    "door_close_attempts": "",
 }
 
 RISK_NORMAL      = "Normal"
@@ -137,6 +139,7 @@ ELEVATOR_VARS = [
     "door_status",
     "energy",
     "motor_stuck",
+    "door_close_attempts",
 ]
 
 _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not in BOOLEAN_VARS and v not in ENUM_VARS]
@@ -174,6 +177,11 @@ VALUE_DISPLAY_ES = {
         "false": "No",
         "1":     "Sí",
         "0":     "No",
+    },
+    "door_close_attempts": {
+        "0": "Sin intentos",
+        "1": "1 intento",
+        "2": "2 intentos",
     },
 }
 

@@ -136,6 +136,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
         sd["speed"] = 0.0
         sd["energy"] = 0.3
         sim.door_close_attempts = 3
+        sd["door_close_attempts"] = 3
         sd["elevator_state"] = "DOORS_OPEN"
         
     elif fault == "overspeed":
@@ -176,6 +177,7 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "motor_stuck"):
         sd["motor_stuck"] = False
     sim.door_close_attempts = 0
+    sd["door_close_attempts"] = 0
     sim._elev_state = "IDLE"
     sim._elev_stuck_timer = 0.0
     sim._elev_current_accel = 0.0
@@ -399,6 +401,7 @@ def _handle_elev_door_closing(
         sd["door_status"] = "open"
         sd["speed"] = 0.0
         sim.door_close_attempts += 1
+        sd["door_close_attempts"] = sim.door_close_attempts
         return
 
     from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
@@ -413,6 +416,7 @@ def _handle_elev_door_closing(
 
         if door_obstructed or overload_fault_active or is_locked_open or random_fail:
             sim.door_close_attempts += 1
+            sd["door_close_attempts"] = sim.door_close_attempts
             if sim.door_close_attempts >= MAX_DOOR_CLOSE_ATTEMPTS:
                 sim._elev_state = "DOORS_OPEN"
                 sim._elev_timer = 0
@@ -579,9 +583,11 @@ def _run_elevator_post_fsm(
         sim._elev_position_meters = pos
     if spd != 0:
         sim.door_close_attempts = 0
+        sd["door_close_attempts"] = 0
     if current_state == "DOOR_CLOSING" and sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
         if random.random() < 0.15 * dt:
             sim.door_close_attempts += 1
+            sd["door_close_attempts"] = sim.door_close_attempts
             if door == "closed":
                 sim._elev_state = "DOOR_OPENING"
                 sim._elev_timer = 0

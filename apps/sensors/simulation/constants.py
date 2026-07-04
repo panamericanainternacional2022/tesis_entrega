@@ -71,6 +71,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "current": 20.0,
     "motor_stuck": False,
     "elevator_state": "IDLE",
+    "door_close_attempts": 0,
 }
 
 MIN_SIM_SPEED: float = 0.1

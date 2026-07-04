@@ -21,8 +21,8 @@
         <p class="mt-1">Sigue el estado actual de los sensores de tu edificio. Lecturas en vivo, indicadores de riesgo y estadísticas actualizadas al instante.</p>
         {% endif %}
     </header>
-    {% if edificios|length > 1 %}
     <div class="toolbar">
+        {% if edificios|length > 1 %}
         <div class="select-container">
             <label for="buildingSelect" class="sr-only">Seleccionar edificio</label>
             <select id="buildingSelect" aria-label="Seleccionar edificio" class="custom-select-init">
@@ -31,8 +31,9 @@
                 {% endfor %}
             </select>
         </div>
+        {% endif %}
+        <span id="lastUpdate" class="badge badge-info ml-auto">--:--:--</span>
     </div>
-    {% endif %}
 
     {% if not edificios %}
     <div class="notif-card mt-3">
@@ -56,35 +57,6 @@
     </div>
 
     <div id="activeMonitoring" class="d-none">
-
-        <dl class="status-grid" id="statusGrid">
-            <div id="pumpStatusRow" class="status-cell cell-normal">
-                <dt class="status-cell-label">Bomba de agua</dt>
-                <dd class="status-cell-value">
-                    <span id="pumpStatusBadge" class="badge badge-normal">Normal</span>
-                </dd>
-            </div>
-            <div id="elevatorStatusRow" class="status-cell cell-normal">
-                <dt class="status-cell-label">Elevador</dt>
-                <dd class="status-cell-value">
-                    <span id="elevatorStatusBadge" class="badge badge-normal">Normal</span>
-                </dd>
-            </div>
-            {% if is_admin %}
-            <div id="simStatusRow" class="status-cell cell-info">
-                <dt class="status-cell-label">Simulación</dt>
-                <dd class="status-cell-value">
-                    <span id="simSpeedDisplay" class="badge badge-info">1.0x</span>
-                </dd>
-            </div>
-            {% endif %}
-            <div class="status-cell cell-info">
-                <dt class="status-cell-label">Última actualización</dt>
-                <dd class="status-cell-value">
-                    <span class="badge badge-info" id="lastUpdate">--:--:--</span>
-                </dd>
-            </div>
-        </dl>
 
         {% if is_admin %}
         <section class="panel mb-3" aria-labelledby="sim-controls-title">

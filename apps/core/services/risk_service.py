@@ -23,7 +23,14 @@ def classify_risk(
 ) -> tuple[str, str]:
     if variable in BOOLEAN_VARS:
         return (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
-        
+
+    if variable == "door_close_attempts":
+        if value >= 2:
+            return RISK_CRITICO, "red"
+        elif value >= 1:
+            return RISK_ALTO, "orange"
+        return RISK_NORMAL, "green"
+
     # Reglas Contextuales del Elevador
     if variable == "door_status":
         is_open = str(value).lower() in {"open", "opening", "closing"}

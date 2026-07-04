@@ -468,10 +468,6 @@
         v => v !== 'position' && v !== 'door_status' && v !== 'motor_stuck'
     );
 
-    const CSS_CLASSES = {
-        statusBadge: { falla: 'badge badge-crit' },
-    };
-
     let EDIFICIO_ID = _CONFIG.edificio_id || window.SELECTED_EDIFICIO_ID || 0;
     let SSE_URL = EDIFICIO_ID ? `/sse/${EDIFICIO_ID}/` : null;
 
@@ -546,6 +542,14 @@
             } else if (Number(value) === 0) {
                 return { badge: 'badge-crit', label: _RISK.critico };
             }
+        }
+        if (varName === 'door_close_attempts') {
+            const crit = Number(value) >= 2;
+            const high = Number(value) >= 1;
+            return {
+                badge: crit ? 'badge-crit' : high ? 'badge-high' : 'badge-normal',
+                label: crit ? _RISK.critico : high ? _RISK.alto : _RISK.normal,
+            };
         }
         if (_BOOLEAN_VARS.includes(varName)) {
             const crit = !!value;
@@ -774,28 +778,6 @@
         else showState('stateOffline');
     }
 
-    function updateStatusBadge(badgeId, statusVal) {
-        const badgeEl = document.getElementById(badgeId);
-        if (!badgeEl) return;
-
-        const cellEl = badgeEl.closest('.status-cell');
-
-        if (cellEl) {
-            cellEl.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
-            if (statusVal === 'operativo') cellEl.classList.add('cell-normal');
-            else if (statusVal === 'falla') cellEl.classList.add('cell-crit');
-            else cellEl.classList.add('cell-normal');
-        }
-
-        if (statusVal) {
-            badgeEl.textContent = statusVal.charAt(0).toUpperCase() + statusVal.slice(1);
-            badgeEl.className = CSS_CLASSES.statusBadge[statusVal] || 'badge badge-normal';
-        } else {
-            badgeEl.textContent = 'Normal';
-            badgeEl.className = 'badge badge-normal';
-        }
-    }
-
     function updateEquipmentVisibility(equipTypes) {
         const et = equipTypes || [];
         const hasPump = et.includes('bomba');
@@ -808,32 +790,6 @@
 
         toggle(['bombaSection', 'chartPumpPanel', 'statsBombaPanel'], hasPump);
         toggle(['elevadorSection', 'chartElevatorPanel', 'statsElevadorPanel'], hasElev);
-
-        const pumpBadge = document.getElementById('pumpStatusBadge');
-        const pumpCell = document.getElementById('pumpStatusRow');
-        if (pumpBadge && pumpCell) {
-            if (!hasPump) {
-                pumpBadge.textContent = 'No instalado';
-                pumpBadge.className = 'badge badge-info';
-                pumpCell.classList.remove('cell-normal', 'cell-high', 'cell-crit');
-                pumpCell.classList.add('cell-info');
-            } else {
-                pumpCell.classList.remove('cell-info');
-            }
-        }
-
-        const elevBadge = document.getElementById('elevatorStatusBadge');
-        const elevCell = document.getElementById('elevatorStatusRow');
-        if (elevBadge && elevCell) {
-            if (!hasElev) {
-                elevBadge.textContent = 'No instalado';
-                elevBadge.className = 'badge badge-info';
-                elevCell.classList.remove('cell-normal', 'cell-high', 'cell-crit');
-                elevCell.classList.add('cell-info');
-            } else {
-                elevCell.classList.remove('cell-info');
-            }
-        }
         return true;
     }
 
@@ -966,11 +922,6 @@
                 simSpd.textContent = paused ? 'Pausada' : `${speed.toFixed(1)}x`;
                 simSpd.className = paused ? 'badge badge-high' : 'badge badge-info';
 
-                const simCell = document.getElementById('simStatusRow');
-                if (simCell) {
-                    simCell.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
-                    simCell.classList.add(paused ? 'cell-high' : 'cell-info');
-                }
             }
         }
 
@@ -978,27 +929,6 @@
 
         if (data.current) { currentReadings = data.current; updateCards(data.current); }
         if (data.history) updateCharts(data.history);
-
-        updateStatusBadge('pumpStatusBadge', data.pump_status);
-
-        // Badge del elevador: mostrar intentos de cierre de puerta si aplica
-        const _doorAttempts    = data.door_close_attempts ?? 0;
-        const _maxDoorAttempts = 2;
-        if (_doorAttempts >= 1) {
-            const elevBadge = document.getElementById('elevatorStatusBadge');
-            const elevCell  = document.getElementById('elevatorStatusRow');
-            if (elevBadge && elevCell) {
-                const isDoorBlocked = _doorAttempts >= _maxDoorAttempts;
-                elevCell.classList.remove('cell-normal', 'cell-high', 'cell-crit', 'cell-info');
-                elevCell.classList.add(isDoorBlocked ? 'cell-crit' : 'cell-high');
-                elevBadge.className = isDoorBlocked ? 'badge badge-crit' : 'badge badge-high';
-                elevBadge.innerHTML = isDoorBlocked
-                    ? `<i class="fa-solid fa-door-open" aria-hidden="true"></i> Puerta bloqueada`
-                    : `<i class="fa-solid fa-door-open" aria-hidden="true"></i> Puerta: intento ${_doorAttempts}/${_maxDoorAttempts}`;
-            }
-        } else {
-            updateStatusBadge('elevatorStatusBadge', data.elevator_status);
-        }
 
         const lastUpd = document.getElementById('lastUpdate');
         if (lastUpd) lastUpd.innerText = new Date().toLocaleTimeString();
