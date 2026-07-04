@@ -113,6 +113,55 @@ def _update_elevator(sim: BuildingSimulator) -> None:
         _clear_elevator_fault_params(sim)
     # FSM + post-FSM SIEMPRE se ejecutan (usan los parámetros físicos)
     _run_elevator_fsm(sim, sd, dt)
+    
+    # FORZADO DIRECTO DE TELEMETRÍA SI LA FALLA ESTÁ INYECTADA
+    if "elevator" in sim.sim_faults:
+        _force_elevator_fault_telemetry(sim, sd)
+
+
+def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
+    fault = sim.sim_faults.get("elevator")
+    if not fault:
+        return
+
+    if fault == "motor_stuck":
+        sd["motor_stuck"] = True
+        sd["speed"] = 0.0
+        sd["energy"] = 15.0
+        sd["door_status"] = "closed"
+        sd["elevator_state"] = "MOVING"
+        
+    elif fault in ("door_blocked", "door_close_failure"):
+        sd["door_status"] = "open"
+        sd["speed"] = 0.0
+        sd["energy"] = 0.3
+        sim.door_close_attempts = 3
+        sd["elevator_state"] = "DOORS_OPEN"
+        
+    elif fault == "overspeed":
+        sd["speed"] = 3.5
+        sd["energy"] = 12.0
+        sd["door_status"] = "closed"
+        sd["elevator_state"] = "MOVING"
+        
+    elif fault == "overload":
+        sd["load"] = 1000
+        sd["door_status"] = "open"
+        sd["speed"] = 0.0
+        sd["energy"] = 0.3
+        sd["elevator_state"] = "DOORS_OPEN"
+        
+    elif fault == "pos_sensor_fail":
+        sd["position"] = 4.3
+        sd["speed"] = 0.0
+        sd["door_status"] = "closed"
+        sd["elevator_state"] = "IDLE"
+        
+    elif fault == "commercial_power_outage":
+        sd["energy"] = 0.0
+        sd["speed"] = 0.0
+        sd["door_status"] = "open"
+        sd["elevator_state"] = "DOORS_OPEN"
 
 
 def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:

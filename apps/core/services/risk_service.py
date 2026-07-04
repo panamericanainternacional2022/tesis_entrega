@@ -60,11 +60,19 @@ def classify_risk(
                 return RISK_CRITICO, "red"
 
     if variable == "speed":
+        # Si debería estar moviéndose pero la velocidad es cero (atascado)
+        if elevator_state in {"ACCELERATING", "MOVING", "DECELERATING"} and value < 0.05:
+            return RISK_CRITICO, "red"
         # Velocidad peligrosa con puertas abiertas
         if value > 0.05 and door_status != "closed":
             return RISK_CRITICO, "red"
         # Sobrevelocidad física
         if value > 2.5:
+            return RISK_CRITICO, "red"
+
+    if variable == "position":
+        # Atrapado entre pisos (posición decimal)
+        if abs(value - round(value)) > 0.05:
             return RISK_CRITICO, "red"
 
     if variable in ENUM_VARS:
