@@ -1188,15 +1188,11 @@ button {
     box-shadow: 3px 3px 0px var(--state-critical);
 }
 
-.sensor-info,
-.badge-info {
-    background: var(--state-info-bg);
-    color: var(--state-info);
-    border-color: var(--state-info);
-}
-
-.badge-info {
-    box-shadow: 3px 3px 0px var(--state-info);
+.badge-dark {
+    color: var(--color-ink);
+    height: var(--control-height);
+    border-color: var(--color-ink);
+    box-shadow: 3px 3px 0px var(--color-ink);
 }
 
 /* Variantes de estado (texto) */
