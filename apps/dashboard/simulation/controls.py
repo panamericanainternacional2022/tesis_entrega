@@ -148,6 +148,10 @@ def sim_pause(request, building_id: int) -> JsonResponse:
 
     if not sim.sim_paused and not sim.sim_started:
         sim.sim_started = True
+        sim.pump_on = sim.has_pump
+        sim.elevator_on = sim.has_elevator
+        if sim.has_pump:
+            sim._pump_start_grace_ticks = 10
 
     return json_success_response({"paused": sim.sim_paused, "started": sim.sim_started})
 

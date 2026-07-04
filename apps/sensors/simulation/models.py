@@ -13,8 +13,8 @@ class BuildingSimulator:
         self.sensor_data: dict = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
         self.has_pump: bool = "bomba" in self.equipment_types
         self.has_elevator: bool = "elevador" in self.equipment_types
-        self.pump_on: bool = self.has_pump
-        self.elevator_on: bool = self.has_elevator
+        self.pump_on: bool = False
+        self.elevator_on: bool = False
         self.active_alerts: dict = {}
         self.door_close_attempts: int = 0
         self.history: list = []
@@ -46,10 +46,9 @@ class BuildingSimulator:
         self._elev_stuck_timer: float = 0.0      # Consecutive stall ticks
         self._elev_prev_spd: float = 0.0         # Speed at start of tick
         if self.has_elevator:
-            initial_floor = random.randint(0, floors)
-            self.sensor_data["position"] = initial_floor
-            self._elev_position_meters = float(initial_floor * 3.5)
-            self._elev_target_floor = initial_floor
+            self.sensor_data["position"] = 0
+            self._elev_position_meters = 0.0
+            self._elev_target_floor = 0
         else:
             self._elev_target_floor = 0
             self._elev_position_meters = 0.0

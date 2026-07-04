@@ -932,7 +932,7 @@
         if (data.history) updateCharts(data.history);
 
         const lastUpd = document.getElementById('lastUpdate');
-        if (lastUpd) lastUpd.innerText = new Date().toLocaleTimeString();
+        if (lastUpd && data.sim_started) lastUpd.innerText = new Date().toLocaleTimeString();
 
         const hasEquipment = updateEquipmentVisibility(data.equipment_types);
         if (IS_ADMIN) updateAdminControlsByEquipment(data.equipment_types);

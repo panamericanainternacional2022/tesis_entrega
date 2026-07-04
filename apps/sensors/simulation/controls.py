@@ -168,8 +168,8 @@ def reset_simulator(edificio_id: int) -> str:
     if not sim:
         raise SimulatorNotFoundError(edificio_id)
     sim.sensor_data = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
-    sim.pump_on = sim.has_pump
-    sim.elevator_on = sim.has_elevator
+    sim.pump_on = False
+    sim.elevator_on = False
     sim.manual_pump_override = False
     sim.manual_elevator_override = False
     sim.active_alerts.clear()
@@ -197,10 +197,9 @@ def reset_simulator(edificio_id: int) -> str:
     if sim.has_elevator:
         from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
         _clear_elevator_fault_params(sim)
-        initial_floor = random.randint(0, sim.floors)
-        sim.sensor_data["position"] = initial_floor
-        sim._elev_position_meters = float(initial_floor * 3.5)
-        sim._elev_target_floor = initial_floor
+        sim.sensor_data["position"] = 0
+        sim._elev_position_meters = 0.0
+        sim._elev_target_floor = 0
     else:
         sim._elev_target_floor = 0
         sim._elev_position_meters = 0.0
