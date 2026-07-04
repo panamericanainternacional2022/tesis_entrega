@@ -2205,7 +2205,7 @@ input.is-dirty.input-error-state:active {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-4);
-    align-items: end;
+    align-items: flex-start;
 }
 
 #manualControlsRow .flex-1 {
@@ -2225,6 +2225,12 @@ input.is-dirty.input-error-state:active {
     padding-bottom: 24px;
 }
 
+/* El botón Enviar se alinea abajo independientemente */
+#manualControlsRow>.form-group:last-child {
+    align-self: center;
+    padding-bottom: 0;
+}
+
 #manualValueContainer {
     position: relative;
     padding-bottom: 0;
@@ -2232,18 +2238,39 @@ input.is-dirty.input-error-state:active {
 
 #manualValueContainer .form-group-messages {
     position: absolute;
-    bottom: 0;
+    top: 75%;
     left: 0;
     right: 0;
     pointer-events: none;
+    margin-top: var(--sp-1);
+    min-height: 1.4em;
 }
 
 #manualValueContainer .error-msg,
 #manualValueContainer .risk-preview {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
+    margin-top: 0;
+}
+
+#manualSpeedExtra {
+    position: relative;
+    padding-bottom: 0;
+}
+
+#manualSpeedExtra .form-group-messages {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    margin-top: var(--sp-1);
+}
+
+#manualSpeedExtra .error-msg {
+    position: static;
     margin-top: 0;
 }
 

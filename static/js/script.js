@@ -486,6 +486,7 @@
     let unreadNotificationCount = 0;
     let alertCountdownInterval = null;
     let _originalLimits = {};
+    let _posInputTouched = false;
 
     function _hasUnsavedChanges() {
         return _dirtySensorKeys.size > 0 || _limitsDirtyKeys.size > 0;
@@ -1697,8 +1698,10 @@
             const posRaw = posInp.value.trim();
             posEmpty = !posRaw;
             if (posEmpty) {
-                posHasError = true;
-                posErrorText = 'Indique el piso destino.';
+                if (_posInputTouched) {
+                    posHasError = true;
+                    posErrorText = 'Indique el piso destino.';
+                }
             } else {
                 const posVal = parseInt(posRaw, 10);
                 const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
@@ -2218,6 +2221,11 @@
         if (manualValSelect) manualValSelect.addEventListener('change', _onManualChange);
         if (manualSensorSel) {
             manualSensorSel.addEventListener('change', () => {
+                _posInputTouched = false;
+                const posInp = document.getElementById('manualPositionInput');
+                if (posInp) { posInp.value = ''; posInp.classList.remove('input-error-state'); posInp.removeAttribute('aria-invalid'); }
+                const posErrMsg = document.getElementById('manualPositionErrorMsg');
+                if (posErrMsg) { posErrMsg.textContent = ''; posErrMsg.style.visibility = 'hidden'; }
                 updateManualInputType();
                 updateSensorTypeIndicator();
                 _onManualChange();
@@ -2231,6 +2239,18 @@
             });
         }
         if (sendManualBtn) sendManualBtn.addEventListener('click', sendManualValue);
+
+        const posInpEl = document.getElementById('manualPositionInput');
+        if (posInpEl) {
+            posInpEl.addEventListener('input', () => {
+                _posInputTouched = true;
+                updateManualRiskPreview();
+            });
+            posInpEl.addEventListener('blur', () => {
+                _posInputTouched = true;
+                updateManualRiskPreview();
+            });
+        }
 
         updateSimControls(true, false);
 
