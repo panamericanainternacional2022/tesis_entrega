@@ -109,6 +109,8 @@ def _update_elevator(sim: BuildingSimulator) -> None:
         return
     if "elevator" in sim.sim_faults:
         _apply_elevator_fault_params(sim, sd, dt)
+    else:
+        _clear_elevator_fault_params(sim)
     # FSM + post-FSM SIEMPRE se ejecutan (usan los parámetros físicos)
     _run_elevator_fsm(sim, sd, dt)
 
@@ -486,7 +488,10 @@ def _handle_elev_decelerating(
         sim._elev_current_accel - effective_jerk * dt,
         -max_dec,
     )
-    spd = _clamp(spd + sim._elev_current_accel * dt, 0, CRUISING_SPEED)
+    if sim._elev_speed_governor_failed:
+        spd = spd + OVERSPEED_ACCEL_RATE * dt
+    else:
+        spd = _clamp(spd + sim._elev_current_accel * dt, 0, CRUISING_SPEED)
     door = "closed"
     pos += (prev_spd + spd) / 2 * direction * dt
     if spd <= 0.05:
@@ -494,6 +499,13 @@ def _handle_elev_decelerating(
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_timer = 0
         sim._elev_state = "DOOR_OPENING"
+        sim._elev_at_floor = True
+        sim._elev_current_accel = 0
+    elif sim._elev_speed_governor_failed and (pos >= sim.floors * FLOOR_HEIGHT or pos <= 0):
+        spd = 0.0
+        pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
+        sim._elev_timer = 0
+        sim._elev_state = "IDLE"
         sim._elev_at_floor = True
         sim._elev_current_accel = 0
     sd["speed"] = spd
@@ -533,9 +545,25 @@ def _run_elevator_post_fsm(
     # Include overload extra kg in energy and stuck computations
     effective_load = _effective_load(sim, load)
     energy = _compute_elevator_energy(effective_load, spd, current_state, sim)
+    
+    # Check position sensor mismatch
+    if sim._elev_pos_sensor_stuck:
+        if not hasattr(sim, "_elev_pos_sensor_mismatch_timer"):
+            sim._elev_pos_sensor_mismatch_timer = 0.0
+        if abs(spd) > 0.05:
+            sim._elev_pos_sensor_mismatch_timer += dt
+            if sim._elev_pos_sensor_mismatch_timer >= 4.0:
+                sim._elev_state = "IDLE"
+                sd["speed"] = 0.0
+                spd = 0.0
+                sim._elev_motor_torque_factor = 0.0
+                sim._elev_brake_failed = False
+    else:
+        sim._elev_pos_sensor_mismatch_timer = 0.0
+
     stuck = _check_motor_stuck(sim, current_state, spd, effective_load, sd.get("temperature", 50.0), dt)
     if stuck:
-        energy = 0.0
+        energy = 15.0
 
     # Power outage forces energy to 0
     if not sim._elev_power_available:
@@ -557,6 +585,9 @@ def _run_elevator_post_fsm(
         sd["energy"] = round(_clamp(energy, _ENERGY_LOW, _ENERGY_HIGH), 1)
     if not _is_locked(sim, "motor_stuck"):
         sd["motor_stuck"] = stuck
+
+    # Synchronize elevator_state
+    sd["elevator_state"] = current_state
 
     sim._elev_prev_position = prev_pos
 

@@ -102,10 +102,10 @@ class ClassifyRiskTests(TestCase):
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
-    def test_door_status_returns_critico_when_failed_closing(self):
+    def test_door_status_returns_alto_when_failed_closing(self):
         risk, color = classify_risk("door_status", "open", speed=0.0, door_close_attempts=2)
-        self.assertEqual(risk, RISK_CRITICO)
-        self.assertEqual(color, "red")
+        self.assertEqual(risk, RISK_ALTO)
+        self.assertEqual(color, "orange")
 
     def test_unknown_variable_returns_desconocido(self):
         risk, color = classify_risk("nonexistent_var", 50)

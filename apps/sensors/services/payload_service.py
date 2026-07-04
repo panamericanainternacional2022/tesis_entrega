@@ -114,14 +114,15 @@ def _build_sensors_list(
     for var, value in sensor_data.items():
         if var not in relevant_vars:
             continue
-        if var in BOOLEAN_VARS:
-            risk, color = (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
-        else:
-            risk, color = classify_risk(
-                var, value, thresholds,
-                pump_on=pump_on, speed=speed,
-                door_close_attempts=door_close_attempts
-            )
+        risk, color = classify_risk(
+            var, value, thresholds,
+            pump_on=pump_on, speed=speed,
+            door_close_attempts=door_close_attempts,
+            position=sensor_data.get("position", 0.0),
+            load=sensor_data.get("load", 0.0),
+            door_status=sensor_data.get("door_status", "closed"),
+            elevator_state=sensor_data.get("elevator_state", "IDLE"),
+        )
         sensors.append({
             "id": var,
             "nombre": VAR_NAMES.get(var, var),

@@ -70,6 +70,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "voltage": 220.0,
     "current": 20.0,
     "motor_stuck": False,
+    "elevator_state": "IDLE",
 }
 
 MIN_SIM_SPEED: float = 0.1

@@ -110,7 +110,7 @@ LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position"]
 
 ZERO_IS_CRITICAL_VARS = {"flow_rate", "pressure"}
 
-BOOLEAN_VARS = {"motor_stuck"}
+BOOLEAN_VARS = {"motor_stuck", "limit_switch_top", "limit_switch_bottom"}
 
 ENUM_VARS = {"door_status"}
 
@@ -207,6 +207,10 @@ RECOMMENDATION_THRESHOLDS = {
     "speed":       {"max_warn": 2.5, "max_crit": 4.0},
     "energy":      {"max_warn": 8.0, "max_crit": 15.0},
     "pump_energy": {"max_warn": 8.0, "max_crit": 15.0},
+    "elev_temperature": {"max_warn": 70, "max_crit": 85},
+    "elev_vibration":   {"max_warn": 7},
+    "elev_voltage":     {"range_warn": (200, 240)},
+    "elev_current":     {"max_warn": 50},
 }
 
 RECOMMENDATION_WARN_MSGS: dict[str, str] = {
