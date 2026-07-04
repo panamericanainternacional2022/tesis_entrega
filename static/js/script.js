@@ -804,8 +804,9 @@
         const hasPump = et.includes('bomba');
         const hasElev = et.includes('elevador');
 
-        _csSetDisabled(document.getElementById('simFaultPump'), !hasPump);
-        _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev);
+        const simDisabled = !_simStarted || _simPaused;
+        _csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled);
+        _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled);
 
         const eqSel = document.getElementById('manualEquipmentSelect');
         const eqStatic = document.getElementById('manualEquipmentStatic');
@@ -1664,7 +1665,7 @@
             if (hasError) inp.setAttribute('aria-invalid', 'true');
             else inp.removeAttribute('aria-invalid');
         }
-        if (sendBtn) sendBtn.disabled = empty || hasError;
+        if (sendBtn) sendBtn.disabled = empty || hasError || !_simStarted || _simPaused;
         return { hasError, errorText, empty };
     }
 
@@ -1705,6 +1706,7 @@
     }
 
     let _simStarted = false;
+    let _simPaused = true;
 
     async function togglePause() {
         if (!EDIFICIO_ID) return;
@@ -1719,6 +1721,7 @@
     }
 
     function updatePauseBtn(paused, started) {
+        _simPaused = paused;
         const btn = document.getElementById('simPauseBtn');
         if (!btn) return;
         if (started === undefined) started = _simStarted;
@@ -1734,6 +1737,27 @@
         }
         const resetBtn = document.getElementById('simResetBtn');
         if (resetBtn) resetBtn.disabled = paused && !started;
+        updateSimControls(paused, started);
+    }
+
+    function updateSimControls(paused, started) {
+        const disabled = !started || paused;
+
+        document.querySelectorAll('[data-speed]').forEach(btn => {
+            btn.disabled = disabled;
+        });
+
+        ['simFaultPump', 'simFaultElevator', 'togglePumpBtn', 'toggleElevatorBtn',
+         'manualEquipmentSelect', 'manualSensorSelect', 'manualValueSelect']
+            .forEach(id => _csSetDisabled(document.getElementById(id), disabled));
+
+        const manualInp = document.getElementById('manualValueInput');
+        if (manualInp) {
+            manualInp.disabled = disabled;
+            manualInp.style.opacity = disabled ? '0.5' : '';
+        }
+
+        validateManualInput();
     }
 
     async function resetSim() {
@@ -2144,6 +2168,8 @@
             });
         }
         if (sendManualBtn) sendManualBtn.addEventListener('click', sendManualValue);
+
+        updateSimControls(true, false);
 
         fetchSimStatus().then(data => {
             if (!data) return;
