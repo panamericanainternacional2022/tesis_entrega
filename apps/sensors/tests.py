@@ -89,7 +89,8 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         """Tank < 10% → low flow, low pressure, high vibration, high temperature."""
         self.sim.sensor_data["tank_level"] = 5.0
         self.sim.manual_overrides["tank_level"] = time.time() + 90.0
-        _update_pump(self.sim)
+        for _ in range(20):
+            _update_pump(self.sim)
         self.assertLessEqual(self.sim.sensor_data["flow_rate"], 2.0)
         self.assertLessEqual(self.sim.sensor_data["pressure"],  1.0)
         self.assertGreaterEqual(self.sim.sensor_data["vibration"],   1.0)
@@ -102,7 +103,8 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         """At flow = 10 l/s the pump curve should produce ~5.8 bar."""
         self.sim.sensor_data["flow_rate"] = 10.0
         self.sim.manual_overrides["flow_rate"] = time.time() + 90.0
-        _update_pump(self.sim)
+        for _ in range(10):
+            _update_pump(self.sim)
         pressure = self.sim.sensor_data["pressure"]
         self.assertAlmostEqual(pressure, 5.8, delta=0.5)
 
@@ -130,6 +132,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # -----------------------------------------------------------------------
     def test_elevator_overload_behavior(self):
         """Overloaded elevator in DOOR_CLOSING must reopen doors."""
+        self.sim.elevator_on = True
         self.sim._elev_state = "DOOR_CLOSING"
         self.sim._elev_timer = 0.5
         self.sim.sensor_data["load"] = 1000
