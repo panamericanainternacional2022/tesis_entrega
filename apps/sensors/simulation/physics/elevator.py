@@ -68,11 +68,6 @@ def _set_door_blocked_params(sim: BuildingSimulator, sd: dict, dt: float) -> Non
     sim._elev_door_obstructed = True
 
 
-def _set_door_close_failure_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    """Mecanismo de puerta falla al trabar. Mismo efecto físico que obstrucción."""
-    sim._elev_door_obstructed = True
-
-
 def _set_overspeed_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     """Falla del gobernador de velocidad + freno. Velocidad sin regulación."""
     sim._elev_speed_governor_failed = True
@@ -131,7 +126,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
         sd["door_status"] = "closed"
         sd["elevator_state"] = "MOVING"
         
-    elif fault in ("door_blocked", "door_close_failure"):
+    elif fault == "door_blocked":
         sd["door_status"] = "open"
         sd["speed"] = 0.0
         sd["energy"] = 0.3
@@ -194,7 +189,6 @@ def _apply_elevator_fault_params(sim: BuildingSimulator, sd: dict, dt: float) ->
     _ELEV_FAULT_PARAM_SETTERS = {
         "motor_stuck":             _set_motor_stuck_params,
         "door_blocked":            _set_door_blocked_params,
-        "door_close_failure":      _set_door_close_failure_params,
         "overspeed":               _set_overspeed_params,
         "overload":                _set_overload_params,
         "pos_sensor_fail":         _set_pos_sensor_fail_params,
