@@ -89,4 +89,20 @@ CLEAR_FAULT_VOLTAGE_LOW: float = 210.0
 CLEAR_FAULT_VOLTAGE_HIGH: float = 230.0
 CLEAR_FAULT_MAX_LOAD: float = 500.0
 
+MAX_STEPS_PER_SECOND: dict[str, float] = {
+    "flow_rate": 5.0,
+    "pressure": 1.0,
+    "temperature": 5.0,
+    "vibration": 2.0,
+    "tank_level": 10.0,
+    "voltage": 15.0,
+    "current": 5.0,
+    "speed": 1.0,
+    "load": 150.0,
+    "energy": 2.0,
+    "pump_energy": 2.0,
+    "position": 1.0,
+    "trip_count": 1000.0,
+}
+
 

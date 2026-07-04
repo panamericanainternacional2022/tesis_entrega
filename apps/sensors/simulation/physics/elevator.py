@@ -1,7 +1,7 @@
 import random
 import time
 
-from apps.sensors.sensor_config import SENSOR_RANGES, ELEVATOR_VARS
+from apps.sensors.sensor_config import SENSOR_RANGES, ELEVATOR_VARS, BOOLEAN_VARS, ENUM_VARS
 from apps.sensors.simulation.constants import (
     T_AMBIENT, FLOOR_HEIGHT,
     CRUISING_SPEED, ACCELERATION, PASSENGER_WAIT_TICKS,
@@ -12,6 +12,7 @@ from apps.sensors.simulation.constants import (
     BATTERY_RESCUE_SPEED,
     OVERSPEED_GOVERNOR_TRIGGER, OVERSPEED_ACCEL_RATE,
     DOOR_OBSTRUCTION_RETRY_INTERVAL,
+    MAX_STEPS_PER_SECOND,
 )
 from apps.sensors.simulation.models import BuildingSimulator
 
@@ -114,50 +115,102 @@ def _update_elevator(sim: BuildingSimulator) -> None:
         _force_elevator_fault_telemetry(sim, sd)
 
 
+def _get_fault_telemetry_targets(fault: str) -> dict:
+    targets = {
+        "motor_stuck": {
+            "motor_stuck": True,
+            "speed": 0.0,
+            "energy": 15.0,
+            "door_status": "closed",
+            "elevator_state": "STUCK",
+        },
+        "door_blocked": {
+            "door_status": "open",
+            "speed": 0.0,
+            "energy": 0.3,
+            "door_close_attempts": 3,
+            "elevator_state": "DOORS_OPEN",
+        },
+        "overspeed": {
+            "speed": 3.5,
+            "energy": 12.0,
+            "door_status": "closed",
+            "elevator_state": "MOVING",
+        },
+        "overload": {
+            "load": 1000,
+            "door_status": "open",
+            "speed": 0.0,
+            "energy": 0.3,
+            "elevator_state": "DOORS_OPEN",
+        },
+        "pos_sensor_fail": {
+            "position": 4.3,
+            "speed": 0.0,
+            "door_status": "closed",
+            "elevator_state": "IDLE",
+        },
+        "commercial_power_outage": {
+            "energy": 0.0,
+            "speed": 0.0,
+            "door_status": "open",
+            "elevator_state": "DOORS_OPEN",
+        },
+    }
+    return targets.get(fault, {})
+
+
 def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
     fault = sim.sim_faults.get("elevator")
     if not fault:
         return
 
-    if fault == "motor_stuck":
-        sd["motor_stuck"] = True
-        sd["speed"] = 0.0
-        sd["energy"] = 15.0
-        sd["door_status"] = "closed"
-        sd["elevator_state"] = "MOVING"
-        
-    elif fault == "door_blocked":
-        sd["door_status"] = "open"
-        sd["speed"] = 0.0
-        sd["energy"] = 0.3
-        sim.door_close_attempts = 3
-        sd["door_close_attempts"] = 3
-        sd["elevator_state"] = "DOORS_OPEN"
-        
-    elif fault == "overspeed":
-        sd["speed"] = 3.5
-        sd["energy"] = 12.0
-        sd["door_status"] = "closed"
-        sd["elevator_state"] = "MOVING"
-        
-    elif fault == "overload":
-        sd["load"] = 1000
-        sd["door_status"] = "open"
-        sd["speed"] = 0.0
-        sd["energy"] = 0.3
-        sd["elevator_state"] = "DOORS_OPEN"
-        
-    elif fault == "pos_sensor_fail":
-        sd["position"] = 4.3
-        sd["speed"] = 0.0
-        sd["door_status"] = "closed"
-        sd["elevator_state"] = "IDLE"
-        
-    elif fault == "commercial_power_outage":
-        sd["energy"] = 0.0
-        sd["speed"] = 0.0
-        sd["door_status"] = "open"
-        sd["elevator_state"] = "DOORS_OPEN"
+    targets = _get_fault_telemetry_targets(fault)
+    dt = max(sim.sim_speed, 0.01)
+
+    for var, target in targets.items():
+        if var in BOOLEAN_VARS or var in ENUM_VARS:
+            sd[var] = target
+            if var == "door_close_attempts":
+                sim.door_close_attempts = target
+            continue
+
+        if var == "door_close_attempts":
+            sd[var] = target
+            sim.door_close_attempts = target
+            continue
+
+        current = sd.get(var)
+        if current is None:
+            sd[var] = target
+            continue
+
+        try:
+            diff = float(target) - float(current)
+        except (ValueError, TypeError):
+            sd[var] = target
+            continue
+
+        if abs(diff) < 0.01:
+            sd[var] = target
+            continue
+
+        max_step = MAX_STEPS_PER_SECOND.get(var, 999999.0) * dt
+        if abs(diff) <= max_step:
+            new_val = target
+        else:
+            new_val = float(current) + (max_step if diff > 0 else -max_step)
+
+        bounds = SENSOR_RANGES.get(var)
+        if bounds:
+            new_val = max(bounds[0], min(bounds[1], new_val))
+
+        if var in ("load", "trip_count"):
+            new_val = int(round(new_val))
+        else:
+            new_val = round(new_val, 1)
+
+        sd[var] = new_val
 
 
 def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:

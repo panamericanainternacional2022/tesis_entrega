@@ -1517,6 +1517,7 @@
         const v = document.getElementById('manualSensorSelect')?.value;
         const inp = document.getElementById('manualValueInput');
         const sel = document.getElementById('manualValueSelect');
+        const speedExtra = document.getElementById('manualSpeedExtra');
         if (!v || !inp || !sel) return;
 
         const csWrapper = _csSelect(sel)?.wrapper;
@@ -1524,6 +1525,7 @@
 
         inp.style.display = isEnum ? 'none' : 'block';
         if (csWrapper) csWrapper.style.display = isEnum ? 'block' : 'none';
+        if (speedExtra) speedExtra.classList.toggle('d-none', v !== 'speed');
 
         if (v === 'door_status') {
             sel.innerHTML = '';
@@ -1640,6 +1642,7 @@
         const v = document.getElementById('manualSensorSelect')?.value;
         const inp = document.getElementById('manualValueInput');
         const sendBtn = document.getElementById('sendManualBtn');
+        const posInp = document.getElementById('manualPositionInput');
         if (!v) return { hasError: false, empty: true };
 
         const isEnum = v === 'door_status' || v === 'motor_stuck';
@@ -1660,6 +1663,20 @@
                 }
             }
         }
+        if (v === 'speed' && posInp) {
+            const posRaw = posInp.value.trim();
+            if (!posRaw) {
+                hasError = true;
+                if (!errorText) errorText = 'Indique el piso destino.';
+            } else {
+                const posVal = parseInt(posRaw, 10);
+                const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
+                if (isNaN(posVal) || posVal < posMin || posVal > posMax) {
+                    hasError = true;
+                    if (!errorText) errorText = `El piso debe estar entre ${posMin} y ${posMax}.`;
+                }
+            }
+        }
         if (inp) {
             inp.classList.toggle('input-error-state', hasError);
             if (hasError) inp.setAttribute('aria-invalid', 'true');
@@ -1673,13 +1690,14 @@
         const v = document.getElementById('manualSensorSelect')?.value;
         const inp = document.getElementById('manualValueInput');
         const sel = document.getElementById('manualValueSelect');
+        const posInp = document.getElementById('manualPositionInput');
         if (!v) return;
 
         const isEnum = v === 'door_status' || v === 'motor_stuck';
         const raw = isEnum ? sel.value : inp.value;
         if (raw === undefined || raw === '') { showToast('Complete todos los campos.', 'error'); return; }
 
-        let val = raw;
+        let val = raw, position;
         if (v === 'door_status') {
             val = raw.toLowerCase();
             if (!['open', 'closed'].includes(val)) { showToast(`Valores aceptados: open, closed.`, 'error'); return; }
@@ -1691,8 +1709,17 @@
             if (_SENSOR_RANGES[v] && (n < _SENSOR_RANGES[v][0] || n > _SENSOR_RANGES[v][1])) return;
             val = n;
         }
+        if (v === 'speed' && posInp) {
+            const posRaw = posInp.value.trim();
+            if (!posRaw) { showToast('Indique el piso destino.', 'error'); return; }
+            position = parseInt(posRaw, 10);
+            const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
+            if (isNaN(position) || position < posMin || position > posMax) { showToast(`El piso debe estar entre ${posMin} y ${posMax}.`, 'error'); return; }
+        }
+        const body = { variable: v, value: val, edificio_id: EDIFICIO_ID };
+        if (position !== undefined) body.position = position;
         try {
-            const resp = await csrfFetch(API.manualUpdate, { method: 'POST', body: JSON.stringify({ variable: v, value: val, edificio_id: EDIFICIO_ID }) });
+            const resp = await csrfFetch(API.manualUpdate, { method: 'POST', body: JSON.stringify(body) });
             const res = await resp.json();
             if (res.status === 'ok') showToast('Valor enviado correctamente.', 'success');
             else showToast(res.message || 'No se pudo aplicar el valor.', 'error');

@@ -147,6 +147,11 @@
                     <input type="number" step="any" id="manualValueInput" class="form-input"
                            placeholder="Ej: 42.5">
                     <select id="manualValueSelect" aria-label="Valor manual del sensor" class="custom-select-init"></select>
+                    <div id="manualSpeedExtra" class="d-none">
+                        <label class="form-label" for="manualPositionInput">Piso destino</label>
+                        <input type="number" step="1" id="manualPositionInput" class="form-input"
+                               placeholder="Ej: 5">
+                    </div>
                     <div class="form-group-messages">
                         <div class="error-msg" id="manualErrorMsg"></div>
                         <div id="manualRiskPreview" class="risk-preview"></div>

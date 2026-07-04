@@ -74,6 +74,30 @@ def manual_update(request) -> JsonResponse:
         if sim._elev_state in ("IDLE", "DOORS_OPEN"):
             sim._elev_state = "DOOR_CLOSING"
             sim._elev_timer = 0.0
+    elif variable == "speed":
+        sim.manual_overrides["speed"] = time.time() + 90.0
+        sim.manual_targets["speed"] = parsed_value
+        position = body.get("position")
+        if position is not None:
+            sim._elev_target_floor = int(position)
+            floor_num = round(sim.sensor_data.get("position", 0.0))
+            sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
+            if sim._elev_state in ("IDLE", "DOORS_OPEN"):
+                sim._elev_state = "DOOR_CLOSING"
+                sim._elev_timer = 0.0
+    elif variable == "motor_stuck":
+        if parsed_value:
+            sim.manual_overrides["motor_stuck"] = time.time() + 90.0
+            sim.manual_targets["motor_stuck"] = True
+            sim.manual_overrides["speed"] = time.time() + 90.0
+            sim.manual_targets["speed"] = 0.0
+            sim.manual_overrides["energy"] = time.time() + 90.0
+            sim.manual_targets["energy"] = 15.0
+        else:
+            sim.sensor_data["motor_stuck"] = False
+            for k in ("motor_stuck", "speed", "energy"):
+                sim.manual_overrides.pop(k, None)
+                sim.manual_targets.pop(k, None)
     else:
         sim.manual_overrides[variable] = time.time() + 90.0
         sim.manual_targets[variable] = parsed_value

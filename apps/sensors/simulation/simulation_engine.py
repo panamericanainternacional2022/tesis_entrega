@@ -8,7 +8,7 @@ from apps.sensors.simulation.constants import (
     SIMULTANEOUS_FAIL_PROB, LOG_SIM,
     CLEAR_FAULT_MIN_FLOW, CLEAR_FAULT_MIN_PRESSURE, CLEAR_FAULT_MAX_VIBRATION,
     CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH, CLEAR_FAULT_MAX_LOAD,
-    FLOOR_HEIGHT,
+    FLOOR_HEIGHT, MAX_STEPS_PER_SECOND,
 )
 from apps.sensors.simulation.models import BuildingSimulator
 
@@ -158,22 +158,6 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
         sim.manual_targets = {}
 
     from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS
-
-    MAX_STEPS_PER_SECOND = {
-        "flow_rate": 5.0,
-        "pressure": 1.0,
-        "temperature": 5.0,
-        "vibration": 2.0,
-        "tank_level": 10.0,
-        "voltage": 15.0,
-        "current": 5.0,
-        "speed": 1.0,
-        "load": 150.0,
-        "energy": 2.0,
-        "pump_energy": 2.0,
-        "position": 1.0,
-        "trip_count": 1000.0,
-    }
 
     for var, expiration in list(sim.manual_overrides.items()):
         if now >= expiration:
