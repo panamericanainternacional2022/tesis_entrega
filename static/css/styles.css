@@ -685,6 +685,16 @@ button {
     box-shadow: none;
 }
 
+.form-input:disabled,
+.search-input:disabled {
+    background: var(--color-bg) !important;
+    border: var(--border-disabled) !important;
+    color: var(--color-text-secondary) !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: var(--shadow-disabled) !important;
+}
+
 .input-with-icon :is(.form-input, .search-input):hover~.input-icon,
 .input-with-icon:focus-within :is(.form-input, .search-input)~.input-icon {
     transform: translateY(-50%) translate(calc(var(--shadow-offset) - var(--shadow-offset-hover)), calc(var(--shadow-offset) - var(--shadow-offset-hover)));

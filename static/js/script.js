@@ -1747,15 +1747,11 @@
             btn.disabled = disabled;
         });
 
-        ['simFaultPump', 'simFaultElevator', 'togglePumpBtn', 'toggleElevatorBtn',
-         'manualEquipmentSelect', 'manualSensorSelect', 'manualValueSelect']
+        ['simFaultPump', 'simFaultElevator', 'togglePumpBtn', 'toggleElevatorBtn', 'manualEquipmentSelect', 'manualSensorSelect', 'manualValueSelect']
             .forEach(id => _csSetDisabled(document.getElementById(id), disabled));
 
-        const manualInp = document.getElementById('manualValueInput');
-        if (manualInp) {
-            manualInp.disabled = disabled;
-            manualInp.style.opacity = disabled ? '0.5' : '';
-        }
+        const inp = document.getElementById('manualValueInput');
+        if (inp) inp.disabled = disabled;
 
         validateManualInput();
     }
