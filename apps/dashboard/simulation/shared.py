@@ -30,8 +30,8 @@ def get_simulator(building_id: int) -> BuildingSimulator | None:
                 sim.equipment_types.add(eq.equipment_type)
             sim.has_pump = "bomba" in sim.equipment_types
             sim.has_elevator = "elevador" in sim.equipment_types
-            sim.pump_on = sim.has_pump
-            sim.elevator_on = sim.has_elevator
+            sim.pump_on = False
+            sim.elevator_on = False
 
             simulators[building_id] = sim
             logger.info("Simulador de edificio %s (%s) creado dinámicamente", building_id, building.name)

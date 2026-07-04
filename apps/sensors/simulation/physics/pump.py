@@ -18,8 +18,6 @@ _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH = SENSOR_RANGES["pump_energy"]
 
 # Tank physics constants
 _TANK_BUILDING_DEMAND = 12.0    # l/s constant building water consumption
-_TANK_FULL_THRESHOLD  = 85.0   # % – float switch cuts pump above this
-_TANK_LOW_THRESHOLD   = 80.0   # % – float switch starts pump below this
 
 
 def _clamp(value: float, lo: float, hi: float) -> float:
@@ -43,23 +41,6 @@ def _compute_pump_energy(flow: float, pressure: float, volt: float) -> float:
     elec_power = hyd_power / 0.85 + 0.2
     return elec_power
 
-
-def _apply_float_switch(sim: BuildingSimulator, sd: dict) -> None:
-    """Automatic float switch (boya) control loop.
-    Turns pump ON when tank drops below _TANK_LOW_THRESHOLD,
-    and OFF when it reaches _TANK_FULL_THRESHOLD.
-    Blocked while the user has set a manual pump override.
-    """
-    if getattr(sim, "manual_pump_override", False):
-        return
-    if "pump" in sim.sim_faults:
-        return
-    tank = sd.get("tank_level", 50.0)
-    if tank >= _TANK_FULL_THRESHOLD and sim.pump_on:
-        sim.pump_on = False
-    elif tank < _TANK_LOW_THRESHOLD and not sim.pump_on:
-        sim.pump_on = True
-        sim._pump_start_grace_ticks = 10
 
 
 def _update_pump(sim: BuildingSimulator) -> None:
@@ -89,9 +70,6 @@ def _update_pump(sim: BuildingSimulator) -> None:
         net = inflow - outflow
         d_tank = net * 0.05 * dt + random.uniform(-0.1, 0.1) * dt
         sd["tank_level"] = round(_clamp(sd["tank_level"] + d_tank, 0.0, 100.0), 1)
-
-    # ── Automatic float-switch control ─────────────────────────────────────
-    _apply_float_switch(sim, sd)
 
     # ── Dispatch to correct operating mode ─────────────────────────────────
     if not sim.pump_on:
