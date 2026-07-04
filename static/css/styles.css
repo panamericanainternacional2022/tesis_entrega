@@ -597,8 +597,8 @@ button {
 
 .form-section-header {
     text-align: left;
-    margin-bottom: var(--sp-5);
-    padding-bottom: var(--sp-4);
+    margin-bottom: var(--sp-6);
+    padding-bottom: var(--sp-3);
     border-bottom: var(--border-brutal);
 }
 
@@ -2416,10 +2416,6 @@ input.is-dirty.input-error-state:active {
 
 .mb-1 {
     margin-bottom: var(--sp-1);
-}
-
-.mb-2 {
-    margin-bottom: var(--sp-2);
 }
 
 .mb-3 {
