@@ -96,6 +96,42 @@ def _set_power_outage_params(sim: BuildingSimulator, sd: dict, dt: float) -> Non
 #  MAIN ENTRY POINT
 # ---------------------------------------------------------------------------
 
+def _snapshot_protected_values(sim: BuildingSimulator, sd: dict) -> dict:
+    """Save sensor values that must survive FSM execution.
+
+    Includes:
+      - Manual override values (user-set sensor targets)
+      - Active fault telemetry values (progressive step from previous tick)
+    Manual overrides are excluded when a fault already controls that variable
+    (faults take priority).
+    """
+    protected: dict = {}
+    now = time.time()
+
+    fault_vars: set = set()
+    fault = sim.sim_faults.get("elevator") if hasattr(sim, "sim_faults") else None
+    if fault:
+        fault_vars = set(_get_fault_telemetry_targets(fault).keys())
+
+    if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):
+        for var, exp in sim.manual_overrides.items():
+            if now < exp and var not in fault_vars:
+                protected[var] = sd.get(var)
+
+    if fault:
+        for var in _get_fault_telemetry_targets(fault):
+            protected[var] = sd.get(var)
+
+    return protected
+
+
+def _restore_protected(sd: dict, protected: dict) -> None:
+    """Restore sensor values that FSM handlers may have overwritten."""
+    for var, val in protected.items():
+        if val is not None:
+            sd[var] = val
+
+
 def _update_elevator(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
@@ -103,14 +139,21 @@ def _update_elevator(sim: BuildingSimulator) -> None:
         _set_elevator_idle(sim, sd, dt)
         _clear_elevator_fault_params(sim)
         return
+
+    protected = _snapshot_protected_values(sim, sd)
+
     if "elevator" in sim.sim_faults:
         _apply_elevator_fault_params(sim, sd, dt)
     else:
         _clear_elevator_fault_params(sim)
+
     # FSM + post-FSM SIEMPRE se ejecutan (usan los parámetros físicos)
     _run_elevator_fsm(sim, sd, dt)
-    
-    # FORZADO DIRECTO DE TELEMETRÍA SI LA FALLA ESTÁ INYECTADA
+
+    # Restore los valores que el FSM haya pisado (speed, door_status, load)
+    _restore_protected(sd, protected)
+
+    # Fallas de simulación: telemetría progresiva gana sobre todo
     if "elevator" in sim.sim_faults:
         _force_elevator_fault_telemetry(sim, sd)
 
