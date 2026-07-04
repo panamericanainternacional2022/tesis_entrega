@@ -416,4 +416,75 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
             "motor_stuck fault must stop the elevator.",
         )
 
+    # -----------------------------------------------------------------------
+    # 23. Elevator fault: power_outage dynamic phases and deceleration
+    # -----------------------------------------------------------------------
+    def test_elevator_power_outage_dynamics(self):
+        """Power outage must decelerate dynamically, keep doors closed during braking, and open doors on completion."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sensor_data["speed"] = 2.0
+        sim.sensor_data["door_status"] = "closed"
+        sim.sim_faults["elevator"] = "commercial_power_outage"
+        
+        # First tick: BRAKE phase. Declines speed rapidly but does not open doors
+        _update_elevator(sim)
+        self.assertEqual(sim.sensor_data["door_status"], "closed")
+        self.assertLess(sim.sensor_data["speed"], 2.0)
+        
+        # Fast forward timer to rescue completion
+        sim._elev_power_outage_timer = 5.0
+        # Position is near 0
+        sim._elev_position_meters = 0.1
+        _update_elevator(sim)
+        self.assertEqual(sim.sensor_data["door_status"], "open")
+        self.assertEqual(sim.sensor_data["speed"], 0.0)
+
+    # -----------------------------------------------------------------------
+    # 24. Selective clear_fault resolves only target variables overrides
+    # -----------------------------------------------------------------------
+    def test_elevator_selective_clear_fault(self):
+        """clear_fault must only pop overrides targeted by the active fault, preserving others."""
+        from apps.sensors.simulation.controls import clear_fault, inject_fault
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        from apps.sensors.simulation.globals import simulators
+        simulators[self.building.id] = sim
+        
+        # User sets a manual override on load
+        sim.manual_overrides["load"] = time.time() + 90.0
+        sim.manual_targets["load"] = 400.0
+        
+        # Inject pos_sensor_fail (affects speed, position, door_status)
+        inject_fault(self.building.id, "elevator", "pos_sensor_fail")
+        sim.manual_overrides["position"] = time.time() + 90.0
+        sim.manual_targets["position"] = 3.0
+        
+        # Clear the fault
+        clear_fault(self.building.id, "elevator")
+        
+        # Override on position must be gone
+        self.assertNotIn("position", sim.manual_overrides)
+        # Override on load must STILL be there
+        self.assertIn("load", sim.manual_overrides)
+        self.assertEqual(sim.manual_targets["load"], 400.0)
+
+    # -----------------------------------------------------------------------
+    # 25. door_close_attempts protection with overrides
+    # -----------------------------------------------------------------------
+    def test_door_close_attempts_override_protection(self):
+        """door_close_attempts must respect manual overrides and not be cleared or updated."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sensor_data["door_close_attempts"] = 5
+        sim.door_close_attempts = 5
+        sim.manual_overrides["door_close_attempts"] = time.time() + 90.0
+        sim.manual_targets["door_close_attempts"] = 5
+        
+        # Elevator starts moving (spd != 0 normally resets attempts to 0)
+        sim._elev_state = "MOVING"
+        sim.sensor_data["speed"] = 1.0
+        _update_elevator(sim)
+        self.assertEqual(sim.sensor_data["door_close_attempts"], 5)
+        self.assertEqual(sim.door_close_attempts, 5)
+
 

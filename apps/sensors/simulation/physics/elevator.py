@@ -111,7 +111,7 @@ def _snapshot_protected_values(sim: BuildingSimulator, sd: dict) -> dict:
     fault_vars: set = set()
     fault = sim.sim_faults.get("elevator") if hasattr(sim, "sim_faults") else None
     if fault:
-        fault_vars = set(_get_fault_telemetry_targets(fault).keys())
+        fault_vars = set(_get_fault_telemetry_targets(sim, fault).keys())
 
     if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):
         for var, exp in sim.manual_overrides.items():
@@ -119,7 +119,7 @@ def _snapshot_protected_values(sim: BuildingSimulator, sd: dict) -> dict:
                 protected[var] = sd.get(var)
 
     if fault:
-        for var in _get_fault_telemetry_targets(fault):
+        for var in _get_fault_telemetry_targets(sim, fault):
             protected[var] = sd.get(var)
 
     return protected
@@ -158,7 +158,7 @@ def _update_elevator(sim: BuildingSimulator) -> None:
         _force_elevator_fault_telemetry(sim, sd)
 
 
-def _get_fault_telemetry_targets(fault: str) -> dict:
+def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
     targets = {
         "motor_stuck": {
             "motor_stuck": True,
@@ -193,13 +193,40 @@ def _get_fault_telemetry_targets(fault: str) -> dict:
             "door_status": "closed",
             "elevator_state": "IDLE",
         },
-        "commercial_power_outage": {
-            "energy": 0.0,
-            "speed": 0.0,
-            "door_status": "open",
-            "elevator_state": "DOORS_OPEN",
-        },
     }
+    if fault == "commercial_power_outage":
+        timer = getattr(sim, "_elev_power_outage_timer", 0.0)
+        complete = getattr(sim, "_elev_power_outage_complete", False)
+        from apps.sensors.simulation.constants import (
+            POWER_OUTAGE_BRAKE_TIME, POWER_OUTAGE_BATTERY_WAIT,
+            BATTERY_RESCUE_SPEED
+        )
+        if complete:
+            return {
+                "energy": 0.0,
+                "speed": 0.0,
+                "door_status": "open",
+                "elevator_state": "DOORS_OPEN",
+            }
+        elif timer < POWER_OUTAGE_BRAKE_TIME:
+            return {
+                "energy": 0.0,
+                "speed": 0.0,
+                "door_status": "closed",
+            }
+        elif timer < POWER_OUTAGE_BATTERY_WAIT:
+            return {
+                "energy": 0.0,
+                "speed": 0.0,
+                "door_status": "closed",
+                "elevator_state": "IDLE",
+            }
+        else:
+            return {
+                "energy": 0.0,
+                "speed": BATTERY_RESCUE_SPEED,
+                "door_status": "closed",
+            }
     return targets.get(fault, {})
 
 
@@ -208,7 +235,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
     if not fault:
         return
 
-    targets = _get_fault_telemetry_targets(fault)
+    targets = _get_fault_telemetry_targets(sim, fault)
     dt = max(sim.sim_speed, 0.01)
 
     for var, target in targets.items():
@@ -239,6 +266,13 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
             continue
 
         max_step = MAX_STEPS_PER_SECOND.get(var, 999999.0) * dt
+        if fault == "commercial_power_outage" and var == "speed":
+            from apps.sensors.simulation.constants import POWER_OUTAGE_BRAKE_TIME
+            timer = getattr(sim, "_elev_power_outage_timer", 0.0)
+            complete = getattr(sim, "_elev_power_outage_complete", False)
+            if not complete and timer < POWER_OUTAGE_BRAKE_TIME:
+                max_step = 2.5 * dt
+
         if abs(diff) <= max_step:
             new_val = target
         else:
@@ -267,8 +301,9 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.3 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
     if not _is_locked(sim, "motor_stuck"):
         sd["motor_stuck"] = False
-    sim.door_close_attempts = 0
-    sd["door_close_attempts"] = 0
+    if not _is_locked(sim, "door_close_attempts"):
+        sim.door_close_attempts = 0
+        sd["door_close_attempts"] = 0
     sim._elev_state = "IDLE"
     sim._elev_stuck_timer = 0.0
     sim._elev_current_accel = 0.0
@@ -671,16 +706,17 @@ def _run_elevator_post_fsm(
     if current_state in ("IDLE", "DOOR_OPENING", "DOORS_OPEN", "DOOR_CLOSING"):
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_position_meters = pos
-    if spd != 0:
-        sim.door_close_attempts = 0
-        sd["door_close_attempts"] = 0
-    if current_state == "DOOR_CLOSING" and sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
-        if random.random() < 0.15 * dt:
-            sim.door_close_attempts += 1
-            sd["door_close_attempts"] = sim.door_close_attempts
-            if door == "closed":
-                sim._elev_state = "DOOR_OPENING"
-                sim._elev_timer = 0
+    if not _is_locked(sim, "door_close_attempts"):
+        if spd != 0:
+            sim.door_close_attempts = 0
+            sd["door_close_attempts"] = 0
+        if current_state == "DOOR_CLOSING" and sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
+            if random.random() < 0.15 * dt:
+                sim.door_close_attempts += 1
+                sd["door_close_attempts"] = sim.door_close_attempts
+                if door == "closed":
+                    sim._elev_state = "DOOR_OPENING"
+                    sim._elev_timer = 0
 
     moving_states = {"ACCELERATING", "MOVING", "DECELERATING"}
     if old_state in moving_states and current_state not in moving_states:

@@ -72,19 +72,53 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
             for v in PUMP_VARS:
                 sim.manual_overrides.pop(v, None)
         elif device == "elevator":
-            for v in ELEVATOR_VARS:
-                sim.manual_overrides.pop(v, None)
+            resolved_fault = old_faults.get("elevator")
+            if resolved_fault:
+                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
+                targets = _get_fault_telemetry_targets(sim, resolved_fault)
+                for v in targets.keys():
+                    sim.manual_overrides.pop(v, None)
+            else:
+                for v in ELEVATOR_VARS:
+                    sim.manual_overrides.pop(v, None)
         else:
-            sim.manual_overrides.clear()
+            for v in PUMP_VARS:
+                sim.manual_overrides.pop(v, None)
+            resolved_fault = old_faults.get("elevator")
+            if resolved_fault:
+                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
+                targets = _get_fault_telemetry_targets(sim, resolved_fault)
+                for v in targets.keys():
+                    sim.manual_overrides.pop(v, None)
+            else:
+                for v in ELEVATOR_VARS:
+                    sim.manual_overrides.pop(v, None)
     if hasattr(sim, "manual_targets") and isinstance(sim.manual_targets, dict):
         if device == "pump":
             for v in PUMP_VARS:
                 sim.manual_targets.pop(v, None)
         elif device == "elevator":
-            for v in ELEVATOR_VARS:
-                sim.manual_targets.pop(v, None)
+            resolved_fault = old_faults.get("elevator")
+            if resolved_fault:
+                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
+                targets = _get_fault_telemetry_targets(sim, resolved_fault)
+                for v in targets.keys():
+                    sim.manual_targets.pop(v, None)
+            else:
+                for v in ELEVATOR_VARS:
+                    sim.manual_targets.pop(v, None)
         else:
-            sim.manual_targets.clear()
+            for v in PUMP_VARS:
+                sim.manual_targets.pop(v, None)
+            resolved_fault = old_faults.get("elevator")
+            if resolved_fault:
+                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
+                targets = _get_fault_telemetry_targets(sim, resolved_fault)
+                for v in targets.keys():
+                    sim.manual_targets.pop(v, None)
+            else:
+                for v in ELEVATOR_VARS:
+                    sim.manual_targets.pop(v, None)
 
     if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
         if device == "pump":

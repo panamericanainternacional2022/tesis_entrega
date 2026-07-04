@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @admin_required
 def manual_update(request) -> JsonResponse:
     from apps.sensors.sensor_config import PUMP_VARS, RISK_CRITICO, RISK_ALTO, RISK_NORMAL, BOOLEAN_VARS, ENUM_VARS
-    from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
+    from apps.sensors.simulation.constants import MAX_HISTORY_SIZE, FLOOR_HEIGHT
     try:
         body = parse_json_body(request)
     except SimulatorError as e:
@@ -69,7 +69,7 @@ def manual_update(request) -> JsonResponse:
     if variable == "position":
         # Posición manual es una solicitud de viaje del elevador, no bloquea el sensor
         sim._elev_target_floor = int(parsed_value)
-        floor_num = round(sim.sensor_data.get("position", 0.0))
+        floor_num = round(sim._elev_position_meters / FLOOR_HEIGHT)
         sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
         if sim._elev_state in ("IDLE", "DOORS_OPEN"):
             sim._elev_state = "DOOR_CLOSING"
@@ -80,7 +80,7 @@ def manual_update(request) -> JsonResponse:
         position = body.get("position")
         if position is not None:
             sim._elev_target_floor = int(position)
-            floor_num = round(sim.sensor_data.get("position", 0.0))
+            floor_num = round(sim._elev_position_meters / FLOOR_HEIGHT)
             sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
             if sim._elev_state in ("IDLE", "DOORS_OPEN"):
                 sim._elev_state = "DOOR_CLOSING"
