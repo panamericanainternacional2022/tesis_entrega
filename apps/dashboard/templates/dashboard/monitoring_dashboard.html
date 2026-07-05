@@ -81,7 +81,7 @@
                         <button type="button" class="btn btn-secondary" data-speed="2.0">2.0x</button>
                     </div>
                 </div>
-                <div class="form-group flex-1">
+                <div class="form-group flex-1" id="simFaultPumpGroup">
                     <label class="form-label" for="simFaultPump">Falla (Bomba de agua)</label>
                     <select id="simFaultPump" class="custom-select-init">
                         <option value="">Ninguna</option>
@@ -89,9 +89,11 @@
                         <option value="{{ key }}">{{ name }}</option>
                         {% endfor %}
                     </select>
-                    <span id="faultWarningPump" class="help-text" style="display:none;color:var(--color-warning);font-size:0.8rem;margin-top:2px"></span>
+                    <div class="form-group-messages">
+                        <span id="faultWarningPump" class="fault-warning"></span>
+                    </div>
                 </div>
-                <div class="form-group flex-1">
+                <div class="form-group flex-1" id="simFaultElevatorGroup">
                     <label class="form-label" for="simFaultElevator">Falla (Elevador)</label>
                     <select id="simFaultElevator" class="custom-select-init">
                         <option value="">Ninguna</option>
@@ -99,8 +101,11 @@
                         <option value="{{ key }}">{{ name }}</option>
                         {% endfor %}
                     </select>
-                    <span id="faultWarningElevator" class="help-text" style="display:none;color:var(--color-warning);font-size:0.8rem;margin-top:2px"></span>
+                    <div class="form-group-messages">
+                        <span id="faultWarningElevator" class="fault-warning"></span>
+                    </div>
                 </div>
+                <div class="form-group" style="display:flex;gap:var(--sp-2)">
                     <button type="button" id="simResetLightBtn" class="btn btn-secondary" disabled
                             title="Restablece valores de sensores y fallas. Mantiene estado de equipos, controles manuales, velocidad e historial.">
                         <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Restablecer
@@ -109,6 +114,7 @@
                             title="Reinicio completo: restaura TODO el simulador a su estado inicial.">
                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reiniciar
                     </button>
+                </div>
 
             </div>
         </section>
@@ -120,21 +126,23 @@
                 </h2>
             </div>
             <div class="admin-controls-row" id="manualControlsRow">
-                <div class="form-group">
-                    <span class="form-label">Bomba de agua</span>
-                    <button type="button" id="togglePumpBtn" class="btn btn-secondary"
-                            title="Encender o apagar la bomba de agua manualmente" style="min-width:130px">
-                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-                        <span>Encender</span>
-                    </button>
-                </div>
-                <div class="form-group">
-                    <span class="form-label">Elevador</span>
-                    <button type="button" id="toggleElevatorBtn" class="btn btn-secondary"
-                            title="Encender o apagar el elevador manualmente" style="min-width:130px">
-                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-                        <span>Encender</span>
-                    </button>
+                <div class="form-group" style="display:flex;gap:var(--sp-2);padding-bottom:0">
+                    <div>
+                        <span class="form-label">Bomba de agua</span>
+                        <button type="button" id="togglePumpBtn" class="btn btn-secondary"
+                                title="Encender o apagar la bomba de agua manualmente" style="min-width:130px">
+                            <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                            <span>Encender</span>
+                        </button>
+                    </div>
+                    <div>
+                        <span class="form-label">Elevador</span>
+                        <button type="button" id="toggleElevatorBtn" class="btn btn-secondary"
+                                title="Encender o apagar el elevador manualmente" style="min-width:130px">
+                            <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                            <span>Encender</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group flex-1">
                     <label class="form-label" for="manualEquipmentSelect">Equipo</label>
