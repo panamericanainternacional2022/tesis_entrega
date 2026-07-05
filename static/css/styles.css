@@ -1606,6 +1606,39 @@ button {
     align-items: center;
 }
 
+.sensor-card-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    margin-bottom: var(--sp-2);
+}
+
+.sensor-card-movement {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+}
+
+.sensor-card-movement.subiendo,
+.sensor-card-movement.bajando {
+    color: var(--state-info);
+}
+
+.sensor-card-movement.parado {
+    color: var(--state-normal);
+}
+
+.sensor-card-movement.entre-pisos {
+    color: var(--state-critical);
+}
+
+.sensor-card-movement.inactivo {
+    color: var(--color-text-secondary);
+}
+
 
 
 /* ─── Chart panel ─── */

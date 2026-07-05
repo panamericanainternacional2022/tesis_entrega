@@ -483,6 +483,7 @@
     let currentReadings = {};
     let currentPumpOn = false;
     let currentElevOn = false;
+    let _lastPosition = null;
     let currentDoorCloseAttempts = 0;
     let chart1, chart2;
     let unreadNotificationCount = 0;
@@ -606,6 +607,37 @@
         getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '';
 
 
+    function _getMovementState(variable, value) {
+        if (variable !== 'position') return null;
+        if (typeof value !== 'number') return null;
+
+        if (!currentElevOn) {
+            _lastPosition = value;
+            return { cls: 'inactivo', icon: 'fa-power-off', label: 'Inactivo' };
+        }
+
+        if (_lastPosition === null) {
+            _lastPosition = value;
+            return null;
+        }
+
+        const diff = value - _lastPosition;
+        _lastPosition = value;
+
+        const isAtFloor = Math.abs(value - Math.round(value)) < 0.05;
+
+        if (Math.abs(diff) < 0.01) {
+            if (!isAtFloor) {
+                return { cls: 'entre-pisos', icon: 'fa-triangle-exclamation', label: 'Entre pisos' };
+            }
+            return { cls: 'parado', icon: 'fa-pause', label: 'Parado' };
+        }
+        if (diff > 0) {
+            return { cls: 'subiendo', icon: 'fa-arrow-up', label: 'Subiendo' };
+        }
+        return { cls: 'bajando', icon: 'fa-arrow-down', label: 'Bajando' };
+    }
+
     // =============================================================================
     // 6. RENDERIZADO DE UI: Tarjetas, Gráficos, Estados
     // =============================================================================
@@ -641,17 +673,56 @@
                 card.id = `sensor-card-${k}`;
                 card.className = 'sensor-card';
                 const badgeHtml = isNoRisk ? '' : `<span class="badge ${ri.badge}">${ri.label}</span>`;
-                card.innerHTML = `
-                    <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
-                    <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
-                    <div class="sensor-card-footer" data-sensor-footer>${badgeHtml}</div>
-                `;
+
+                if (k === 'position') {
+                    const movementInfo = _getMovementState(k, v);
+                    const movementHtml = movementInfo
+                        ? `<span class="sensor-card-movement ${movementInfo.cls}"><i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}</span>`
+                        : '';
+                    card.innerHTML = `
+                        <div class="sensor-card-header">
+                            <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
+                            ${movementHtml}
+                        </div>
+                        <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
+                        <div class="sensor-card-footer" data-sensor-footer>${badgeHtml}</div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
+                        <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
+                        <div class="sensor-card-footer" data-sensor-footer>${badgeHtml}</div>
+                    `;
+                }
+
                 if (_BOMBA_VARS.includes(k)) bombaContainer.appendChild(card);
                 else if (_ELEVADOR_VARS.includes(k)) elevadorContainer.appendChild(card);
             } else {
                 card.className = 'sensor-card';
                 const valEl = card.querySelector('[data-sensor-value], .sensor-card-value');
                 if (valEl && valEl.textContent !== displayValue) valEl.textContent = displayValue;
+
+                if (k === 'position') {
+                    const movementInfo = _getMovementState(k, v);
+                    const movEl = card.querySelector('.sensor-card-movement');
+                    if (movementInfo) {
+                        if (movEl) {
+                            movEl.className = `sensor-card-movement ${movementInfo.cls}`;
+                            movEl.innerHTML = `<i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}`;
+                        } else {
+                            const headerEl = card.querySelector('.sensor-card-header');
+                            if (headerEl) {
+                                const mov = document.createElement('span');
+                                mov.className = `sensor-card-movement ${movementInfo.cls}`;
+                                mov.innerHTML = `<i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}`;
+                                headerEl.appendChild(mov);
+                            }
+                        }
+                    } else if (movEl) {
+                        movEl.remove();
+                    }
+                }
+
                 const footerEl = card.querySelector('[data-sensor-footer], .sensor-card-footer');
                 if (footerEl) {
                     const badgeEl = footerEl.querySelector('.badge');
