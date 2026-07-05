@@ -1045,7 +1045,7 @@ button {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-4);
+    padding: 11px var(--sp-4);
     font-size: var(--text-sm);
     font-family: var(--font);
     text-decoration: none;
@@ -2097,7 +2097,7 @@ input.is-dirty.input-error-state:active {
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
-    padding: var(--sp-2) var(--sp-4);
+    padding: 11px var(--sp-4);
     border: 3px solid transparent;
 }
 
