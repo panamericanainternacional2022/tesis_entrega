@@ -1542,10 +1542,10 @@
         const cfg = currentThresholds[varName];
         if (!cfg) return '';
         const u = getUnit(varName) ? ` ${getUnit(varName)}` : '';
-        if (cfg.direction === 'range') return `Rango válido: ${cfg.low}${u} \u2013 ${cfg.high}${u}`;
+        if (cfg.direction === 'range') return `Rango válido: ${cfg.low}${u} &ndash; ${cfg.high}${u}`;
         const { low, medium: med, high } = cfg;
-        if (cfg.direction === 'higher') return `Medio > ${low}${u} \u00b7 Alto > ${med}${u} \u00b7 Cr\u00edtico > ${high}${u}`;
-        return `Medio < ${low}${u} \u00b7 Alto < ${med}${u} \u00b7 Cr\u00edtico < ${high}${u}`;
+        if (cfg.direction === 'higher') return `Medio > ${low}${u} &middot; Alto > ${med}${u} &middot; Crítico > ${high}${u}`;
+        return `Medio < ${low}${u} &middot; Alto < ${med}${u} &middot; Crítico < ${high}${u}`;
     }
 
     function updateManualInputType() {
