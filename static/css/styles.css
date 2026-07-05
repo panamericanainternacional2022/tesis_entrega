@@ -112,7 +112,7 @@
     /* 3xl */
 
     /* Dimensiones de layout */
-    --control-height: 36px;
+    --control-height: 42px;
     --sidebar-width: 220px;
     --sidebar-collapsed: 52px;
     --content-max: 1280px;
@@ -837,7 +837,7 @@ button {
 .custom-select-item {
     display: flex;
     align-items: center;
-    padding: var(--sp-2) var(--sp-4);
+    padding: 11px var(--sp-4);
     font-size: var(--text-sm);
     font-family: var(--font);
     font-weight: var(--weight-medium);
