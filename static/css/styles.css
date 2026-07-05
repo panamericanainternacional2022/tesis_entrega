@@ -1809,6 +1809,7 @@ button {
     color: var(--color-text-secondary);
     line-height: var(--leading-normal);
     margin-bottom: var(--sp-5);
+    white-space: pre-line;
     word-break: break-word;
 }
 

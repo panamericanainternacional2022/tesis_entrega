@@ -434,6 +434,7 @@
         simStatus: (id) => `/api/sim/${id}/status/`,
         simPause: (id) => `/api/sim/${id}/pause/`,
         simReset: (id) => `/api/sim/${id}/reset/`,
+        simResetLight: (id) => `/api/sim/${id}/reset-light/`,
         simInjectFault: (id) => `/api/sim/${id}/inject-fault/`,
         simClearFault: (id) => `/api/sim/${id}/clear-fault/`,
         simSetSpeed: (id) => `/api/sim/${id}/set-speed/`,
@@ -481,6 +482,7 @@
     let _unsavedGuardDisabled = false;
     let currentReadings = {};
     let currentPumpOn = false;
+    let currentElevOn = false;
     let currentDoorCloseAttempts = 0;
     let chart1, chart2;
     let unreadNotificationCount = 0;
@@ -807,6 +809,31 @@
     const _csSetDisabled = (el, disabled) => { const cs = _csSelect(el); if (cs?.trigger) cs.trigger.disabled = disabled; if (el) el.disabled = disabled; };
     const _csSyncOptions = (el) => { const cs = _csSelect(el); if (cs) cs.updateOptions(Array.from(el.options).map(o => ({ value: o.value, text: o.text }))); };
 
+    function updateFaultWarnings() {
+        if (!IS_ADMIN) return;
+        const pumpEl = document.getElementById('faultWarningPump');
+        const elevEl = document.getElementById('faultWarningElevator');
+        const pumpFault = document.getElementById('simFaultPump')?.value;
+        const elevFault = document.getElementById('simFaultElevator')?.value;
+
+        if (pumpEl) {
+            if (pumpFault && !currentPumpOn) {
+                pumpEl.textContent = 'Se activará al encender el equipo';
+                pumpEl.style.display = 'block';
+            } else {
+                pumpEl.style.display = 'none';
+            }
+        }
+        if (elevEl) {
+            if (elevFault && !currentElevOn) {
+                elevEl.textContent = 'Se activará al encender el equipo';
+                elevEl.style.display = 'block';
+            } else {
+                elevEl.style.display = 'none';
+            }
+        }
+    }
+
     function updateAdminControlsByEquipment(equipTypes) {
         if (!IS_ADMIN) return;
         const et = equipTypes || [];
@@ -816,6 +843,8 @@
         const simDisabled = !_simStarted || _simPaused;
         _csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled);
         _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled);
+
+        updateFaultWarnings();
 
         const eqSel = document.getElementById('manualEquipmentSelect');
         const eqStatic = document.getElementById('manualEquipmentStatic');
@@ -902,6 +931,7 @@
         if (data.thresholds) currentThresholds = data.thresholds;
         if (data.pump_on !== undefined) {
             currentPumpOn = data.pump_on;
+            currentElevOn = data.elevator_on === true;
             updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
         }
         if (data.door_close_attempts !== undefined) currentDoorCloseAttempts = data.door_close_attempts;
@@ -1287,7 +1317,6 @@
             const resp = await csrfFetch(API.thresholdsUpdate, { method: 'POST', body: JSON.stringify(newTh) });
             const res = await resp.json();
             if (res.status === 'ok') {
-                showToast(bomba ? 'Umbrales de bomba guardados correctamente.' : 'Umbrales de elevador guardados correctamente.', 'success');
                 currentThresholds = res.thresholds;
                 renderThresholdsPanel(res.thresholds);
                 updateManualInputType();
@@ -1320,7 +1349,6 @@
         if (!await showConfirm('¿Restablecer todos los umbrales a sus valores originales (último guardado)?')) return;
         resetPanelThresholds('bomba');
         resetPanelThresholds('elevador');
-        showToast('Umbrales restablecidos a los valores guardados.', 'success');
     }
 
     function renderLimitsPanel(ranges) {
@@ -1423,7 +1451,6 @@
             const resp = await csrfFetch(API.limitsUpdate, { method: 'POST', body: JSON.stringify(newLimits) });
             const res = await resp.json();
             if (res.status === 'ok') {
-                showToast(bomba ? 'Límites de bomba guardados correctamente.' : 'Límites de elevador guardados correctamente.', 'success');
                 _CONFIG.sensor_ranges = res.sensor_ranges;
                 _SENSOR_RANGES = res.sensor_ranges;
                 currentThresholds = res.thresholds || currentThresholds;
@@ -1504,7 +1531,6 @@
         if (!await showConfirm('¿Restablecer todos los límites a sus valores originales (último guardado)?')) return;
         resetPanelLimits('bomba');
         resetPanelLimits('elevador');
-        showToast('Límites restablecidos a los valores guardados.', 'success');
     }
 
 
@@ -1631,14 +1657,14 @@
         const errorMsg = document.getElementById('manualErrorMsg');
         const posErrorMsg = document.getElementById('manualPositionErrorMsg');
         const status = validateManualInput();
-        
-        if (errorMsg) { 
-            errorMsg.textContent = status.errorText; 
-            errorMsg.style.visibility = status.hasError ? 'visible' : 'hidden'; 
+
+        if (errorMsg) {
+            errorMsg.textContent = status.errorText;
+            errorMsg.style.visibility = status.hasError ? 'visible' : 'hidden';
         }
-        if (posErrorMsg) { 
-            posErrorMsg.textContent = status.posErrorText; 
-            posErrorMsg.style.visibility = status.posHasError ? 'visible' : 'hidden'; 
+        if (posErrorMsg) {
+            posErrorMsg.textContent = status.posErrorText;
+            posErrorMsg.style.visibility = status.posHasError ? 'visible' : 'hidden';
         }
 
         if (status.hasError || status.posHasError) {
@@ -1738,26 +1764,26 @@
 
         const isEnum = v === 'door_status' || v === 'motor_stuck';
         const raw = isEnum ? sel.value : inp.value;
-        if (raw === undefined || raw === '') { showToast('Complete todos los campos.', 'error'); return; }
+        if (raw === undefined || raw === '') return;
 
         let val = raw, position;
         if (v === 'door_status') {
             val = raw.toLowerCase();
-            if (!['open', 'closed'].includes(val)) { showToast(`Valores aceptados: open, closed.`, 'error'); return; }
+            if (!['open', 'closed'].includes(val)) return;
         } else if (v === 'motor_stuck') {
             val = raw === 'true' || raw === '1';
         } else {
             const n = parseFloat(raw);
-            if (isNaN(n)) { showToast('Introduzca un valor numérico válido.', 'error'); return; }
+            if (isNaN(n)) return;
             if (_SENSOR_RANGES[v] && (n < _SENSOR_RANGES[v][0] || n > _SENSOR_RANGES[v][1])) return;
             val = n;
         }
         if (v === 'speed' && posInp) {
             const posRaw = posInp.value.trim();
-            if (!posRaw) { showToast('Indique el piso destino.', 'error'); return; }
+            if (!posRaw) return;
             position = parseInt(posRaw, 10);
             const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
-            if (isNaN(position) || position < posMin || position > posMax) { showToast(`El valor debe estar entre ${posMin} y ${posMax} piso.`, 'error'); return; }
+            if (isNaN(position) || position < posMin || position > posMax) return;
         }
         const body = { variable: v, value: val, edificio_id: EDIFICIO_ID };
         if (position !== undefined) body.position = position;
@@ -1805,35 +1831,50 @@
             btn.innerHTML = '<i class="fas fa-play"></i> <span>Reanudar</span>';
             btn.className = 'btn btn-primary';
         }
+        const inReset = !started;
         const resetBtn = document.getElementById('simResetBtn');
-        if (resetBtn) resetBtn.disabled = paused && !started;
+        if (resetBtn) resetBtn.disabled = inReset;
+        const resetLightBtn = document.getElementById('simResetLightBtn');
+        if (resetLightBtn) resetLightBtn.disabled = inReset;
         updateSimControls(paused, started);
     }
 
     function updateSimControls(paused, started) {
-        const disabled = !started || paused;
+        const idle = !started;
+        const running = started && !paused;
+        const pausing = started && paused;
 
         document.querySelectorAll('[data-speed]').forEach(btn => {
-            btn.disabled = disabled;
+            btn.disabled = !running;
         });
 
-        ['simFaultPump', 'simFaultElevator', 'togglePumpBtn', 'toggleElevatorBtn', 'manualEquipmentSelect', 'manualSensorSelect', 'manualValueSelect']
-            .forEach(id => _csSetDisabled(document.getElementById(id), disabled));
+        ['togglePumpBtn', 'toggleElevatorBtn']
+            .forEach(id => _csSetDisabled(document.getElementById(id), !running));
+
+        const manualDisabled = !running && !pausing ? true : false;
+        ['manualEquipmentSelect', 'manualSensorSelect', 'manualValueSelect']
+            .forEach(id => _csSetDisabled(document.getElementById(id), manualDisabled));
 
         const inp = document.getElementById('manualValueInput');
-        if (inp) inp.disabled = disabled;
+        if (inp) inp.disabled = manualDisabled;
 
+        if (!running) {
+            ['simFaultPump', 'simFaultElevator']
+                .forEach(id => _csSetDisabled(document.getElementById(id), true));
+        }
+
+        updateFaultWarnings();
         validateManualInput();
     }
 
     async function resetSim() {
-        const confirmed = await showConfirm('¿Reiniciar el simulador al estado normal?');
+        const confirmed = await showConfirm('Se restablecerán o eliminarán los siguientes parámetros:\n\n• Estado de equipos (se apagarán)\n• Controles manuales (se deshabilitarán)\n• Velocidad personalizada (vuelve a 1.0x)\n• Historial de gráficas (se borrará)\n• Datos de sensores (valores por defecto)\n• Fallas activas (se desactivarán)');
+
         if (!confirmed || !EDIFICIO_ID) return;
         try {
             const resp = await csrfFetch(API.simReset(EDIFICIO_ID), { method: 'POST', body: '{}' });
             const data = await resp.json();
             if (data.status === 'ok') {
-                setSimMessage(data.message, 'success');
                 _simStarted = false;
                 currentReadings = {};
                 updatePauseBtn(true, false);
@@ -1842,6 +1883,26 @@
                 fetchInitialData();
             } else { setSimMessage(data.message, 'error'); }
         } catch (_) { setSimMessage('Error al reiniciar la simulación.', 'error'); }
+    }
+
+    async function resetSimLight() {
+        const confirmed = await showConfirm(
+            'Se conservarán los siguientes parámetros:\n\n• Estado de equipos (encendido/apagado)\n• Controles manuales (activos)\n• Velocidad personalizada\n• Historial de gráficas'
+        );
+        if (!confirmed || !EDIFICIO_ID) return;
+        try {
+            const resp = await csrfFetch(API.simResetLight(EDIFICIO_ID), { method: 'POST', body: '{}' });
+            const data = await resp.json();
+            if (data.status === 'ok') {
+                _simStarted = false;
+                currentReadings = {};
+                updatePauseBtn(true, false);
+                _csSetValue(document.getElementById('simFaultPump'), '');
+                _csSetValue(document.getElementById('simFaultElevator'), '');
+                updateFaultWarnings();
+                fetchInitialData();
+            } else { setSimMessage(data.message, 'error'); }
+        } catch (_) { setSimMessage('Error al restablecer la simulación.', 'error'); }
     }
 
     async function injectFault(device) {
@@ -1854,7 +1915,7 @@
         try {
             const resp = await csrfFetch(url, { method: 'POST', body });
             const data = await resp.json();
-            setSimMessage(data.message, data.status === 'ok' ? 'success' : 'error');
+            if (data.status !== 'ok') setSimMessage(data.message, 'error');
         } catch (_) { setSimMessage('Error al gestionar la falla.', 'error'); }
     }
 
@@ -1889,6 +1950,7 @@
             const elevSpan = elevBtn.querySelector('span');
             if (elevSpan) elevSpan.textContent = elevOn ? 'Apagar' : 'Encender';
         }
+        updateFaultWarnings();
     }
 
     async function toggleEquipmentPower(device) {
@@ -1900,12 +1962,13 @@
             const resp = await csrfFetch(url, { method: 'POST', body: '{}' });
             const data = await resp.json();
             if (data.status === 'ok') {
-                const isOn = device === 'pump' ? data.pump_on : data.elevator_on;
-                const label = device === 'pump' ? 'Bomba' : 'Elevador';
-                const state = isOn ? 'encendida' : 'apagada';
-                setSimMessage(`${label} ${state} correctamente.`, 'success');
-                if (device === 'pump') updateEquipmentPowerBtns(data.pump_on, undefined);
-                else updateEquipmentPowerBtns(undefined, data.elevator_on);
+                if (device === 'pump') {
+                    currentPumpOn = data.pump_on;
+                    updateEquipmentPowerBtns(data.pump_on, undefined);
+                } else {
+                    currentElevOn = data.elevator_on;
+                    updateEquipmentPowerBtns(undefined, data.elevator_on);
+                }
             } else {
                 setSimMessage(data.message || 'Error al cambiar el estado del equipo.', 'error');
             }
@@ -2064,7 +2127,6 @@
         btn.className = 'btn btn-critical';
         btn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
         await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: true }) });
-        await showAlert('Alertas reactivadas.', 'success');
         window.location.reload();
     }
 
@@ -2084,7 +2146,6 @@
                     toggleBtn.className = 'btn btn-critical';
                     toggleBtn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
                     await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: true }) });
-                    await showAlert('Alertas activadas con éxito.', 'success');
                     window.location.reload();
                 } else {
                     const minutes = await showDurationPicker();
@@ -2099,8 +2160,6 @@
                         toggleBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> Activar alertas';
                     }
                     await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: false, duration_minutes: minutes }) });
-                    const label = minutes === null ? 'indefinidamente' : minutes < 60 ? `por ${minutes} min` : minutes === 60 ? 'por 1 hora' : `por ${minutes / 60} horas`;
-                    await showAlert(`Alertas pausadas ${label}.`, 'success');
                     window.location.reload();
                 }
             });
@@ -2112,7 +2171,7 @@
                 if (!await showConfirm('¿Estás seguro de que deseas limpiar todas las alertas?')) return;
                 try {
                     const resp = await csrfFetch(API.clearNotifications, { method: 'POST' });
-                    if (resp.ok) { await showAlert('Alertas limpiadas con éxito.', 'success'); window.location.href = window.location.pathname; }
+                    if (resp.ok) { window.location.href = window.location.pathname; }
                     else throw new Error('Error al limpiar');
                 } catch (_) { await showAlert('No se pudieron limpiar las alertas.', 'error'); }
             });
@@ -2167,6 +2226,7 @@
     function setupAdminEvents() {
         const pauseBtn = document.getElementById('simPauseBtn');
         const resetBtn = document.getElementById('simResetBtn');
+        const resetLightBtn = document.getElementById('simResetLightBtn');
         const faultPump = document.getElementById('simFaultPump');
         const faultElev = document.getElementById('simFaultElevator');
         const togglePumpBtn = document.getElementById('togglePumpBtn');
@@ -2174,8 +2234,9 @@
 
         if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
         if (resetBtn) resetBtn.addEventListener('click', resetSim);
-        if (faultPump) faultPump.addEventListener('change', () => injectFault('pump'));
-        if (faultElev) faultElev.addEventListener('change', () => injectFault('elevator'));
+        if (resetLightBtn) resetLightBtn.addEventListener('click', resetSimLight);
+        if (faultPump) faultPump.addEventListener('change', () => { injectFault('pump'); updateFaultWarnings(); });
+        if (faultElev) faultElev.addEventListener('change', () => { injectFault('elevator'); updateFaultWarnings(); });
         if (togglePumpBtn) togglePumpBtn.addEventListener('click', () => toggleEquipmentPower('pump'));
         if (toggleElevBtn) toggleElevBtn.addEventListener('click', () => toggleEquipmentPower('elevator'));
 
@@ -2257,6 +2318,8 @@
         fetchSimStatus().then(data => {
             if (!data) return;
             _simStarted = data.started || false;
+            currentPumpOn = data.pump_on === true;
+            currentElevOn = data.elevator_on === true;
             updatePauseBtn(data.paused, _simStarted);
             document.querySelectorAll('[data-speed]').forEach(btn => {
                 const isActive = parseFloat(btn.dataset.speed) === data.speed;
@@ -2265,6 +2328,7 @@
             });
             _csSetValue(document.getElementById('simFaultPump'), data.faults?.pump || '');
             _csSetValue(document.getElementById('simFaultElevator'), data.faults?.elevator || '');
+            updateFaultWarnings();
         });
 
         populateManualSensorSelect();

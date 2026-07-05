@@ -241,3 +241,35 @@ def reset_simulator(edificio_id: int) -> str:
     sim._elev_at_floor = True
     logger.info("Simulador reiniciado: edificio=%s", edificio_id)
     return "Simulador reiniciado al estado normal"
+
+
+def reset_simulator_light(edificio_id: int) -> str:
+    sim = simulators.get(edificio_id)
+    if not sim:
+        raise SimulatorNotFoundError(edificio_id)
+    sim.sensor_data = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
+    sim.active_alerts.clear()
+    sim.door_close_attempts = 0
+    sim.pending_notifications.clear()
+    sim.sim_faults.clear()
+    sim.fault_injected_at.clear()
+    sim.sim_paused = True
+    sim.sim_started = False
+    sim._pump_demand = 15.0
+    sim._pump_start_grace_ticks = 5
+    sim._pump_refill_timer = 0
+    sim._elev_state = "IDLE"
+    sim._elev_timer = 0
+    if sim.has_elevator:
+        from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
+        _clear_elevator_fault_params(sim)
+        sim.sensor_data["position"] = 0
+        sim._elev_position_meters = 0.0
+        sim._elev_target_floor = 0
+    else:
+        sim._elev_target_floor = 0
+        sim._elev_position_meters = 0.0
+    sim._elev_direction = 1
+    sim._elev_at_floor = True
+    logger.info("Simulador restablecido (light): edificio=%s", edificio_id)
+    return "Valores del simulador restablecidos"
