@@ -100,7 +100,7 @@
             <h2 class="section-label">Error de carga</h2>
             <p class="help-text">No se pudieron cargar los eventos. Verifica tu conexión e intenta de nuevo.</p>
             <div class="empty-state-action">
-                <button type="button" class="btn btn-secondary" onclick="location.reload()">Reintentar</button>
+                <button type="button" class="btn btn-secondary" onclick="location.reload()"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reintentar</button>
             </div>
         </div>
         <div id="live-notifications-list">
@@ -115,7 +115,7 @@
                 <i class="fa-solid fa-filter-circle-xmark empty-state-icon" aria-hidden="true"></i>
                 <p>No se encontraron eventos que coincidan con los filtros seleccionados. Prueba con un período más amplio o limpia los filtros.</p>
                 <div class="empty-state-action">
-                    <a href="{% url 'notifications' %}" class="btn btn-secondary">Limpiar filtros</a>
+                    <a href="{% url 'notifications' %}" class="btn btn-secondary"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Limpiar filtros</a>
                 </div>
             </div>
             {% elif periodo_seleccionado == 'custom' %}
@@ -123,7 +123,7 @@
                 <i class="fa-solid fa-calendar-xmark empty-state-icon" aria-hidden="true"></i>
                 <p>No hay eventos entre el {{ fecha_desde }} y el {{ fecha_hasta }}. Prueba con un rango más amplio.</p>
                 <div class="empty-state-action">
-                    <a href="{% url 'notifications' %}" class="btn btn-secondary">Ver todos los eventos</a>
+                    <a href="{% url 'notifications' %}" class="btn btn-secondary"><i class="fa-solid fa-eye" aria-hidden="true"></i> Ver todos los eventos</a>
                 </div>
             </div>
             {% elif alerts_disabled %}
@@ -219,7 +219,7 @@
 
         <div class="flex justify-end gap-2 mt-3">
             <button id="cancelCustomDate" type="button" class="btn btn-secondary">
-                Cancelar
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i> Cancelar
             </button>
             <button id="applyCustomDate" type="button" class="btn btn-primary" disabled>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Ver eventos

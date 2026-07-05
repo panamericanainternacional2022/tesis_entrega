@@ -87,11 +87,11 @@
 
             <div class="actions-row">
                 {% url 'user_list' as back_url %}
-                {% include 'core/components/button.html' with url=back_url class='btn btn-secondary' text='Volver' %}
+                {% include 'core/components/button.html' with url=back_url class='btn btn-secondary' text='Volver' icon='fa-solid fa-arrow-left' %}
                 {% if editing %}
-                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Guardar cambios' id='submitBtn' %}
+                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Guardar cambios' id='submitBtn' icon='fa-solid fa-floppy-disk' %}
                 {% else %}
-                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Registrar usuario' id='submitBtn' disabled=True %}
+                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Registrar usuario' id='submitBtn' disabled=True icon='fa-solid fa-user-plus' %}
                 {% endif %}
             </div>
         </div>

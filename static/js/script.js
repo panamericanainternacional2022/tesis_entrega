@@ -1114,10 +1114,10 @@
             const bounds = _SENSOR_RANGES[k];
             const boundsText = bounds ? `Límite: ${bounds[0]} – ${bounds[1]}${unit ? ' ' + unit : ''}` : '';
             const DIR_BADGE = {
-                higher: '<span class="thresh-dir-badge" style="color:var(--state-critical);" title="Mayor es peor">\u2191 Mayor es peor</span>',
-                lower: '<span class="thresh-dir-badge" style="color:var(--state-critical);" title="Menor es peor">\u2193 Menor es peor</span>',
+                higher: '<span class="thresh-dir-badge" style="color:var(--state-critical);" title="Mayor es peor"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Mayor es peor</span>',
+                lower: '<span class="thresh-dir-badge" style="color:var(--state-critical);" title="Menor es peor"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Menor es peor</span>',
             };
-            const dirBadge = DIR_BADGE[cfg.direction] || '<span class="thresh-dir-badge" style="color:var(--state-info);" title="Rango válido">\u27FA Rango válido</span>';
+            const dirBadge = DIR_BADGE[cfg.direction] || '<span class="thresh-dir-badge" style="color:var(--state-info);" title="Rango válido"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> Rango válido</span>';
             const headerHtml = `<div class="thresh-card-header">
                 <span class="thresh-label">${name}${unit && k !== 'trip_count' ? ` (${unit})` : ''}</span>
                 ${dirBadge}

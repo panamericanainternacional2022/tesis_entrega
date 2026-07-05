@@ -27,7 +27,7 @@
 
 {% block list_actions %}
 {% url 'user_create' as registro_url %}
-{% include 'core/components/button.html' with url=registro_url class='btn btn-primary' text='Agregar usuario' %}
+{% include 'core/components/button.html' with url=registro_url class='btn btn-primary' text='Agregar usuario' icon='fa-solid fa-user-plus' %}
 <div class="actions-dropdown">
     <button type="button" class="btn btn-icon" aria-label="M&#225;s acciones" {% if not usuarios %}disabled{% endif %}>
         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
@@ -92,7 +92,7 @@
             <td colspan="6" class="table-empty-cell">
                 No se encontraron usuarios que coincidan con los filtros aplicados. Prueba con otros criterios de búsqueda.
                 <div class="empty-state-action">
-                    <a href="{% url 'user_list' %}" class="btn btn-secondary">Limpiar filtros</a>
+                    <a href="{% url 'user_list' %}" class="btn btn-secondary"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Limpiar filtros</a>
                 </div>
             </td>
         </tr>

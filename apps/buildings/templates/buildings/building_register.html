@@ -71,11 +71,11 @@
 
             <div class="actions-row">
                 {% url 'building_list' as back_url %}
-                {% include 'core/components/button.html' with url=back_url class='btn btn-secondary' text='Volver' %}
+                {% include 'core/components/button.html' with url=back_url class='btn btn-secondary' text='Volver' icon='fa-solid fa-arrow-left' %}
                 {% if editing %}
-                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Guardar cambios' id='submitBtn' %}
+                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Guardar cambios' id='submitBtn' icon='fa-solid fa-floppy-disk' %}
                 {% else %}
-                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Registrar edificio' id='submitBtn' disabled=True %}
+                    {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Registrar edificio' id='submitBtn' disabled=True icon='fa-solid fa-building' %}
                 {% endif %}
             </div>
         </div>
