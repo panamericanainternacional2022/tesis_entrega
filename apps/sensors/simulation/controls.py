@@ -64,12 +64,6 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
 
     _notify_faults_resolved(edificio_id, old_faults)
 
-    if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, dict):
-        if device:
-            sim._manual_triggered_faults.pop(device, None)
-        else:
-            sim._manual_triggered_faults.clear()
-
     import time as _time
     PROGRESSIVE_DURATION = 15.0
 
@@ -226,8 +220,6 @@ def reset_simulator(edificio_id: int) -> str:
         sim.last_email_sent_time_per_var.clear()
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
-    if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, dict):
-        sim._manual_triggered_faults.clear()
     sim.sim_paused = True
     sim.sim_started = False
     sim.sim_speed = 1.0
@@ -261,8 +253,6 @@ def reset_simulator_light(edificio_id: int) -> str:
     sim.pending_notifications.clear()
     sim.sim_faults.clear()
     sim.fault_injected_at.clear()
-    if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, dict):
-        sim._manual_triggered_faults.clear()
     sim.sim_paused = True
     sim.sim_started = False
     sim._pump_demand = 15.0

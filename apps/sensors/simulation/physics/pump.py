@@ -95,15 +95,15 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "flow_rate"):
-        sd["flow_rate"] = 0.0
+        sd["flow_rate"] = round(_clamp(sd["flow_rate"] - 3.0 * dt, 0.0, _FLOW_HIGH), 1)
     if not _is_locked(sim, "pressure"):
-        sd["pressure"] = 0.0
+        sd["pressure"] = round(_clamp(sd["pressure"] - 1.5 * dt, 0.0, _PRES_HIGH), 1)
     if not _is_locked(sim, "vibration"):
-        sd["vibration"] = 0.0
+        sd["vibration"] = round(_clamp(sd["vibration"] - 1.5 * dt, 0.0, _VIB_HIGH), 1)
     if not _is_locked(sim, "current"):
-        sd["current"] = 0.0
+        sd["current"] = round(_clamp(sd["current"] - 3.0 * dt, 0.0, _CURR_HIGH), 1)
     if not _is_locked(sim, "pump_energy"):
-        sd["pump_energy"] = 0.0
+        sd["pump_energy"] = round(_clamp(sd["pump_energy"] - 1.0 * dt, 0.0, _PUMP_ENERGY_HIGH), 1)
     if not _is_locked(sim, "temperature"):
         sd["temperature"] = round(
             _clamp(sd["temperature"] - 0.5 * dt, _TEMP_LOW, _TEMP_HIGH), 1
@@ -144,8 +144,7 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     )
 
     for k in PUMP_VARS:
-        if not _is_locked(sim, k):
-            sd[k] = temp_sd[k]
+        sd[k] = temp_sd[k]
 
     if fault_type != "power_outage":
         _clamp_pump_values(sd)
