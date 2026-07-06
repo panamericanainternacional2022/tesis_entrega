@@ -4,6 +4,7 @@ from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
     NO_RISK_VARS, RISK_UNKNOWN, ZERO_IS_CRITICAL_VARS,
     BOOLEAN_VARS, ENUM_VARS, ENUM_RISK_VALUES,
+    SENSOR_RANGES,
 )
 
 
@@ -59,7 +60,8 @@ def classify_risk(
             return RISK_CRITICO, "red"
 
         # Door blocked: forced closing consumes more energy
-        if variable == "energy" and door_status == "closing" and door_close_attempts >= 1 and value > 1.0:
+        energy_high = SENSOR_RANGES.get("energy", (0, 20))[1]
+        if variable == "energy" and door_status == "closing" and door_close_attempts >= 1 and value > energy_high * 0.05:
             return RISK_ALTO, "orange"
 
         # Alta corriente/energía con velocidad cero mientras debería moverse (motor atascado)
@@ -69,9 +71,10 @@ def classify_risk(
 
         # Alto consumo en standby (IDLE)
         if speed < 0.05 and elevator_state == "IDLE":
-            if variable == "energy" and value > 2.0:
+            if variable == "energy" and value > energy_high * 0.1:
                 return RISK_CRITICO, "red"
-            if variable in {"elev_current", "current"} and value > 5.0:
+            current_range = SENSOR_RANGES.get("current", (0, 70))
+            if variable in {"elev_current", "current"} and value > current_range[1] * 0.07:
                 return RISK_CRITICO, "red"
 
     if variable == "speed":
@@ -79,10 +82,18 @@ def classify_risk(
             return RISK_CRITICO, "red"
         if value > 0.05 and door_status != "closed":
             return RISK_CRITICO, "red"
-        if value > 4.0:
-            return RISK_CRITICO, "red"
-        if value > 2.5:
-            return RISK_ALTO, "orange"
+        speed_cfg = (thresholds or {}).get("speed", {})
+        if speed_cfg:
+            if value > speed_cfg.get("high", SENSOR_RANGES.get("speed", (0, 6))[1] * 0.67):
+                return RISK_CRITICO, "red"
+            if value > speed_cfg.get("low", SENSOR_RANGES.get("speed", (0, 6))[1] * 0.42):
+                return RISK_ALTO, "orange"
+        else:
+            speed_high = SENSOR_RANGES.get("speed", (0, 6))[1]
+            if value > speed_high * 0.67:
+                return RISK_CRITICO, "red"
+            if value > speed_high * 0.42:
+                return RISK_ALTO, "orange"
 
     if variable == "position":
         if value is None:
@@ -110,7 +121,9 @@ def classify_risk(
 
     # Corrección para bomba apagada
     if variable in {"flow_rate", "pressure"} and not pump_on:
-        low_val = 8.0 if variable == "flow_rate" else 2.0
+        flow_range = SENSOR_RANGES.get("flow_rate", (0, 60))
+        press_range = SENSOR_RANGES.get("pressure", (0, 12))
+        low_val = flow_range[1] * 0.13 if variable == "flow_rate" else press_range[1] * 0.17
         if thresholds and variable in thresholds:
             low_val = thresholds[variable].get("low", low_val)
         if value <= low_val:

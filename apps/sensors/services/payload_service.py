@@ -88,6 +88,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "sim_paused": ctx.sim_paused,
         "sim_speed": ctx.sim_speed,
         "sim_started": ctx.sim_started,
+        "sim_faults": ctx.sim_faults or {},
     }
 
 

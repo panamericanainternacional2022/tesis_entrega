@@ -155,6 +155,7 @@
                 <div class="form-group flex-1">
                     <label class="form-label" for="manualSensorSelect">Sensor</label>
                     <select id="manualSensorSelect" class="custom-select-init"></select>
+                    <span id="sensorTypeIndicator" class="input-static d-none"></span>
                 </div>
                 <div class="form-group flex-1" id="manualValueContainer">
                     <label class="form-label" for="manualValueInput">Valor</label>
@@ -290,6 +291,7 @@
             this.simPaused = true;
             this.currentSpeed = 1.0;
             this._activeElevFault = '';
+            this._activePumpFault = '';
 
             this._cacheDOMElements();
             this._bindEvents();
@@ -297,11 +299,13 @@
         }
 
         SimulationController.prototype._cacheDOMElements = function () {
-            this.btnPause   = document.getElementById('simPauseBtn');
-            this.btnReset   = document.getElementById('simResetBtn');
-            this.btnResetLt = document.getElementById('simResetLightBtn');
-            this.selFault   = document.getElementById('simFaultElevator');
-            this.warnFault  = document.getElementById('faultWarningElevator');
+            this.btnPause      = document.getElementById('simPauseBtn');
+            this.btnReset      = document.getElementById('simResetBtn');
+            this.btnResetLt    = document.getElementById('simResetLightBtn');
+            this.selFaultElev  = document.getElementById('simFaultElevator');
+            this.warnFaultElev = document.getElementById('faultWarningElevator');
+            this.selFaultPump  = document.getElementById('simFaultPump');
+            this.warnFaultPump = document.getElementById('faultWarningPump');
         };
 
         SimulationController.prototype._bindEvents = function () {
@@ -319,10 +323,17 @@
                 this.btnResetLt.addEventListener('click', function () { self._resetSimLight(); });
             }
 
-            if (this.selFault) {
-                this.selFault.addEventListener('change', function () {
-                    var newFault = self.selFault.value || '';
-                    self._handleFaultChange(newFault);
+            if (this.selFaultElev) {
+                this.selFaultElev.addEventListener('change', function () {
+                    var newFault = self.selFaultElev.value || '';
+                    self._handleFaultChange('elevator', newFault);
+                });
+            }
+
+            if (this.selFaultPump) {
+                this.selFaultPump.addEventListener('change', function () {
+                    var newFault = self.selFaultPump.value || '';
+                    self._handleFaultChange('pump', newFault);
                 });
             }
 
@@ -370,20 +381,20 @@
 
         // ─────────────── FAULT MANAGEMENT ───────────────
 
-        SimulationController.prototype._handleFaultChange = function (newFault) {
+        SimulationController.prototype._handleFaultChange = function (device, newFault) {
             var self = this;
             if (!BID) return;
 
             var chain = window.csrfFetch(URLS.clear, {
                 method: 'POST',
-                body: JSON.stringify({ device: 'elevator' })
+                body: JSON.stringify({ device: device })
             });
 
             if (newFault) {
                 chain = chain.then(function () {
                     return window.csrfFetch(URLS.inject, {
                         method: 'POST',
-                        body: JSON.stringify({ device: 'elevator', fault_type: newFault })
+                        body: JSON.stringify({ device: device, fault_type: newFault })
                     });
                 });
             }
@@ -394,7 +405,11 @@
                     if (data.status !== 'ok') {
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
                     }
-                    self._activeElevFault = newFault;
+                    if (device === 'elevator') {
+                        self._activeElevFault = newFault;
+                    } else {
+                        self._activePumpFault = newFault;
+                    }
                     self._updateFaultUI();
                 })
                 .catch(function () {
@@ -423,7 +438,9 @@
                             self.simStarted = false;
                             self.simPaused = true;
                             self._activeElevFault = '';
+                            self._activePumpFault = '';
                             _csVal(document.getElementById('simFaultElevator'), '');
+                            _csVal(document.getElementById('simFaultPump'), '');
                             self._updatePauseBtn();
                             self._updateSpeedButtons(1.0);
                             self._updateControlStates();
@@ -458,7 +475,9 @@
                             self.simStarted = false;
                             self.simPaused = true;
                             self._activeElevFault = '';
+                            self._activePumpFault = '';
                             _csVal(document.getElementById('simFaultElevator'), '');
+                            _csVal(document.getElementById('simFaultPump'), '');
                             self._updatePauseBtn();
                             self._updateControlStates();
                             self._updateFaultUI();
@@ -536,6 +555,7 @@
 
         SimulationController.prototype._updateFaultUI = function () {
             _csVal(document.getElementById('simFaultElevator'), this._activeElevFault);
+            _csVal(document.getElementById('simFaultPump'), this._activePumpFault);
             if (typeof window.updateFaultWarnings === 'function') {
                 window.updateFaultWarnings();
             }
@@ -555,13 +575,18 @@
                     self.simPaused = data.paused;
                     self.currentSpeed = data.speed || 1.0;
                     self._activeElevFault = (data.faults && data.faults.elevator) || '';
+                    self._activePumpFault = (data.faults && data.faults.pump) || '';
+
+                    if (typeof window.setEquipmentState === 'function') {
+                        window.setEquipmentState(data.pump_on, data.elevator_on);
+                    }
 
                     self._updatePauseBtn();
                     self._updateSpeedButtons(self.currentSpeed);
                     self._updateControlStates();
 
                     _csVal(document.getElementById('simFaultElevator'), self._activeElevFault);
-                    _csVal(document.getElementById('simFaultPump'), (data.faults && data.faults.pump) || '');
+                    _csVal(document.getElementById('simFaultPump'), self._activePumpFault);
 
                     if (typeof window.updateFaultWarnings === 'function') {
                         window.updateFaultWarnings();
@@ -579,6 +604,12 @@
             if (data.sim_speed !== undefined) {
                 this.currentSpeed = data.sim_speed;
                 this._updateSpeedButtons(data.sim_speed);
+            }
+
+            if (data.sim_faults) {
+                this._activeElevFault = data.sim_faults.elevator || '';
+                this._activePumpFault = data.sim_faults.pump || '';
+                this._updateFaultUI();
             }
 
             this._updatePauseBtn();
@@ -728,10 +759,12 @@
             if (!v || !inp || !sel) return;
 
             var csWrapper = (window._csSelect ? window._csSelect(sel) : null)?.wrapper;
-            var isEnum = v === 'door_status' || v === 'motor_stuck';
+            var isEnum = v === 'motor_stuck';
+            var valueLabel = document.querySelector('label[for="manualValueInput"]');
 
             inp.style.display = isEnum ? 'none' : 'block';
             if (csWrapper) csWrapper.style.display = isEnum ? 'block' : 'none';
+            if (valueLabel) valueLabel.style.display = isEnum ? 'none' : '';
             if (speedExtra) {
                 speedExtra.classList.toggle('d-none', v !== 'speed');
                 if (v === 'speed') {
@@ -748,14 +781,7 @@
                 }
             }
 
-            if (v === 'door_status') {
-                sel.innerHTML = '';
-                var dd = this._valueDisplay['door_status'] || {};
-                if (dd['open']) { var o = document.createElement('option'); o.value = 'open'; o.textContent = dd['open']; sel.appendChild(o); }
-                if (dd['closed']) { var c = document.createElement('option'); c.value = 'closed'; c.textContent = dd['closed']; sel.appendChild(c); }
-                inp.value = '';
-                if (window._csSyncOptions) window._csSyncOptions(sel);
-            } else if (v === 'motor_stuck') {
+            if (v === 'motor_stuck') {
                 sel.innerHTML = '<option value="true">Sí</option><option value="false">No</option>';
                 inp.value = '';
                 if (window._csSyncOptions) window._csSyncOptions(sel);
@@ -781,7 +807,13 @@
         ManualController.prototype.updateSensorIndicator = function () {
             var v = this.elSensorSelect ? this.elSensorSelect.value : '';
             var el = this.elSensorInd;
-            if (el && v) el.textContent = this._bombaVars.indexOf(v) !== -1 ? 'Bomba / Eléctrico' : 'Elevador / Motor';
+            if (!el) return;
+            if (v) {
+                el.textContent = this._bombaVars.indexOf(v) !== -1 ? 'Bomba / Eléctrico' : 'Elevador / Motor';
+                el.classList.remove('d-none');
+            } else {
+                el.classList.add('d-none');
+            }
         };
 
         ManualController.prototype.updateRiskPreview = function () {
@@ -813,11 +845,11 @@
                 return;
             }
 
-            var isEnum = v === 'door_status' || v === 'motor_stuck';
+            var isEnum = v === 'motor_stuck';
             var raw = isEnum ? sel.value : inp.value;
             var val = raw;
             if (v === 'motor_stuck') val = (raw === 'true' || raw === '1');
-            else if (!isEnum) { var n = parseFloat(raw); if (isNaN(n)) return; val = n; }
+            else { var n = parseFloat(raw); if (isNaN(n)) return; val = n; }
 
             if (this._noRiskVars.indexOf(v) !== -1) {
                 span.innerHTML = '';
@@ -838,7 +870,7 @@
             var posInp = this.elPositionInput;
             if (!v) return { hasError: false, posHasError: false, empty: true, errorText: '', posErrorText: '' };
 
-            var isEnum = v === 'door_status' || v === 'motor_stuck';
+            var isEnum = v === 'motor_stuck';
             var hasError = false, errorText = '', empty = false;
             var posHasError = false, posErrorText = '', posEmpty = false;
 
@@ -908,15 +940,12 @@
             var posInp = this.elPositionInput;
             if (!v) return;
 
-            var isEnum = v === 'door_status' || v === 'motor_stuck';
+            var isEnum = v === 'motor_stuck';
             var raw = isEnum ? sel.value : inp.value;
             if (raw === undefined || raw === '') return;
 
             var val = raw, position;
-            if (v === 'door_status') {
-                val = raw.toLowerCase();
-                if (!['open', 'closed'].includes(val)) return;
-            } else if (v === 'motor_stuck') {
+            if (v === 'motor_stuck') {
                 val = raw === 'true' || raw === '1';
             } else {
                 var n = parseFloat(raw);

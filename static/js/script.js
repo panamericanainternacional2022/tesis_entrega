@@ -885,6 +885,7 @@
     window.getVariableName = getVariableName;
     window.getUnit = getUnit;
     window.getRiskClass = getRiskClass;
+    window.setEquipmentState = (pumpOn, elevOn) => { currentPumpOn = pumpOn; currentElevOn = elevOn; };
     Object.defineProperty(window, '_SENSOR_RANGES', { get: function() { return _SENSOR_RANGES; }, configurable: true });
 
     function updateFaultWarnings() {

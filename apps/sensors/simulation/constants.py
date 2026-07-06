@@ -1,4 +1,4 @@
-from apps.sensors.sensor_config import RATIONING_THRESHOLD
+from apps.sensors.sensor_config import RATIONING_THRESHOLD, SENSOR_RANGES as _SR
 MAX_HISTORY_SIZE: int = 500
 MAX_LOG_ENTRIES: int = 100
 SIMULATION_NORMAL_DURATION: int = 10
@@ -82,12 +82,12 @@ REFILL_TIMER_TICKS: int = 15
 ELEVATOR_LOAD_ALERT: float = 700.0
 ELEVATOR_TEMP_ALERT: float = 90.0
 
-CLEAR_FAULT_MIN_FLOW: float = 15.0
-CLEAR_FAULT_MIN_PRESSURE: float = 3.0
-CLEAR_FAULT_MAX_VIBRATION: float = 5.0
-CLEAR_FAULT_VOLTAGE_LOW: float = 210.0
-CLEAR_FAULT_VOLTAGE_HIGH: float = 230.0
-CLEAR_FAULT_MAX_LOAD: float = 500.0
+CLEAR_FAULT_MIN_FLOW: float = _SR["flow_rate"][1] * 0.25       # 15.0
+CLEAR_FAULT_MIN_PRESSURE: float = _SR["pressure"][1] * 0.25    # 3.0
+CLEAR_FAULT_MAX_VIBRATION: float = _SR["vibration"][1] * 0.33  # 5.0
+CLEAR_FAULT_VOLTAGE_LOW: float = _SR["voltage"][0] + (_SR["voltage"][1] - _SR["voltage"][0]) * 0.3   # 204.0
+CLEAR_FAULT_VOLTAGE_HIGH: float = _SR["voltage"][0] + (_SR["voltage"][1] - _SR["voltage"][0]) * 0.7  # 236.0
+CLEAR_FAULT_MAX_LOAD: float = _SR["load"][1] * 0.42             # 500.0
 
 MAX_STEPS_PER_SECOND: dict[str, float] = {
     "flow_rate": 5.0,
