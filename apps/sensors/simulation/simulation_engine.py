@@ -20,6 +20,7 @@ def update_sensor_data(active_sim: BuildingSimulator) -> None:
         return
     _auto_clear_expired_faults(active_sim)
     _apply_manual_override_transitions(active_sim)
+    _bridge_manual_overrides_to_faults(active_sim)
     if active_sim.has_pump:
         from apps.sensors.simulation.physics.pump import _update_pump
         _update_pump(active_sim)
@@ -37,10 +38,12 @@ def _auto_clear_expired_faults(sim: BuildingSimulator) -> None:
 
 def _get_expired_faults(sim: BuildingSimulator) -> list:
     now = time.time()
+    manual = getattr(sim, "_manual_triggered_faults", set())
     return [
         device
         for device, injected_at in sim.fault_injected_at.items()
         if now - injected_at >= FAULT_AUTO_CLEAR_SECONDS
+        and device not in manual
     ]
 
 
@@ -214,4 +217,68 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
             sim._elev_state = "IDLE"
             sim._elev_timer = 0
             sim._elev_current_accel = 0
+
+
+def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
+    """Bridge functional redundancy: when manual overrides set sensor values
+    that match a known fault condition, activate the corresponding fault
+    physics so the simulation reacts consistently regardless of whether the
+    fault was injected via simulation controls or manual data injection.
+
+    For example, setting ``motor_stuck = True`` via manual override will
+    activate the ``motor_stuck`` fault in the physics engine (torque=0,
+    FSM blocked), exactly as if the fault had been triggered from the
+    control panel.
+    """
+    if not hasattr(sim, "_manual_triggered_faults"):
+        sim._manual_triggered_faults = set()
+
+    sd = sim.sensor_data
+    now = time.time()
+
+    # ── Pump: voltage forced to ~0 → activate power_outage physics ─────
+    has_volt_override = (
+        "voltage" in sim.manual_overrides
+        and now < sim.manual_overrides.get("voltage", 0)
+    )
+    if has_volt_override and sd.get("voltage", 220) < 10.0:
+        if "pump" not in sim.sim_faults:
+            sim.sim_faults["pump"] = "power_outage"
+            sim.fault_injected_at["pump"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
+            sim._manual_triggered_faults.add("pump")
+    elif "pump" in sim._manual_triggered_faults and not has_volt_override:
+        sim.sim_faults.pop("pump", None)
+        sim.fault_injected_at.pop("pump", None)
+        sim._manual_triggered_faults.discard("pump")
+
+    # ── Elevator: motor_stuck forced True → activate motor_stuck fault ──
+    has_motor_override = (
+        "motor_stuck" in sim.manual_overrides
+        and now < sim.manual_overrides.get("motor_stuck", 0)
+    )
+    if has_motor_override and sd.get("motor_stuck") is True:
+        if "elevator" not in sim.sim_faults:
+            sim.sim_faults["elevator"] = "motor_stuck"
+            sim.fault_injected_at["elevator"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
+            sim._manual_triggered_faults.add("elevator")
+    elif "elevator" in sim._manual_triggered_faults and not has_motor_override:
+        sim.sim_faults.pop("elevator", None)
+        sim.fault_injected_at.pop("elevator", None)
+        sim._manual_triggered_faults.discard("elevator")
+
+    # ── Elevator: load > 900 (Critico) via manual → activate overload physics ──
+    has_load_override = (
+        "load" in sim.manual_overrides
+        and now < sim.manual_overrides.get("load", 0)
+    )
+    if has_load_override and sd.get("load", 0) > 900:
+        if "elevator" not in sim.sim_faults:
+            sim.sim_faults["elevator"] = "overload"
+            sim.fault_injected_at["elevator"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
+            sim._manual_triggered_faults.add("elevator")
+    elif "elevator" in sim._manual_triggered_faults and not has_load_override:
+        if sim.sim_faults.get("elevator") == "overload":
+            sim.sim_faults.pop("elevator", None)
+            sim.fault_injected_at.pop("elevator", None)
+            sim._manual_triggered_faults.discard("elevator")
 

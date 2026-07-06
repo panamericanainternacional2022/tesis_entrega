@@ -52,15 +52,13 @@ def _update_pump(sim: BuildingSimulator) -> None:
     # ── Tank level physics ──────────────────────────────────────────────────
     # The pump fills the tank (inflow).  The building continuously consumes
     # water (outflow), modelled as a constant demand with small fluctuations.
-    if not _is_locked(sim, "tank_level"):
-        is_pumping = (
-            sim.pump_on
-            and "pump" not in sim.sim_faults
-        )
+    # When the pump is OFF the tank level freezes (no inflow, no outflow).
+    if not _is_locked(sim, "tank_level") and sim.pump_on:
+        is_pumping = "pump" not in sim.sim_faults
         # Inflow = water from mains pumped into tank
         inflow = sd.get("flow_rate", 0.0) if is_pumping else 0.0
 
-        # Outflow = building consumption (always happening if tank > 0)
+        # Outflow = building consumption (only when pump is on)
         is_dry_run = sim.sim_faults.get("pump") == "dry_run"
         if not is_dry_run:
             outflow = _TANK_BUILDING_DEMAND + random.uniform(-1.0, 1.0)
@@ -95,15 +93,15 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "flow_rate"):
-        sd["flow_rate"] = round(_clamp(sd["flow_rate"] - 3.0 * dt, 0.0, _FLOW_HIGH), 1)
+        sd["flow_rate"] = 0.0
     if not _is_locked(sim, "pressure"):
-        sd["pressure"] = round(_clamp(sd["pressure"] - 1.5 * dt, 0.0, _PRES_HIGH), 1)
+        sd["pressure"] = 0.0
     if not _is_locked(sim, "vibration"):
-        sd["vibration"] = round(_clamp(sd["vibration"] - 1.5 * dt, 0.0, _VIB_HIGH), 1)
+        sd["vibration"] = 0.0
     if not _is_locked(sim, "current"):
-        sd["current"] = round(_clamp(sd["current"] - 3.0 * dt, 0.0, _CURR_HIGH), 1)
+        sd["current"] = 0.0
     if not _is_locked(sim, "pump_energy"):
-        sd["pump_energy"] = round(_clamp(sd["pump_energy"] - 1.0 * dt, 0.0, _PUMP_ENERGY_HIGH), 1)
+        sd["pump_energy"] = 0.0
     if not _is_locked(sim, "temperature"):
         sd["temperature"] = round(
             _clamp(sd["temperature"] - 0.5 * dt, _TEMP_LOW, _TEMP_HIGH), 1
@@ -142,6 +140,13 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         temp_sd.get("pressure", 0),
         temp_sd.get("voltage", 220),
     )
+
+    # Special-case energy overrides for faults where hydraulic-only
+    # computation does not reflect real motor load.
+    if fault_type == "blocked_discharge":
+        temp_sd["pump_energy"] = _clamp(12.0, _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH)
+    elif fault_type == "overheat":
+        temp_sd["pump_energy"] = _clamp(temp_sd["pump_energy"] * 1.5, _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH)
 
     for k in PUMP_VARS:
         sd[k] = temp_sd[k]
@@ -189,6 +194,7 @@ def _apply_cavitation(sd: dict, dt: float) -> None:
 def _apply_overheat(sd: dict, dt: float) -> None:
     sd["temperature"] = _clamp(sd["temperature"] + 2.0 * dt, 0, 130)
     sd["vibration"]   = _clamp(sd["vibration"]   + 0.3 * dt, 0, 15)
+    sd["current"]     = _clamp(sd["current"]     + 3.0 * dt, 0, 70)
 
 
 def _apply_power_surge(sd: dict, dt: float) -> None:
@@ -199,11 +205,11 @@ def _apply_power_surge(sd: dict, dt: float) -> None:
 
 
 def _apply_power_outage(sd: dict, dt: float) -> None:
-    sd["voltage"]     = _clamp(sd["voltage"]     - 50 * dt, 0, 10)
-    sd["current"]     = _clamp(sd["current"]     - 10 * dt, 0, 10)
-    sd["flow_rate"]   = _clamp(sd["flow_rate"]   - 3.0 * dt, 0, 5)
-    sd["pressure"]    = _clamp(sd["pressure"]    - 0.8 * dt, 0, 2)
-    sd["vibration"]   = _clamp(sd["vibration"]   - 2.0 * dt, 0, 5)
+    sd["voltage"]     = 0.0
+    sd["current"]     = 0.0
+    sd["flow_rate"]   = 0.0
+    sd["pressure"]    = 0.0
+    sd["vibration"]   = 0.0
     sd["temperature"] = _clamp(sd["temperature"] - 0.5 * dt, T_AMBIENT, _TEMP_HIGH)
 
 

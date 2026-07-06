@@ -303,18 +303,16 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # -----------------------------------------------------------------------
     # 16. Tank drains when pump is off
     # -----------------------------------------------------------------------
-    def test_tank_drains_when_pump_off(self):
-        """With pump OFF, the building demand should slowly drain the tank."""
+    def test_tank_frozen_when_pump_off(self):
+        """With pump OFF, the tank level must be frozen (no inflow, no outflow)."""
         sim = _make_sim(self.building, tank_level=70.0, pump_on=False)
-        # Do NOT lock tank_level — we need the physics to drain it
         sim.manual_pump_override = True
-        initial_tank = 70.0
-        sim.sensor_data["tank_level"] = initial_tank
+        sim.sensor_data["tank_level"] = 70.0
         for _ in range(20):
             _update_pump(sim)
-        self.assertLess(
-            sim.sensor_data["tank_level"], initial_tank,
-            "Tank should drain when pump is OFF (building demand uses stored water).",
+        self.assertEqual(
+            sim.sensor_data["tank_level"], 70.0,
+            "Tank must be frozen when pump is OFF.",
         )
 
     # -----------------------------------------------------------------------

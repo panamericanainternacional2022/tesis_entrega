@@ -27,8 +27,8 @@ def _run_sim_tick(sim: BuildingSimulator) -> None:
         return
     update_sensor_data(active_sim=sim)
     alert_vars = _get_alert_vars(sim)
-    _process_sensor_alerts(sim, alert_vars)
-    _build_history_records(sim, alert_vars)
+    risk_cache = _process_sensor_alerts(sim, alert_vars)
+    _build_history_records(sim, alert_vars, risk_cache)
 
 
 def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
@@ -47,12 +47,13 @@ def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
 ALERT_DEBOUNCE_TICKS: int = 3
 
 
-def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None:
+def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict:
     from apps.core.services.risk_service import classify_risk
     from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS
     from apps.thresholds.services import get_thresholds
 
     thresholds = get_thresholds(sim.edificio_id)
+    risk_cache: dict[str, str] = {}
 
     # Per-variable consecutive-high-risk tick counter (debounce)
     if not hasattr(sim, "_alert_consecutive"):
@@ -76,9 +77,13 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
 
         if var in BOOLEAN_VARS:
             _handle_motor_stuck_alert(sim, var, value)
+            risk_cache[var] = RISK_CRITICO if value else RISK_NORMAL
             continue
         if var in ENUM_VARS:
             _handle_enum_alert(sim, var, value)
+            risky_values = ENUM_RISK_VALUES.get(var, set())
+            str_val = str(value).lower() if value is not None else ""
+            risk_cache[var] = RISK_CRITICO if str_val in risky_values else RISK_NORMAL
             continue
         from apps.events.alerts.engine import send_alert
         from apps.events.services.alert_service import get_professional_action
@@ -90,6 +95,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
             pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
             elevator_on=sim.elevator_on,
         )
+        risk_cache[var] = risk
         if risk in (RISK_ALTO, RISK_CRITICO):
             # Increment debounce counter; only fire once threshold is met
             consecutive = sim._alert_consecutive.get(var, 0) + 1
@@ -110,17 +116,25 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
     else:
         check_rationing(sim.sensor_data["flow_rate"], sim=sim)
 
+    return risk_cache
+
 
 def _handle_motor_stuck_alert(
     sim: BuildingSimulator, var: str, value: object,
 ) -> None:
+    if not hasattr(sim, "_alert_consecutive"):
+        sim._alert_consecutive = {}
     if value:
-        from apps.events.alerts.engine import send_alert
-        from apps.events.services.alert_service import get_professional_action
-        action = get_professional_action(var, RISK_CRITICO, value)
-        send_alert(var, value, RISK_CRITICO, action, sim=sim)
+        consecutive = sim._alert_consecutive.get(var, 0) + 1
+        sim._alert_consecutive[var] = consecutive
+        if consecutive >= ALERT_DEBOUNCE_TICKS:
+            from apps.events.alerts.engine import send_alert
+            from apps.events.services.alert_service import get_professional_action
+            action = get_professional_action(var, RISK_CRITICO, value)
+            send_alert(var, value, RISK_CRITICO, action, sim=sim)
     else:
         sim.active_alerts.pop(var, None)
+        sim._alert_consecutive.pop(var, None)
 
 
 def _handle_enum_alert(
@@ -150,7 +164,7 @@ def _handle_enum_alert(
         sim.active_alerts.pop(var, None)
 
 
-def _build_history_records(sim: BuildingSimulator, alert_vars: set[str]) -> None:
+def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_cache: dict[str, str] = None) -> None:
     from apps.core.services.risk_service import classify_risk
     from apps.thresholds.services import get_thresholds
 
@@ -162,17 +176,21 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str]) -> None
     for var, value in sim.sensor_data.items():
         if var not in all_tracked_vars:
             continue
-        risk, color = (
-            classify_risk(
+        if risk_cache and var in risk_cache:
+            risk = risk_cache[var]
+        elif var not in BOOLEAN_VARS:
+            risk, _ = classify_risk(
                 var, value, thresholds,
                 pump_on=sim.pump_on,
                 speed=sim.sensor_data.get("speed", 0.0),
                 door_close_attempts=sim.door_close_attempts,
                 pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
                 elevator_on=sim.elevator_on,
-            ) if var not in BOOLEAN_VARS
-            else (RISK_CRITICO if value else RISK_NORMAL, "red" if value else "green")
-        )
+            )
+        else:
+            risk = RISK_CRITICO if value else RISK_NORMAL
+        from apps.sensors.sensor_config import RISK_COLORS
+        color = RISK_COLORS.get(risk, {}).get("email", {}).get("text", "#475569")
         sensor_type = "Bomba" if var in PUMP_VARS else "Elevador"
         new_readings.append({
             "timestamp": timestamp,

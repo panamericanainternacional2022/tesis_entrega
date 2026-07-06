@@ -174,11 +174,11 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "door_status": "closing",
             "speed": 0.0,
             "energy": 1.5,
-            "door_close_attempts": 3,
+            "door_close_attempts": 5,
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
-            "speed": 3.5,
+            "speed": 4.5,
             "energy": 12.0,
             "door_status": "closed",
             "elevator_state": "MOVING",
@@ -295,11 +295,11 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
 
 def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "speed"):
-        sd["speed"] = _clamp(sd.get("speed", 0.0) - 1.0 * dt, _SPEED_LOW, _SPEED_HIGH)
+        sd["speed"] = 0.0
     if not _is_locked(sim, "load"):
         sd["load"] = int(max(0, sd["load"] - 50 * dt))
     if not _is_locked(sim, "energy"):
-        sd["energy"] = round(_clamp(sd.get("energy", 0) - 0.3 * dt, _ENERGY_LOW, _ENERGY_HIGH), 1)
+        sd["energy"] = 0.0
     if not _is_locked(sim, "motor_stuck"):
         sd["motor_stuck"] = False
     if not _is_locked(sim, "door_close_attempts"):
