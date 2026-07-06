@@ -261,4 +261,333 @@
     <script>
         window.IS_ADMIN = {{ request.session.usuario_es_admin|lower }};
     </script>
+    <script>
+    (function () {
+        'use strict';
+
+        var configEl = document.getElementById('appConfig');
+        var cfg;
+        try { cfg = JSON.parse(configEl.textContent); } catch (_) { cfg = {}; }
+        if (!cfg.edificio_id) return;
+
+        var BID = cfg.edificio_id;
+
+        var URLS = {
+            status:    '/api/sim/' + BID + '/status/',
+            pause:     '/api/sim/' + BID + '/pause/',
+            reset:     '/api/sim/' + BID + '/reset/',
+            resetLt:   '/api/sim/' + BID + '/reset-light/',
+            inject:    '/api/sim/' + BID + '/inject-fault/',
+            clear:     '/api/sim/' + BID + '/clear-fault/',
+            setSpeed:  '/api/sim/' + BID + '/set-speed/',
+        };
+
+        var _csVal = window._csSetValue || function () {};
+        var _csDis = window._csSetDisabled || function () {};
+
+        function SimulationController() {
+            this.simStarted = false;
+            this.simPaused = true;
+            this.currentSpeed = 1.0;
+            this._activeElevFault = '';
+
+            this._cacheDOMElements();
+            this._bindEvents();
+            this._fetchInitialStatus();
+        }
+
+        SimulationController.prototype._cacheDOMElements = function () {
+            this.btnPause   = document.getElementById('simPauseBtn');
+            this.btnReset   = document.getElementById('simResetBtn');
+            this.btnResetLt = document.getElementById('simResetLightBtn');
+            this.selFault   = document.getElementById('simFaultElevator');
+            this.warnFault  = document.getElementById('faultWarningElevator');
+        };
+
+        SimulationController.prototype._bindEvents = function () {
+            var self = this;
+
+            if (this.btnPause) {
+                this.btnPause.addEventListener('click', function () { self._togglePause(); });
+            }
+
+            if (this.btnReset) {
+                this.btnReset.addEventListener('click', function () { self._resetSim(); });
+            }
+
+            if (this.btnResetLt) {
+                this.btnResetLt.addEventListener('click', function () { self._resetSimLight(); });
+            }
+
+            if (this.selFault) {
+                this.selFault.addEventListener('change', function () {
+                    var newFault = self.selFault.value || '';
+                    self._handleFaultChange(newFault);
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-speed]');
+                if (btn) {
+                    var speed = parseFloat(btn.dataset.speed);
+                    if (!isNaN(speed)) self._setSpeed(speed);
+                }
+            });
+        };
+
+        // ─────────────── API LIFECYCLE ───────────────
+
+        SimulationController.prototype._togglePause = function () {
+            var self = this;
+            if (!BID) return;
+            window.csrfFetch(URLS.pause, { method: 'POST', body: '{}' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.status === 'ok') {
+                        self.simPaused = data.paused;
+                        if (!data.paused && !self.simStarted) self.simStarted = true;
+                        self._updatePauseBtn();
+                        self._updateControlStates();
+                    } else {
+                        window.showToast(data.message || 'Error al cambiar estado.', 'error');
+                    }
+                })
+                .catch(function () {
+                    window.showToast('Error de conexión al pausar.', 'error');
+                });
+        };
+
+        SimulationController.prototype._setSpeed = function (speed) {
+            var self = this;
+            self.currentSpeed = speed;
+            self._updateSpeedButtons(speed);
+
+            window.csrfFetch(URLS.setSpeed, {
+                method: 'POST',
+                body: JSON.stringify({ speed: speed })
+            }).catch(function () {});
+        };
+
+        // ─────────────── FAULT MANAGEMENT ───────────────
+
+        SimulationController.prototype._handleFaultChange = function (newFault) {
+            var self = this;
+            if (!BID) return;
+
+            var chain = window.csrfFetch(URLS.clear, {
+                method: 'POST',
+                body: JSON.stringify({ device: 'elevator' })
+            });
+
+            if (newFault) {
+                chain = chain.then(function () {
+                    return window.csrfFetch(URLS.inject, {
+                        method: 'POST',
+                        body: JSON.stringify({ device: 'elevator', fault_type: newFault })
+                    });
+                });
+            }
+
+            chain
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.status !== 'ok') {
+                        window.showToast(data.message || 'Error al gestionar falla.', 'error');
+                    }
+                    self._activeElevFault = newFault;
+                    self._updateFaultUI();
+                })
+                .catch(function () {
+                    window.showToast('Error de conexión al gestionar falla.', 'error');
+                });
+        };
+
+        // ─────────────── RESET / RESTART ───────────────
+
+        SimulationController.prototype._resetSim = function () {
+            var self = this;
+            window.showConfirm(
+                'Se restablecerán o eliminarán los siguientes parámetros:\n\n' +
+                '• Estado de equipos (se apagarán)\n' +
+                '• Controles manuales (se deshabilitarán)\n' +
+                '• Velocidad personalizada (vuelve a 1.0x)\n' +
+                '• Historial de gráficas (se borrará)\n' +
+                '• Datos de sensores (valores por defecto)\n' +
+                '• Fallas activas (se desactivarán)'
+            ).then(function (confirmed) {
+                if (!confirmed || !BID) return;
+                window.csrfFetch(URLS.reset, { method: 'POST', body: '{}' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.status === 'ok') {
+                            self.simStarted = false;
+                            self.simPaused = true;
+                            self._activeElevFault = '';
+                            _csVal(document.getElementById('simFaultElevator'), '');
+                            self._updatePauseBtn();
+                            self._updateSpeedButtons(1.0);
+                            self._updateControlStates();
+                            self._updateFaultUI();
+                            if (typeof window.fetchInitialData === 'function') {
+                                window.fetchInitialData();
+                            }
+                        } else {
+                            window.showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(function () {
+                        window.showToast('Error al reiniciar la simulación.', 'error');
+                    });
+            });
+        };
+
+        SimulationController.prototype._resetSimLight = function () {
+            var self = this;
+            window.showConfirm(
+                'Se conservarán los siguientes parámetros:\n\n' +
+                '• Estado de equipos (encendido/apagado)\n' +
+                '• Controles manuales (activos)\n' +
+                '• Velocidad personalizada\n' +
+                '• Historial de gráficas'
+            ).then(function (confirmed) {
+                if (!confirmed || !BID) return;
+                window.csrfFetch(URLS.resetLt, { method: 'POST', body: '{}' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.status === 'ok') {
+                            self.simStarted = false;
+                            self.simPaused = true;
+                            self._activeElevFault = '';
+                            _csVal(document.getElementById('simFaultElevator'), '');
+                            self._updatePauseBtn();
+                            self._updateControlStates();
+                            self._updateFaultUI();
+                            if (typeof window.fetchInitialData === 'function') {
+                                window.fetchInitialData();
+                            }
+                        } else {
+                            window.showToast(data.message, 'error');
+                        }
+                    })
+                    .catch(function () {
+                        window.showToast('Error al restablecer la simulación.', 'error');
+                    });
+            });
+        };
+
+        // ─────────────── UI UPDATES ───────────────
+
+        SimulationController.prototype._updatePauseBtn = function () {
+            var btn = this.btnPause;
+            if (!btn) return;
+
+            if (!this.simPaused) {
+                btn.innerHTML = '<i class="fas fa-pause"></i> <span>Pausar</span>';
+                btn.className = 'btn btn-secondary';
+            } else if (!this.simStarted) {
+                btn.innerHTML = '<i class="fas fa-play"></i> <span>Iniciar</span>';
+                btn.className = 'btn btn-primary';
+            } else {
+                btn.innerHTML = '<i class="fas fa-play"></i> <span>Reanudar</span>';
+                btn.className = 'btn btn-primary';
+            }
+        };
+
+        SimulationController.prototype._updateSpeedButtons = function (speed) {
+            var running = this.simStarted && !this.simPaused;
+            document.querySelectorAll('[data-speed]').forEach(function (btn) {
+                var isActive = parseFloat(btn.dataset.speed) === speed;
+                btn.classList.toggle('btn-primary', isActive);
+                btn.classList.toggle('btn-secondary', !isActive);
+                btn.disabled = !running;
+            });
+        };
+
+        SimulationController.prototype._updateControlStates = function () {
+            var running = this.simStarted && !this.simPaused;
+            var started = this.simStarted;
+            var manualDisabled = !started;
+
+            // Equipment toggles - disabled when not running
+            _csDis(document.getElementById('togglePumpBtn'), !running);
+            _csDis(document.getElementById('toggleElevatorBtn'), !running);
+
+            // Manual controls - disabled when not started
+            _csDis(document.getElementById('manualEquipmentSelect'), manualDisabled);
+            _csDis(document.getElementById('manualSensorSelect'), manualDisabled);
+            _csDis(document.getElementById('manualValueSelect'), manualDisabled);
+            var manualInp = document.getElementById('manualValueInput');
+            if (manualInp) manualInp.disabled = manualDisabled;
+
+            // Fault selects - disabled when not running
+            _csDis(document.getElementById('simFaultPump'), !running);
+            _csDis(document.getElementById('simFaultElevator'), !running);
+
+            // Reset buttons - disabled when not started
+            if (this.btnReset) this.btnReset.disabled = !started;
+            if (this.btnResetLt) this.btnResetLt.disabled = !started;
+
+            // Notify other modules
+            if (typeof window.updateFaultWarnings === 'function') {
+                window.updateFaultWarnings();
+            }
+            if (typeof window.validateManualInput === 'function') {
+                window.validateManualInput();
+            }
+        };
+
+        SimulationController.prototype._updateFaultUI = function () {
+            _csVal(document.getElementById('simFaultElevator'), this._activeElevFault);
+            if (typeof window.updateFaultWarnings === 'function') {
+                window.updateFaultWarnings();
+            }
+        };
+
+        // ─────────────── INITIAL LOAD ───────────────
+
+        SimulationController.prototype._fetchInitialStatus = function () {
+            var self = this;
+            if (!BID) return;
+
+            window.fetch(URLS.status)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data) return;
+                    self.simStarted = data.started || false;
+                    self.simPaused = data.paused;
+                    self.currentSpeed = data.speed || 1.0;
+                    self._activeElevFault = (data.faults && data.faults.elevator) || '';
+
+                    self._updatePauseBtn();
+                    self._updateSpeedButtons(self.currentSpeed);
+                    self._updateControlStates();
+
+                    _csVal(document.getElementById('simFaultElevator'), self._activeElevFault);
+                    _csVal(document.getElementById('simFaultPump'), (data.faults && data.faults.pump) || '');
+
+                    if (typeof window.updateFaultWarnings === 'function') {
+                        window.updateFaultWarnings();
+                    }
+                })
+                .catch(function () {});
+        };
+
+        // ─────────────── SSE SYNC HOOK ───────────────
+
+        SimulationController.prototype.syncFromPayload = function (data) {
+            this.simPaused = data.sim_paused === true;
+            this.simStarted = data.sim_started === true;
+
+            if (data.sim_speed !== undefined) {
+                this.currentSpeed = data.sim_speed;
+                this._updateSpeedButtons(data.sim_speed);
+            }
+
+            this._updatePauseBtn();
+            this._updateControlStates();
+        };
+
+        window.SimulationController = new SimulationController();
+    })();
+    </script>
 {% endblock %}

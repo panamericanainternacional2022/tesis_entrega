@@ -880,6 +880,11 @@
     const _csSetDisabled = (el, disabled) => { const cs = _csSelect(el); if (cs?.trigger) cs.trigger.disabled = disabled; if (el) el.disabled = disabled; };
     const _csSyncOptions = (el) => { const cs = _csSelect(el); if (cs) cs.updateOptions(Array.from(el.options).map(o => ({ value: o.value, text: o.text }))); };
 
+    window._csSetValue = _csSetValue;
+    window._csSetDisabled = _csSetDisabled;
+    window._csSelect = _csSelect;
+    window._csSyncOptions = _csSyncOptions;
+
     function updateFaultWarnings() {
         if (!IS_ADMIN) return;
         const pumpEl = document.getElementById('faultWarningPump');
@@ -911,7 +916,10 @@
         const hasPump = et.includes('bomba');
         const hasElev = et.includes('elevador');
 
-        const simDisabled = !_simStarted || _simPaused;
+        const ctrl = window.SimulationController;
+        const simStarted = ctrl ? ctrl.simStarted : false;
+        const simPaused = ctrl ? ctrl.simPaused : true;
+        const simDisabled = !simStarted || simPaused;
         _csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled);
         _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled);
 
@@ -1011,29 +1019,8 @@
         const simPaused = data.sim_paused === true;
         const isFirstLoad = Object.keys(currentReadings).length === 0;
 
-        if (IS_ADMIN) {
-            if (data.sim_paused !== undefined) updatePauseBtn(data.sim_paused, data.sim_started);
-
-            if (data.sim_speed !== undefined) {
-                document.querySelectorAll('[data-speed]').forEach(btn => {
-                    const isActive = parseFloat(btn.dataset.speed) === data.sim_speed;
-                    btn.classList.toggle('btn-primary', isActive);
-                    btn.classList.toggle('btn-secondary', !isActive);
-                });
-            }
-
-            const simSpd = document.getElementById('simSpeedDisplay');
-            if (simSpd) {
-                const paused = data.sim_paused !== undefined
-                    ? data.sim_paused
-                    : document.getElementById('simPauseBtn')?.querySelector('i.fa-play') !== null;
-                const speed = data.sim_speed !== undefined
-                    ? data.sim_speed
-                    : parseFloat(document.querySelector('[data-speed].btn-primary')?.dataset.speed || 1.0);
-                simSpd.textContent = paused ? 'Pausada' : `${speed.toFixed(1)}x`;
-                simSpd.className = paused ? 'badge badge-high' : 'badge badge-info';
-
-            }
+        if (IS_ADMIN && window.SimulationController && data.sim_paused !== undefined) {
+            SimulationController.syncFromPayload(data);
         }
 
         if (simPaused && !isFirstLoad) return;
@@ -1822,6 +1809,9 @@
         const totalEmpty = empty || (v === 'speed' && posEmpty);
         const totalHasError = hasError || posHasError;
 
+        const _simCtrl = window.SimulationController;
+        const _simStarted = _simCtrl ? _simCtrl.simStarted : false;
+        const _simPaused = _simCtrl ? _simCtrl.simPaused : true;
         if (sendBtn) sendBtn.disabled = totalEmpty || totalHasError || !_simStarted || _simPaused;
         return { hasError, posHasError, errorText, posErrorText, empty: totalEmpty };
     }
@@ -1864,141 +1854,6 @@
             if (res.status === 'ok') showToast('Valor enviado correctamente.', 'success');
             else showToast(res.message || 'No se pudo aplicar el valor.', 'error');
         } catch (_) { showToast('Error de conexión. Inténtelo de nuevo.', 'error'); }
-    }
-
-    async function fetchSimStatus() {
-        if (!EDIFICIO_ID) return null;
-        try { const resp = await fetch(API.simStatus(EDIFICIO_ID)); return await resp.json(); }
-        catch (_) { return null; }
-    }
-
-    let _simStarted = false;
-    let _simPaused = true;
-
-    async function togglePause() {
-        if (!EDIFICIO_ID) return;
-        try {
-            const resp = await csrfFetch(API.simPause(EDIFICIO_ID), { method: 'POST', body: '{}' });
-            const data = await resp.json();
-            if (data.status === 'ok') {
-                if (!data.paused && !_simStarted) _simStarted = true;
-                updatePauseBtn(data.paused, _simStarted);
-            }
-        } catch (_) { setSimMessage('Error al pausar o reanudar la simulación.', 'error'); }
-    }
-
-    function updatePauseBtn(paused, started) {
-        _simPaused = paused;
-        const btn = document.getElementById('simPauseBtn');
-        if (!btn) return;
-        if (started === undefined) started = _simStarted;
-        if (!paused) {
-            btn.innerHTML = '<i class="fas fa-pause"></i> <span>Pausar</span>';
-            btn.className = 'btn btn-secondary';
-        } else if (!started) {
-            btn.innerHTML = '<i class="fas fa-play"></i> <span>Iniciar</span>';
-            btn.className = 'btn btn-primary';
-        } else {
-            btn.innerHTML = '<i class="fas fa-play"></i> <span>Reanudar</span>';
-            btn.className = 'btn btn-primary';
-        }
-        const inReset = !started;
-        const resetBtn = document.getElementById('simResetBtn');
-        if (resetBtn) resetBtn.disabled = inReset;
-        const resetLightBtn = document.getElementById('simResetLightBtn');
-        if (resetLightBtn) resetLightBtn.disabled = inReset;
-        updateSimControls(paused, started);
-    }
-
-    function updateSimControls(paused, started) {
-        const idle = !started;
-        const running = started && !paused;
-        const pausing = started && paused;
-
-        document.querySelectorAll('[data-speed]').forEach(btn => {
-            btn.disabled = !running;
-        });
-
-        ['togglePumpBtn', 'toggleElevatorBtn']
-            .forEach(id => _csSetDisabled(document.getElementById(id), !running));
-
-        const manualDisabled = !running && !pausing ? true : false;
-        ['manualEquipmentSelect', 'manualSensorSelect', 'manualValueSelect']
-            .forEach(id => _csSetDisabled(document.getElementById(id), manualDisabled));
-
-        const inp = document.getElementById('manualValueInput');
-        if (inp) inp.disabled = manualDisabled;
-
-        if (!running) {
-            ['simFaultPump', 'simFaultElevator']
-                .forEach(id => _csSetDisabled(document.getElementById(id), true));
-        }
-
-        updateFaultWarnings();
-        validateManualInput();
-    }
-
-    async function resetSim() {
-        const confirmed = await showConfirm('Se restablecerán o eliminarán los siguientes parámetros:\n\n• Estado de equipos (se apagarán)\n• Controles manuales (se deshabilitarán)\n• Velocidad personalizada (vuelve a 1.0x)\n• Historial de gráficas (se borrará)\n• Datos de sensores (valores por defecto)\n• Fallas activas (se desactivarán)');
-
-        if (!confirmed || !EDIFICIO_ID) return;
-        try {
-            const resp = await csrfFetch(API.simReset(EDIFICIO_ID), { method: 'POST', body: '{}' });
-            const data = await resp.json();
-            if (data.status === 'ok') {
-                _simStarted = false;
-                currentReadings = {};
-                updatePauseBtn(true, false);
-                _csSetValue(document.getElementById('simFaultPump'), '');
-                _csSetValue(document.getElementById('simFaultElevator'), '');
-                fetchInitialData();
-            } else { setSimMessage(data.message, 'error'); }
-        } catch (_) { setSimMessage('Error al reiniciar la simulación.', 'error'); }
-    }
-
-    async function resetSimLight() {
-        const confirmed = await showConfirm(
-            'Se conservarán los siguientes parámetros:\n\n• Estado de equipos (encendido/apagado)\n• Controles manuales (activos)\n• Velocidad personalizada\n• Historial de gráficas'
-        );
-        if (!confirmed || !EDIFICIO_ID) return;
-        try {
-            const resp = await csrfFetch(API.simResetLight(EDIFICIO_ID), { method: 'POST', body: '{}' });
-            const data = await resp.json();
-            if (data.status === 'ok') {
-                _simStarted = false;
-                currentReadings = {};
-                updatePauseBtn(true, false);
-                _csSetValue(document.getElementById('simFaultPump'), '');
-                _csSetValue(document.getElementById('simFaultElevator'), '');
-                updateFaultWarnings();
-                fetchInitialData();
-            } else { setSimMessage(data.message, 'error'); }
-        } catch (_) { setSimMessage('Error al restablecer la simulación.', 'error'); }
-    }
-
-    async function injectFault(device) {
-        if (!EDIFICIO_ID) return;
-        const faultType = document.getElementById(device === 'pump' ? 'simFaultPump' : 'simFaultElevator')?.value;
-        const url = faultType ? API.simInjectFault(EDIFICIO_ID) : API.simClearFault(EDIFICIO_ID);
-        const body = faultType
-            ? JSON.stringify({ device, fault_type: faultType })
-            : JSON.stringify({ device });
-        try {
-            const resp = await csrfFetch(url, { method: 'POST', body });
-            const data = await resp.json();
-            if (data.status !== 'ok') setSimMessage(data.message, 'error');
-        } catch (_) { setSimMessage('Error al gestionar la falla.', 'error'); }
-    }
-
-    async function setSpeed(speed) {
-        if (!EDIFICIO_ID) return;
-        document.querySelectorAll('[data-speed]').forEach(btn => {
-            const isActive = parseFloat(btn.dataset.speed) === speed;
-            btn.classList.toggle('btn-primary', isActive);
-            btn.classList.toggle('btn-secondary', !isActive);
-        });
-        try { await csrfFetch(API.simSetSpeed(EDIFICIO_ID), { method: 'POST', body: JSON.stringify({ speed }) }); }
-        catch (_) { }
     }
 
     const setSimMessage = (msg, type) =>
@@ -2295,27 +2150,11 @@
     }
 
     function setupAdminEvents() {
-        const pauseBtn = document.getElementById('simPauseBtn');
-        const resetBtn = document.getElementById('simResetBtn');
-        const resetLightBtn = document.getElementById('simResetLightBtn');
-        const faultPump = document.getElementById('simFaultPump');
-        const faultElev = document.getElementById('simFaultElevator');
         const togglePumpBtn = document.getElementById('togglePumpBtn');
         const toggleElevBtn = document.getElementById('toggleElevatorBtn');
 
-        if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
-        if (resetBtn) resetBtn.addEventListener('click', resetSim);
-        if (resetLightBtn) resetLightBtn.addEventListener('click', resetSimLight);
-        if (faultPump) faultPump.addEventListener('change', () => { injectFault('pump'); updateFaultWarnings(); });
-        if (faultElev) faultElev.addEventListener('change', () => { injectFault('elevator'); updateFaultWarnings(); });
         if (togglePumpBtn) togglePumpBtn.addEventListener('click', () => toggleEquipmentPower('pump'));
         if (toggleElevBtn) toggleElevBtn.addEventListener('click', () => toggleEquipmentPower('elevator'));
-
-        // Delegación de eventos para botones de velocidad
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-speed]');
-            if (btn) setSpeed(parseFloat(btn.dataset.speed));
-        });
 
         // Panel de umbrales
         const saveThreshBombaBtn = document.getElementById('saveThresholdsBombaBtn');
@@ -2383,24 +2222,6 @@
                 updateManualRiskPreview();
             });
         }
-
-        updateSimControls(true, false);
-
-        fetchSimStatus().then(data => {
-            if (!data) return;
-            _simStarted = data.started || false;
-            currentPumpOn = data.pump_on === true;
-            currentElevOn = data.elevator_on === true;
-            updatePauseBtn(data.paused, _simStarted);
-            document.querySelectorAll('[data-speed]').forEach(btn => {
-                const isActive = parseFloat(btn.dataset.speed) === data.speed;
-                btn.classList.toggle('btn-primary', isActive);
-                btn.classList.toggle('btn-secondary', !isActive);
-            });
-            _csSetValue(document.getElementById('simFaultPump'), data.faults?.pump || '');
-            _csSetValue(document.getElementById('simFaultElevator'), data.faults?.elevator || '');
-            updateFaultWarnings();
-        });
 
         populateManualSensorSelect();
         updateSensorTypeIndicator();
@@ -2914,5 +2735,8 @@
     window.closeAllDropdowns = closeAllDropdowns;
     window.initDropdowns = initDropdowns;
     window.initConfirmDelete = initConfirmDelete;
+    window.updateFaultWarnings = updateFaultWarnings;
+    window.validateManualInput = validateManualInput;
+    window.fetchInitialData = fetchInitialData;
 
 })(window, document);
