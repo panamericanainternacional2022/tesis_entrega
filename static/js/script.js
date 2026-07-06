@@ -894,9 +894,12 @@
         const elevEl = document.getElementById('faultWarningElevator');
         const pumpFault = document.getElementById('simFaultPump')?.value;
         const elevFault = document.getElementById('simFaultElevator')?.value;
+        const simCtrl = window.SimulationController;
+        const pumpOn = currentPumpOn || (simCtrl && simCtrl._pumpOn);
+        const elevOn = currentElevOn || (simCtrl && simCtrl._elevOn);
 
         if (pumpEl) {
-            if (pumpFault && !currentPumpOn) {
+            if (pumpFault && !pumpOn) {
                 pumpEl.textContent = 'Se activará al encender el equipo';
                 pumpEl.style.display = 'block';
             } else {
@@ -904,7 +907,7 @@
             }
         }
         if (elevEl) {
-            if (elevFault && !currentElevOn) {
+            if (elevFault && !elevOn) {
                 elevEl.textContent = 'Se activará al encender el equipo';
                 elevEl.style.display = 'block';
             } else {

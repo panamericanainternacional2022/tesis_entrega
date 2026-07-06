@@ -282,8 +282,19 @@
             setSpeed:  '/api/sim/' + BID + '/set-speed/',
         };
 
-        var _csVal = window._csSetValue || function () {};
-        var _csDis = window._csSetDisabled || function () {};
+        window.updateFaultWarnings = window.updateFaultWarnings || function () {};
+        window.fetchInitialData = window.fetchInitialData || function () {};
+
+        var _csVal = function (el, val) {
+            var fn = window._csSetValue;
+            if (fn) fn(el, val);
+            else if (el) el.value = val;
+        };
+        var _csDis = function (el, disabled) {
+            var fn = window._csSetDisabled;
+            if (fn) fn(el, disabled);
+            else if (el) el.disabled = disabled;
+        };
 
         function SimulationController() {
             this.simStarted = false;
@@ -384,6 +395,8 @@
             var self = this;
             if (!BID) return;
 
+            var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
+
             var chain = window.csrfFetch(URLS.clear, {
                 method: 'POST',
                 body: JSON.stringify({ device: device })
@@ -401,15 +414,18 @@
             chain
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (data.status !== 'ok') {
-                        window.showToast(data.message || 'Error al gestionar falla.', 'error');
-                    }
-                    if (device === 'elevator') {
-                        self._activeElevFault = newFault;
+                    if (data.status === 'ok') {
+                        if (device === 'elevator') {
+                            self._activeElevFault = newFault;
+                        } else {
+                            self._activePumpFault = newFault;
+                        }
+                        self._updateFaultUI();
                     } else {
-                        self._activePumpFault = newFault;
+                        window.showToast(data.message || 'Error al gestionar falla.', 'error');
+                        var selId = device === 'elevator' ? 'simFaultElevator' : 'simFaultPump';
+                        _csVal(document.getElementById(selId), prevFault);
                     }
-                    self._updateFaultUI();
                 })
                 .catch(function () {
                     window.showToast('Error de conexión al gestionar falla.', 'error');
@@ -444,9 +460,7 @@
                             self._updateSpeedButtons(1.0);
                             self._updateControlStates();
                             self._updateFaultUI();
-                            if (typeof window.fetchInitialData === 'function') {
-                                window.fetchInitialData();
-                            }
+                            window.fetchInitialData();
                         } else {
                             window.showToast(data.message, 'error');
                         }
@@ -480,9 +494,7 @@
                             self._updatePauseBtn();
                             self._updateControlStates();
                             self._updateFaultUI();
-                            if (typeof window.fetchInitialData === 'function') {
-                                window.fetchInitialData();
-                            }
+                            window.fetchInitialData();
                         } else {
                             window.showToast(data.message, 'error');
                         }
@@ -544,9 +556,7 @@
             if (this.btnResetLt) this.btnResetLt.disabled = !started;
 
             // Notify other modules
-            if (typeof window.updateFaultWarnings === 'function') {
-                window.updateFaultWarnings();
-            }
+            window.updateFaultWarnings();
             if (typeof window.ManualController !== 'undefined') {
                 window.ManualController.validate();
             }
@@ -555,9 +565,7 @@
         SimulationController.prototype._updateFaultUI = function () {
             _csVal(document.getElementById('simFaultElevator'), this._activeElevFault);
             _csVal(document.getElementById('simFaultPump'), this._activePumpFault);
-            if (typeof window.updateFaultWarnings === 'function') {
-                window.updateFaultWarnings();
-            }
+            window.updateFaultWarnings();
         };
 
         // ─────────────── INITIAL LOAD ───────────────
@@ -575,6 +583,8 @@
                     self.currentSpeed = data.speed || 1.0;
                     self._activeElevFault = (data.faults && data.faults.elevator) || '';
                     self._activePumpFault = (data.faults && data.faults.pump) || '';
+                    self._pumpOn = data.pump_on;
+                    self._elevOn = data.elevator_on;
 
                     if (typeof window.setEquipmentState === 'function') {
                         window.setEquipmentState(data.pump_on, data.elevator_on);
@@ -587,9 +597,7 @@
                     _csVal(document.getElementById('simFaultElevator'), self._activeElevFault);
                     _csVal(document.getElementById('simFaultPump'), self._activePumpFault);
 
-                    if (typeof window.updateFaultWarnings === 'function') {
-                        window.updateFaultWarnings();
-                    }
+                    window.updateFaultWarnings();
                 })
                 .catch(function () {});
         };
@@ -609,6 +617,11 @@
                 this._activeElevFault = data.sim_faults.elevator || '';
                 this._activePumpFault = data.sim_faults.pump || '';
                 this._updateFaultUI();
+            }
+
+            if (data.pump_on !== undefined) {
+                this._pumpOn = data.pump_on;
+                this._elevOn = data.elevator_on;
             }
 
             this._updatePauseBtn();
