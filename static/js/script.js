@@ -1931,7 +1931,6 @@
 
         if (typeof window.ManualController !== 'undefined') {
             window.ManualController.populateSensorSelect();
-            window.ManualController.updateSensorIndicator();
             window.ManualController.validate();
         }
     }

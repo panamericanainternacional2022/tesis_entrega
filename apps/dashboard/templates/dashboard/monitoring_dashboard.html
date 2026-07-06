@@ -155,7 +155,6 @@
                 <div class="form-group flex-1">
                     <label class="form-label" for="manualSensorSelect">Sensor</label>
                     <select id="manualSensorSelect" class="custom-select-init"></select>
-                    <span id="sensorTypeIndicator" class="input-static d-none"></span>
                 </div>
                 <div class="form-group flex-1" id="manualValueContainer">
                     <label class="form-label" for="manualValueInput">Valor</label>
@@ -647,7 +646,6 @@
             this.elRiskPreview   = document.getElementById('manualRiskPreview');
             this.elErrorMsg      = document.getElementById('manualErrorMsg');
             this.elPosErrorMsg   = document.getElementById('manualPositionErrorMsg');
-            this.elSensorInd     = document.getElementById('sensorTypeIndicator');
             this.elSpeedExtra    = document.getElementById('manualSpeedExtra');
         };
 
@@ -668,14 +666,12 @@
                     var pem = self.elPosErrorMsg;
                     if (pem) { pem.textContent = ''; pem.style.visibility = 'hidden'; }
                     self.updateInputType();
-                    self.updateSensorIndicator();
                     self._onChange();
                 });
             }
             if (this.elEquipSelect) {
                 this.elEquipSelect.addEventListener('change', function () {
                     self.populateSensorSelect();
-                    self.updateSensorIndicator();
                     self._onChange();
                 });
             }
@@ -802,18 +798,6 @@
             }
             this.updateRiskPreview();
             this.validate();
-        };
-
-        ManualController.prototype.updateSensorIndicator = function () {
-            var v = this.elSensorSelect ? this.elSensorSelect.value : '';
-            var el = this.elSensorInd;
-            if (!el) return;
-            if (v) {
-                el.textContent = this._bombaVars.indexOf(v) !== -1 ? 'Bomba / Eléctrico' : 'Elevador / Motor';
-                el.classList.remove('d-none');
-            } else {
-                el.classList.add('d-none');
-            }
         };
 
         ManualController.prototype.updateRiskPreview = function () {
