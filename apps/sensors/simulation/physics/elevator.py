@@ -50,6 +50,7 @@ def _clear_elevator_fault_params(sim: BuildingSimulator) -> None:
     sim._elev_brake_failed = False
     sim._elev_power_outage_timer = 0.0
     sim._elev_power_outage_complete = False
+    sim._elev_pos_sensor_mismatch_timer = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +84,8 @@ def _set_overload_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 def _set_pos_sensor_fail_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     """Sensor de posición congelado. La física interna sigue pero la lectura no."""
     sim._elev_pos_sensor_stuck = True
+    if not hasattr(sim, "_elev_pos_stuck_value"):
+        sim._elev_pos_stuck_value = round(sim._elev_position_meters / FLOOR_HEIGHT, 1)
 
 
 def _set_power_outage_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -168,9 +171,9 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elevator_state": "STUCK",
         },
         "door_blocked": {
-            "door_status": "open",
+            "door_status": "closing",
             "speed": 0.0,
-            "energy": 0.3,
+            "energy": 1.5,
             "door_close_attempts": 3,
             "elevator_state": "DOORS_OPEN",
         },
@@ -188,7 +191,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elevator_state": "DOORS_OPEN",
         },
         "pos_sensor_fail": {
-            "position": 4.3,
+            "position": getattr(sim, "_elev_pos_stuck_value", 4.3),
             "speed": 0.0,
             "door_status": "closed",
             "elevator_state": "IDLE",
@@ -312,10 +315,19 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 def _apply_elevator_fault_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     """Apply physical parameters for the active elevator fault.
 
-    Each handler only mutates physical parameters on *sim* (and optionally
-    sd["energy"] for power_outage). The FSM + post-FSM handle all sensor
-    updates based on those parameters.
+    First clears ALL old fault parameters, then applies only the
+    current fault's parameters.  This prevents cross-contamination
+    when switching from one fault type to another.
+
+    Power-outage state machine variables (timer, complete) are
+    preserved across the clear so multi-phase state continues
+    correctly across ticks.
     """
+    _saved_power_outage_timer = sim._elev_power_outage_timer
+    _saved_power_outage_complete = sim._elev_power_outage_complete
+    _clear_elevator_fault_params(sim)
+    sim._elev_power_outage_timer = _saved_power_outage_timer
+    sim._elev_power_outage_complete = _saved_power_outage_complete
     fault_type = sim.sim_faults.get("elevator")
     _ELEV_FAULT_PARAM_SETTERS = {
         "motor_stuck":             _set_motor_stuck_params,
@@ -423,11 +435,12 @@ def _run_elevator_fsm(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         spd = sd.get("speed", 0.0)
         pos = sim._elev_position_meters
         load = sd.get("load", 0)
+        _state_before_outage = sim._elev_state  # save BEFORE outage FSM modifies it
         _handle_power_outage_fsm(sim, sd, dt, spd, pos, load)
         _run_elevator_post_fsm(
             sim, sd, dt, prev_pos,
             sd.get("speed", 0.0), sd.get("load", 0),
-            sd.get("door_status", "closed"), sim._elev_state,
+            sd.get("door_status", "closed"), _state_before_outage,
         )
         return
 
@@ -465,7 +478,9 @@ def _handle_elev_idle(
 ) -> None:
     spd = 0.0
     door = "closed"
-    if sim._elev_timer >= random.uniform(2, 5):
+    if "elevator" in sim.sim_faults:
+        sim._elev_timer = 0
+    elif sim._elev_timer >= random.uniform(2, 5):
         sim._elev_timer = 0
         sim._elev_target_floor = random.randint(0, sim.floors)
         floor_num = round(pos / FLOOR_HEIGHT)
@@ -718,10 +733,11 @@ def _run_elevator_post_fsm(
                     sim._elev_state = "DOOR_OPENING"
                     sim._elev_timer = 0
 
-    moving_states = {"ACCELERATING", "MOVING", "DECELERATING"}
-    if old_state in moving_states and current_state not in moving_states:
-        if not _is_locked(sim, "trip_count") and abs(pos - prev_pos) > 0.5:
-            sd["trip_count"] += 1
+    if "elevator" not in sim.sim_faults:
+        moving_states = {"ACCELERATING", "MOVING", "DECELERATING"}
+        if old_state in moving_states and current_state not in moving_states:
+            if not _is_locked(sim, "trip_count") and abs(pos - prev_pos) > 0.5:
+                sd["trip_count"] += 1
 
     # Include overload extra kg in energy and stuck computations
     effective_load = _effective_load(sim, load)

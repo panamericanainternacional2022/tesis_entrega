@@ -160,7 +160,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         self.assertEqual(self.sim.active_alerts["door_status"], RISK_CRITICO)
 
         self.sim.sensor_data["speed"] = 0.0
-        self.sim.door_close_attempts = 2
+        self.sim.door_close_attempts = 5
         _handle_enum_alert(self.sim, "door_status", "open")
         self.assertIn("door_status", self.sim.active_alerts)
 
@@ -486,5 +486,127 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         _update_elevator(sim)
         self.assertEqual(sim.sensor_data["door_close_attempts"], 5)
         self.assertEqual(sim.door_close_attempts, 5)
+
+    # -----------------------------------------------------------------------
+    # 26. Trip count must NOT increment during motor_stuck fault
+    # -----------------------------------------------------------------------
+    def test_trip_count_not_incremented_during_motor_stuck(self):
+        """motor_stuck fault must NOT increment trip_count despite FSM cycling."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "motor_stuck"
+        sim.sensor_data["trip_count"] = 42
+        sim._elev_state = "ACCELERATING"
+        sim.sensor_data["speed"] = 1.0
+        sim._elev_position_meters = 50.0
+        for _ in range(10):
+            _update_elevator(sim)
+        self.assertEqual(
+            sim.sensor_data["trip_count"], 42,
+            "trip_count must NOT change during motor_stuck fault.",
+        )
+
+    # -----------------------------------------------------------------------
+    # 27. Trip count must NOT increment during pos_sensor_fail
+    # -----------------------------------------------------------------------
+    def test_trip_count_not_incremented_during_pos_sensor_fail(self):
+        """pos_sensor_fail + emergency stop must NOT increment trip_count."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "pos_sensor_fail"
+        sim.sensor_data["trip_count"] = 10
+        sim._elev_state = "MOVING"
+        sim.sensor_data["speed"] = 2.0
+        sim._elev_position_meters = 30.0
+        sim._elev_current_accel = 0.0
+        # Run enough ticks for mismatch timer (4s) to trigger emergency stop
+        for _ in range(8):
+            _update_elevator(sim)
+        self.assertEqual(
+            sim.sensor_data["trip_count"], 10,
+            "trip_count must NOT change during pos_sensor_fail emergency stop.",
+        )
+
+    # -----------------------------------------------------------------------
+    # 28. Trip count must NOT increment during power outage
+    # -----------------------------------------------------------------------
+    def test_trip_count_not_incremented_during_power_outage(self):
+        """commercial_power_outage + battery rescue must NOT increment trip_count."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "commercial_power_outage"
+        sim.sensor_data["trip_count"] = 5
+        sim._elev_state = "MOVING"
+        sim.sensor_data["speed"] = 2.0
+        sim._elev_position_meters = 50.0
+        sim._elev_current_accel = 0.0
+        for _ in range(20):
+            _update_elevator(sim)
+        self.assertEqual(
+            sim.sensor_data["trip_count"], 5,
+            "trip_count must NOT change during power outage.",
+        )
+
+    # -----------------------------------------------------------------------
+    # 29. Injecting fault B after fault A cleans A's physical params
+    # -----------------------------------------------------------------------
+    def test_fault_params_cleaned_on_new_fault(self):
+        """Injecting a new fault type must clear the previous fault's physical params."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        # Inject motor_stuck → torque_factor = 0.0
+        sim.sim_faults["elevator"] = "motor_stuck"
+        _update_elevator(sim)
+        self.assertEqual(sim._elev_motor_torque_factor, 0.0)
+        # Now inject door_blocked — old motor_stuck params must be cleared
+        sim.sim_faults["elevator"] = "door_blocked"
+        _update_elevator(sim)
+        self.assertEqual(
+            sim._elev_motor_torque_factor, 1.0,
+            "torque_factor must be restored to 1.0 after switching from motor_stuck to door_blocked.",
+        )
+        self.assertTrue(
+            sim._elev_door_obstructed,
+            "door_obstructed must be True for door_blocked fault.",
+        )
+
+    # -----------------------------------------------------------------------
+    # 30. Door blocked shows elevated energy consumption
+    # -----------------------------------------------------------------------
+    def test_door_blocked_elevated_energy(self):
+        """door_blocked fault must show elevated energy (door motor cycling)."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "door_blocked"
+        sim._elev_state = "DOOR_CLOSING"
+        sim.sensor_data["speed"] = 0.0
+        for _ in range(5):
+            _update_elevator(sim)
+        self.assertGreater(
+            sim.sensor_data["energy"], 0.8,
+            "door_blocked must show elevated energy > 0.8 kW.",
+        )
+
+    # -----------------------------------------------------------------------
+    # 31. Position sensor fail freezes actual position (not hardcoded 4.3)
+    # -----------------------------------------------------------------------
+    def test_pos_sensor_fail_frozen_actual_position(self):
+        """pos_sensor_fail must freeze position at actual value, not at arbitrary 4.3."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        actual_floor = 7
+        sim._elev_position_meters = actual_floor * 3.5
+        sim.sensor_data["position"] = float(actual_floor)
+        sim.sim_faults["elevator"] = "pos_sensor_fail"
+        # Elevator is moving (speed > 0) but position sensor should stay frozen
+        sim._elev_state = "MOVING"
+        sim.sensor_data["speed"] = 2.0
+        sim._elev_current_accel = 0.0
+        for _ in range(5):
+            _update_elevator(sim)
+        self.assertEqual(
+            sim.sensor_data["position"], float(actual_floor),
+            "pos_sensor_fail must freeze position at the actual value when fault was injected.",
+        )
 
 
