@@ -57,9 +57,9 @@ STUCK_SPEED_EPSILON: float = 0.01       # Speed threshold considered "zero"
 DEFAULT_SENSOR_DATA: dict = {
     "flow_rate": 0.0,
     "pressure": 0.0,
-    "temperature": 22.0,
+    "temperature": 25.0,
     "vibration": 0.0,
-    "tank_level": 30.0,
+    "tank_level": 75.0,
     "position": 0,
     "speed": 0.0,
     "load": 0,

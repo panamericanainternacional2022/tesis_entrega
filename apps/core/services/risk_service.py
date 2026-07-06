@@ -44,11 +44,13 @@ def classify_risk(
         return RISK_NORMAL, "green"
 
     if variable == "load":
-        # Sobrecarga contextual
-        if value > 500:
-            return RISK_CRITICO, "red"  # Sobrecarga
-        elif value > 450:
-            return RISK_ALTO, "orange"  # Cerca del límite
+        load_thresh = (thresholds or {}).get("load", {})
+        crit = load_thresh.get("high", 900)
+        alto = load_thresh.get("low", 600)
+        if value > crit:
+            return RISK_CRITICO, "red"
+        elif value > alto:
+            return RISK_ALTO, "orange"
         return RISK_NORMAL, "green"
 
     if variable in {"energy", "elev_current", "current"}:

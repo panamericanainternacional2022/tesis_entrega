@@ -215,3 +215,56 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
             sim._elev_timer = 0
             sim._elev_current_accel = 0
 
+    # ── Redundancy: bridge critical manual overrides → sim_faults ────────────
+    if not hasattr(sim, "_manual_triggered_faults"):
+        sim._manual_triggered_faults = {}
+
+    # Elevator: motor_stuck = True → inject motor_stuck fault automatically
+    if (
+        "motor_stuck" in sim.manual_overrides
+        and sim.manual_targets.get("motor_stuck") == True
+        and sim.elevator_on
+    ):
+        if "elevator" not in sim.sim_faults:
+            sim.sim_faults["elevator"] = "motor_stuck"
+            sim.fault_injected_at["elevator"] = time.time()
+            sim._manual_triggered_faults["elevator"] = "motor_stuck"
+        elif sim._manual_triggered_faults.get("elevator") == "motor_stuck":
+            sim.fault_injected_at["elevator"] = time.time()
+
+    # Pump: flow_rate = 0 while pump is running → infer critical condition
+    if (
+        "flow_rate" in sim.manual_overrides
+        and sim.manual_targets.get("flow_rate") == 0
+        and sim.pump_on
+        and "pump" not in sim.sim_faults
+    ):
+        tank = sim.sensor_data.get("tank_level", 100)
+        if tank < 10:
+            sim.sim_faults["pump"] = "dry_run"
+            sim._manual_triggered_faults["pump"] = "dry_run"
+        else:
+            sim.sim_faults["pump"] = "blocked_discharge"
+            sim._manual_triggered_faults["pump"] = "blocked_discharge"
+        sim.fault_injected_at["pump"] = time.time()
+
+    # Auto-clear faults when the triggering manual override is no longer active
+    for device in list(sim._manual_triggered_faults.keys()):
+        triggered_fault = sim._manual_triggered_faults[device]
+        override_still_active = False
+        if device == "elevator" and triggered_fault == "motor_stuck":
+            override_still_active = (
+                "motor_stuck" in sim.manual_overrides
+                and sim.manual_targets.get("motor_stuck") == True
+            )
+        elif device == "pump" and triggered_fault in ("dry_run", "blocked_discharge"):
+            override_still_active = (
+                "flow_rate" in sim.manual_overrides
+                and sim.manual_targets.get("flow_rate") == 0
+            )
+
+        if not override_still_active and sim.sim_faults.get(device) == triggered_fault:
+            sim.sim_faults.pop(device, None)
+            sim.fault_injected_at.pop(device, None)
+            sim._manual_triggered_faults.pop(device, None)
+

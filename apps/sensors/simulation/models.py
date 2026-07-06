@@ -66,6 +66,7 @@ class BuildingSimulator:
         self._elev_brake_failed: bool = False            # Mechanical brake failed
         self._elev_power_outage_timer: float = 0.0       # Timer for power outage phases
         self._elev_power_outage_complete: bool = False   # True once battery rescue finishes
+        self._manual_triggered_faults: dict = {}         # Faults auto-injected by manual overrides
 
     def __repr__(self) -> str:
         return (

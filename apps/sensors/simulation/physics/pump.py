@@ -95,15 +95,15 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not _is_locked(sim, "flow_rate"):
-        sd["flow_rate"] = round(_clamp(sd["flow_rate"] - 3.0 * dt, 0.0, _FLOW_HIGH), 1)
+        sd["flow_rate"] = 0.0
     if not _is_locked(sim, "pressure"):
-        sd["pressure"] = round(_clamp(sd["pressure"] - 1.5 * dt, 0.0, _PRES_HIGH), 1)
+        sd["pressure"] = 0.0
     if not _is_locked(sim, "vibration"):
-        sd["vibration"] = round(_clamp(sd["vibration"] - 1.5 * dt, 0.0, _VIB_HIGH), 1)
+        sd["vibration"] = 0.0
     if not _is_locked(sim, "current"):
-        sd["current"] = round(_clamp(sd["current"] - 3.0 * dt, 0.0, _CURR_HIGH), 1)
+        sd["current"] = 0.0
     if not _is_locked(sim, "pump_energy"):
-        sd["pump_energy"] = round(_clamp(sd["pump_energy"] - 1.0 * dt, 0.0, _PUMP_ENERGY_HIGH), 1)
+        sd["pump_energy"] = 0.0
     if not _is_locked(sim, "temperature"):
         sd["temperature"] = round(
             _clamp(sd["temperature"] - 0.5 * dt, _TEMP_LOW, _TEMP_HIGH), 1
@@ -153,8 +153,8 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 def _apply_dry_run(sd: dict, dt: float) -> None:
     """Dry run: pump running but tank is empty → cavitates, overheats, no flow."""
-    sd["flow_rate"]  = _clamp(sd["flow_rate"]  - 1.5 * dt, 0, 5)
-    sd["pressure"]   = _clamp(sd["pressure"]   - 0.3 * dt, 0, 2)
+    sd["flow_rate"]  = _clamp(sd["flow_rate"]  - 5.0 * dt, 0, 0.5)
+    sd["pressure"]   = _clamp(sd["pressure"]   - 2.0 * dt, 0, 0.5)
     sd["temperature"] = _clamp(sd["temperature"] + 1.5 * dt, 0, 130)
     sd["vibration"]  = _clamp(sd["vibration"]  + 0.5 * dt, 0, 15)
     # During dry-run, tank drains because there is no mains supply to refill
@@ -163,7 +163,7 @@ def _apply_dry_run(sd: dict, dt: float) -> None:
 
 def _apply_blocked_discharge(sd: dict, dt: float) -> None:
     """Blocked discharge: water backs up → high pressure, low flow."""
-    sd["flow_rate"]   = _clamp(sd["flow_rate"]   - 2.0 * dt, 0, 3)
+    sd["flow_rate"]   = _clamp(sd["flow_rate"]   - 5.0 * dt, 0, 0.5)
     sd["pressure"]    = _clamp(sd["pressure"]    + 1.5 * dt, 0, 12)
     sd["vibration"]   = _clamp(sd["vibration"]   + 0.8 * dt, 0, 15)
     sd["temperature"] = _clamp(sd["temperature"] + 0.8 * dt, 0, 130)
@@ -184,6 +184,7 @@ def _apply_cavitation(sd: dict, dt: float) -> None:
     sd["flow_rate"]  = _clamp(sd["flow_rate"]  + random.uniform(-5, 5) * dt, 0, 60)
     sd["vibration"]  = _clamp(sd["vibration"]  + random.uniform(0.5, 2.0) * dt, 0, 15)
     sd["pressure"]   = _clamp(sd["pressure"]   + random.uniform(-0.5, 0.5) * dt, 0, 12)
+    sd["temperature"] = _clamp(sd["temperature"] + 1.2 * dt, 0, 130)
 
 
 def _apply_overheat(sd: dict, dt: float) -> None:
@@ -192,8 +193,10 @@ def _apply_overheat(sd: dict, dt: float) -> None:
 
 
 def _apply_power_surge(sd: dict, dt: float) -> None:
-    sd["voltage"] = _clamp(sd["voltage"] + 30 * dt, 0, 350)
+    sd["voltage"] = _clamp(sd["voltage"] - 15 * dt, 180, 260)
     sd["current"] = _clamp(sd["current"] + 10 * dt, 0, 70)
+    sd["temperature"] = _clamp(sd["temperature"] + 1.5 * dt, 0, 130)
+    sd["vibration"] = _clamp(sd["vibration"] + 0.8 * dt, 0, 15)
 
 
 def _apply_power_outage(sd: dict, dt: float) -> None:
@@ -210,7 +213,7 @@ def _clamp_pump_values(sd: dict) -> None:
     sd["pressure"]    = round(_clamp(sd["pressure"],    _PRES_LOW,       _PRES_HIGH),       1)
     sd["temperature"] = round(_clamp(sd["temperature"], _TEMP_LOW,       _TEMP_HIGH),       1)
     sd["vibration"]   = round(_clamp(sd["vibration"],   _VIB_LOW,        _VIB_HIGH),        1)
-    sd["voltage"]     = round(sd["voltage"], 1)
+    sd["voltage"]     = round(_clamp(sd["voltage"],     _VOLT_LOW,       _VOLT_HIGH),       1)
     sd["current"]     = round(_clamp(sd["current"],     _CURR_LOW,       _CURR_HIGH),       1)
     sd["pump_energy"] = round(_clamp(sd["pump_energy"], _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH), 1)
 
