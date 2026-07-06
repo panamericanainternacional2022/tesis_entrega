@@ -86,7 +86,9 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> None
             var, value, thresholds,
             pump_on=sim.pump_on,
             speed=sim.sensor_data.get("speed", 0.0),
-            door_close_attempts=sim.door_close_attempts
+            door_close_attempts=sim.door_close_attempts,
+            pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
+            elevator_on=sim.elevator_on,
         )
         if risk in (RISK_ALTO, RISK_CRITICO):
             # Increment debounce counter; only fire once threshold is met
@@ -126,19 +128,22 @@ def _handle_enum_alert(
 ) -> None:
     from apps.events.alerts.engine import send_alert
     from apps.events.services.alert_service import get_professional_action
-    from apps.sensors.sensor_config import ENUM_RISK_VALUES, RISK_CRITICO
+    from apps.sensors.sensor_config import ENUM_RISK_VALUES, RISK_CRITICO, RISK_ALTO
     from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
 
     risky_values = ENUM_RISK_VALUES.get(var, set())
     str_val = str(value).lower() if value is not None else ""
     if str_val in risky_values:
+        risk = RISK_CRITICO
         if var == "door_status":
             is_moving = sim._elev_state in ("ACCELERATING", "MOVING", "DECELERATING") or sim.sensor_data.get("speed", 0.0) > 0.05
-            has_failed_to_close = sim.door_close_attempts >= MAX_DOOR_CLOSE_ATTEMPTS
-            if not is_moving and not has_failed_to_close:
-                sim.active_alerts.pop(var, None)
-                return
-        risk = RISK_CRITICO
+            if str_val == "closing":
+                if sim.door_close_attempts < 2:
+                    risk = RISK_ALTO
+            else:
+                if not is_moving and sim.door_close_attempts < MAX_DOOR_CLOSE_ATTEMPTS:
+                    sim.active_alerts.pop(var, None)
+                    return
         action = get_professional_action(var, risk, value)
         send_alert(var, value, risk, action, sim=sim)
     else:
@@ -162,7 +167,9 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str]) -> None
                 var, value, thresholds,
                 pump_on=sim.pump_on,
                 speed=sim.sensor_data.get("speed", 0.0),
-                door_close_attempts=sim.door_close_attempts
+                door_close_attempts=sim.door_close_attempts,
+                pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
+                elevator_on=sim.elevator_on,
             ) if var not in BOOLEAN_VARS
             else (RISK_CRITICO if value else RISK_NORMAL, "red" if value else "green")
         )

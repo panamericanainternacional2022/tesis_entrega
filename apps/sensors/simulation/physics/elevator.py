@@ -1,7 +1,7 @@
 import random
 import time
 
-from apps.sensors.sensor_config import SENSOR_RANGES, ELEVATOR_VARS, BOOLEAN_VARS, ENUM_VARS
+from apps.sensors.sensor_config import SENSOR_RANGES, ELEVATOR_VARS, BOOLEAN_VARS, ENUM_VARS, RISK_CRITICO
 from apps.sensors.simulation.constants import (
     T_AMBIENT, FLOOR_HEIGHT,
     CRUISING_SPEED, ACCELERATION, PASSENGER_WAIT_TICKS,
@@ -736,7 +736,8 @@ def _run_elevator_post_fsm(
     if "elevator" not in sim.sim_faults:
         moving_states = {"ACCELERATING", "MOVING", "DECELERATING"}
         if old_state in moving_states and current_state not in moving_states:
-            if not _is_locked(sim, "trip_count") and abs(pos - prev_pos) > 0.5:
+            has_critico = any(risk == RISK_CRITICO for risk in sim.active_alerts.values())
+            if not has_critico and not _is_locked(sim, "trip_count") and abs(pos - prev_pos) > 0.5:
                 sd["trip_count"] += 1
 
     # Include overload extra kg in energy and stuck computations

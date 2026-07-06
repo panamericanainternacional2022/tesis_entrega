@@ -117,7 +117,7 @@ BOOLEAN_VARS = {"motor_stuck", "limit_switch_top", "limit_switch_bottom"}
 ENUM_VARS = {"door_status"}
 
 ENUM_RISK_VALUES = {
-    "door_status": {"open"},
+    "door_status": {"open", "closing"},
 }
 
 PUMP_VARS = [

@@ -20,6 +20,8 @@ def classify_risk(
     elevator_state: str = "IDLE",
     elev_voltage: float = 220.0,
     elev_current: float = 0.0,
+    pos_stuck: bool = False,
+    elevator_on: bool = False,
 ) -> tuple[str, str]:
     if variable in BOOLEAN_VARS:
         return (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
@@ -28,14 +30,17 @@ def classify_risk(
     if variable == "door_status":
         is_open = str(value).lower() in {"open", "opening", "closing"}
         is_moving = speed > 0.05
-        # Determinar si está en zona de piso (posición es aproximadamente un entero)
         is_at_floor_zone = abs(position - round(position)) < 0.05
         
         if is_open:
             if is_moving or not is_at_floor_zone:
-                return RISK_CRITICO, "red"  # Peligro: Puerta abierta en movimiento o fuera de piso
+                return RISK_CRITICO, "red"
+            if str(value).lower() == "closing":
+                if door_close_attempts >= 2:
+                    return RISK_CRITICO, "red"
+                return RISK_ALTO, "orange"
             if door_close_attempts >= 2:
-                return RISK_ALTO, "orange"  # Obstrucción persistente
+                return RISK_ALTO, "orange"
         return RISK_NORMAL, "green"
 
     if variable == "load":
@@ -47,11 +52,19 @@ def classify_risk(
         return RISK_NORMAL, "green"
 
     if variable in {"energy", "elev_current", "current"}:
+        # Energy = 0 during operation = critical (power outage)
+        if variable == "energy" and value == 0 and elevator_on:
+            return RISK_CRITICO, "red"
+
+        # Door blocked: forced closing consumes more energy
+        if variable == "energy" and door_status == "closing" and door_close_attempts >= 1 and value > 1.0:
+            return RISK_ALTO, "orange"
+
         # Alta corriente/energía con velocidad cero mientras debería moverse (motor atascado)
         is_stuck_situation = elevator_state in {"ACCELERATING", "MOVING", "DECELERATING"} and speed < 0.05
         if is_stuck_situation:
             return RISK_CRITICO, "red"
-            
+
         # Alto consumo en standby (IDLE)
         if speed < 0.05 and elevator_state == "IDLE":
             if variable == "energy" and value > 2.0:
@@ -60,20 +73,30 @@ def classify_risk(
                 return RISK_CRITICO, "red"
 
     if variable == "speed":
-        # Si debería estar moviéndose pero la velocidad es cero (atascado)
         if elevator_state in {"ACCELERATING", "MOVING", "DECELERATING"} and value < 0.05:
             return RISK_CRITICO, "red"
-        # Velocidad peligrosa con puertas abiertas
         if value > 0.05 and door_status != "closed":
             return RISK_CRITICO, "red"
-        # Sobrevelocidad física
-        if value > 2.5:
+        if value > 4.0:
             return RISK_CRITICO, "red"
+        if value > 2.5:
+            return RISK_ALTO, "orange"
 
     if variable == "position":
-        # Atrapado entre pisos (posición decimal)
+        if value is None:
+            return RISK_CRITICO, "red"
         if abs(value - round(value)) > 0.05:
             return RISK_CRITICO, "red"
+        if pos_stuck and speed > 0.05:
+            return RISK_CRITICO, "red"
+
+    if variable == "door_close_attempts":
+        if value >= 2:
+            return RISK_ALTO, "orange"
+        return RISK_NORMAL, "green"
+
+    if variable == "trip_count":
+        return RISK_NORMAL, "green"
 
     if variable in ENUM_VARS:
         risky_values = ENUM_RISK_VALUES.get(variable, set())
