@@ -489,8 +489,6 @@
     let unreadNotificationCount = 0;
     let alertCountdownInterval = null;
     let _originalLimits = {};
-    let _posInputTouched = false;
-
     function _hasUnsavedChanges() {
         return _dirtySensorKeys.size > 0 || _limitsDirtyKeys.size > 0;
     }
@@ -884,6 +882,10 @@
     window._csSetDisabled = _csSetDisabled;
     window._csSelect = _csSelect;
     window._csSyncOptions = _csSyncOptions;
+    window.getVariableName = getVariableName;
+    window.getUnit = getUnit;
+    window.getRiskClass = getRiskClass;
+    Object.defineProperty(window, '_SENSOR_RANGES', { get: function() { return _SENSOR_RANGES; }, configurable: true });
 
     function updateFaultWarnings() {
         if (!IS_ADMIN) return;
@@ -939,11 +941,11 @@
         } else if (hasPump) {
             if (eqGroup) eqGroup.style.display = 'none';
             _csSetValue(eqSel, 'pump');
-            populateManualSensorSelect();
+            if (window.ManualController) window.ManualController.populateSensorSelect();
         } else if (hasElev) {
             if (eqGroup) eqGroup.style.display = 'none';
             _csSetValue(eqSel, 'elevator');
-            populateManualSensorSelect();
+            if (window.ManualController) window.ManualController.populateSensorSelect();
         } else {
             if (eqGroup) eqGroup.style.display = 'none';
         }
@@ -1223,7 +1225,7 @@
         updateGlobalDirtyBadge();
         validateThresholdInputs('bomba');
         validateThresholdInputs('elevador');
-        updateManualInputType();
+        if (window.ManualController) window.ManualController.updateInputType();
     }
 
     function updateDirtyState(scope) {
@@ -1377,7 +1379,7 @@
             if (res.status === 'ok') {
                 currentThresholds = res.thresholds;
                 renderThresholdsPanel(res.thresholds);
-                updateManualInputType();
+                if (window.ManualController) window.ManualController.updateInputType();
             } else {
                 showToast(`Error al guardar: ${res.message || 'Inténtelo de nuevo.'}`, 'error');
             }
@@ -1513,7 +1515,7 @@
                 _SENSOR_RANGES = res.sensor_ranges;
                 currentThresholds = res.thresholds || currentThresholds;
                 renderLimitsPanel(res.sensor_ranges);
-                updateManualInputType();
+                if (window.ManualController) window.ManualController.updateInputType();
             } else {
                 showToast(`Error al guardar: ${res.message || 'Inténtelo de nuevo.'}`, 'error');
             }
@@ -1604,256 +1606,6 @@
         const { low, medium: med, high } = cfg;
         if (cfg.direction === 'higher') return `Medio > ${low}${u} &middot; Alto > ${med}${u} &middot; Crítico > ${high}${u}`;
         return `Medio < ${low}${u} &middot; Alto < ${med}${u} &middot; Crítico < ${high}${u}`;
-    }
-
-    function updateManualInputType() {
-        const v = document.getElementById('manualSensorSelect')?.value;
-        const inp = document.getElementById('manualValueInput');
-        const sel = document.getElementById('manualValueSelect');
-        const speedExtra = document.getElementById('manualSpeedExtra');
-        if (!v || !inp || !sel) return;
-
-        const csWrapper = _csSelect(sel)?.wrapper;
-        const isEnum = v === 'door_status' || v === 'motor_stuck';
-
-        inp.style.display = isEnum ? 'none' : 'block';
-        if (csWrapper) csWrapper.style.display = isEnum ? 'block' : 'none';
-        if (speedExtra) {
-            speedExtra.classList.toggle('d-none', v !== 'speed');
-            if (v === 'speed') {
-                const posInp = document.getElementById('manualPositionInput');
-                if (posInp) {
-                    const posRange = _SENSOR_RANGES['position'];
-                    if (posRange) {
-                        posInp.min = posRange[0]; posInp.max = posRange[1];
-                        posInp.placeholder = `Ej: ${posRange[0]} - ${posRange[1]} piso`;
-                        posInp.step = '1';
-                    }
-                }
-            }
-        }
-
-        if (v === 'door_status') {
-            sel.innerHTML = '';
-            Object.entries(_VALUE_DISPLAY['door_status'] || {})
-                .filter(([val]) => val === 'open' || val === 'closed')
-                .forEach(([val, label]) => {
-                    const opt = document.createElement('option');
-                    opt.value = val; opt.textContent = label;
-                    sel.appendChild(opt);
-                });
-            inp.value = '';
-            _csSyncOptions(sel);
-        } else if (v === 'motor_stuck') {
-            sel.innerHTML = '<option value="true">Sí</option><option value="false">No</option>';
-            inp.value = '';
-            _csSyncOptions(sel);
-        } else {
-            const range = _SENSOR_RANGES[v];
-            if (range) {
-                inp.min = range[0]; inp.max = range[1];
-                inp.placeholder = `Ej: ${range[0]} - ${range[1]}${getUnit(v) ? ` ${getUnit(v)}` : ''}`;
-                inp.step = v === 'position' ? '1' : 'any';
-            } else {
-                inp.removeAttribute('min'); inp.removeAttribute('max');
-                inp.placeholder = `Ingrese valor numérico${getUnit(v) ? ` (${getUnit(v)})` : ''}`;
-                inp.step = 'any';
-            }
-        }
-        updateManualRiskPreview();
-        validateManualInput();
-    }
-
-    function populateManualSensorSelect() {
-        const sel = document.getElementById('manualSensorSelect');
-        const eqSel = document.getElementById('manualEquipmentSelect');
-        if (!sel || !eqSel) return;
-
-        sel.innerHTML = '';
-        const eq = eqSel.value || 'pump';
-        const vars = eq === 'pump' ? _BOMBA_VARS : _ELEVADOR_VARS.filter(v => v !== 'door_status' && v !== 'trip_count');
-        const container = sel.closest('.form-group');
-
-        if (vars.length <= 1) {
-            if (container) container.style.display = 'none';
-            if (vars.length === 1) {
-                const unit = getUnit(vars[0]);
-                const opt = document.createElement('option');
-                opt.value = vars[0];
-                opt.textContent = getVariableName(vars[0]) + (unit && vars[0] !== 'trip_count' ? ` (${unit})` : '');
-                sel.appendChild(opt);
-                _csSyncOptions(sel);
-                _csSetValue(sel, vars[0]);
-            }
-            return;
-        }
-        if (container) container.style.display = '';
-        vars.forEach(v => {
-            const unit = getUnit(v);
-            const opt = document.createElement('option');
-            opt.value = v;
-            opt.textContent = getVariableName(v) + (unit && v !== 'trip_count' ? ` (${unit})` : '');
-            sel.appendChild(opt);
-        });
-        _csSyncOptions(sel);
-        updateManualInputType();
-    }
-
-    function updateSensorTypeIndicator() {
-        const v = document.getElementById('manualSensorSelect')?.value;
-        const el = document.getElementById('sensorTypeIndicator');
-        if (el && v) el.textContent = _BOMBA_VARS.includes(v) ? 'Bomba / Eléctrico' : 'Elevador / Motor';
-    }
-
-    function updateManualRiskPreview() {
-        const v = document.getElementById('manualSensorSelect')?.value;
-        const inp = document.getElementById('manualValueInput');
-        const sel = document.getElementById('manualValueSelect');
-        const span = document.getElementById('manualRiskPreview');
-        if (!span || !v) return;
-
-        const errorMsg = document.getElementById('manualErrorMsg');
-        const posErrorMsg = document.getElementById('manualPositionErrorMsg');
-        const status = validateManualInput();
-
-        if (errorMsg) {
-            errorMsg.textContent = status.errorText;
-            errorMsg.style.visibility = status.hasError ? 'visible' : 'hidden';
-        }
-        if (posErrorMsg) {
-            posErrorMsg.textContent = status.posErrorText;
-            posErrorMsg.style.visibility = status.posHasError ? 'visible' : 'hidden';
-        }
-
-        if (status.hasError || status.posHasError) {
-            span.innerHTML = '';
-            return;
-        }
-        if (status.empty) {
-            span.innerHTML = '';
-            return;
-        }
-
-        const isEnum = v === 'door_status' || v === 'motor_stuck';
-        const raw = isEnum ? sel.value : inp.value;
-        let val = raw;
-        if (v === 'motor_stuck') val = (raw === 'true' || raw === '1');
-        else if (!isEnum) { const n = parseFloat(raw); if (isNaN(n)) return; val = n; }
-
-        if (_NO_RISK_VARS.includes(v)) {
-            span.innerHTML = '';
-            return;
-        }
-
-        const ri = getRiskClass(v, val);
-        const cls = ri.badge.replace('badge-', '');
-        const _RISK_ICONS = { crit: 'fa-circle-exclamation', high: 'fa-circle-exclamation', normal: 'fa-circle-check', info: 'fa-circle-check', unknown: 'fa-circle-check' };
-        const _RISK_CLASSES = { crit: 'risk-crit', high: 'risk-high', normal: 'risk-normal', info: 'risk-info', unknown: 'risk-info' };
-        span.innerHTML = `Riesgo estimado: <span class="risk-icon ${_RISK_CLASSES[cls] || 'risk-info'}"><i class="fa-solid ${_RISK_ICONS[cls] || 'fa-circle-check'}" aria-hidden="true"></i> ${ri.label}</span>`;
-    }
-
-    function validateManualInput() {
-        const v = document.getElementById('manualSensorSelect')?.value;
-        const inp = document.getElementById('manualValueInput');
-        const sendBtn = document.getElementById('sendManualBtn');
-        const posInp = document.getElementById('manualPositionInput');
-        if (!v) return { hasError: false, posHasError: false, empty: true, errorText: '', posErrorText: '' };
-
-        const isEnum = v === 'door_status' || v === 'motor_stuck';
-        let hasError = false, errorText = '', empty = false;
-        let posHasError = false, posErrorText = '', posEmpty = false;
-
-        if (!isEnum && inp) {
-            const raw = inp.value.trim();
-            empty = !raw;
-            if (!empty) {
-                const val = parseFloat(raw);
-                if (isNaN(val)) { hasError = true; errorText = 'Introduzca un número válido.'; }
-                else if (_SENSOR_RANGES[v]) {
-                    const [min, max] = _SENSOR_RANGES[v];
-                    if (val < min || val > max) {
-                        hasError = true;
-                        errorText = `El valor debe estar entre ${min} y ${max}${getUnit(v) ? ' ' + getUnit(v) : ''}.`;
-                    }
-                }
-            }
-        }
-        if (v === 'speed' && posInp) {
-            const posRaw = posInp.value.trim();
-            posEmpty = !posRaw;
-            if (posEmpty) {
-                if (_posInputTouched) {
-                    posHasError = true;
-                    posErrorText = 'Indique el piso destino.';
-                }
-            } else {
-                const posVal = parseInt(posRaw, 10);
-                const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
-                if (isNaN(posVal) || posVal < posMin || posVal > posMax) {
-                    posHasError = true;
-                    posErrorText = `El piso debe estar entre ${posMin} y ${posMax}.`;
-                }
-            }
-        }
-        if (inp) {
-            inp.classList.toggle('input-error-state', hasError);
-            if (hasError) inp.setAttribute('aria-invalid', 'true');
-            else inp.removeAttribute('aria-invalid');
-        }
-        if (posInp) {
-            posInp.classList.toggle('input-error-state', posHasError);
-            if (posHasError) posInp.setAttribute('aria-invalid', 'true');
-            else posInp.removeAttribute('aria-invalid');
-        }
-
-        const totalEmpty = empty || (v === 'speed' && posEmpty);
-        const totalHasError = hasError || posHasError;
-
-        const _simCtrl = window.SimulationController;
-        const _simStarted = _simCtrl ? _simCtrl.simStarted : false;
-        const _simPaused = _simCtrl ? _simCtrl.simPaused : true;
-        if (sendBtn) sendBtn.disabled = totalEmpty || totalHasError || !_simStarted || _simPaused;
-        return { hasError, posHasError, errorText, posErrorText, empty: totalEmpty };
-    }
-
-    async function sendManualValue() {
-        const v = document.getElementById('manualSensorSelect')?.value;
-        const inp = document.getElementById('manualValueInput');
-        const sel = document.getElementById('manualValueSelect');
-        const posInp = document.getElementById('manualPositionInput');
-        if (!v) return;
-
-        const isEnum = v === 'door_status' || v === 'motor_stuck';
-        const raw = isEnum ? sel.value : inp.value;
-        if (raw === undefined || raw === '') return;
-
-        let val = raw, position;
-        if (v === 'door_status') {
-            val = raw.toLowerCase();
-            if (!['open', 'closed'].includes(val)) return;
-        } else if (v === 'motor_stuck') {
-            val = raw === 'true' || raw === '1';
-        } else {
-            const n = parseFloat(raw);
-            if (isNaN(n)) return;
-            if (_SENSOR_RANGES[v] && (n < _SENSOR_RANGES[v][0] || n > _SENSOR_RANGES[v][1])) return;
-            val = n;
-        }
-        if (v === 'speed' && posInp) {
-            const posRaw = posInp.value.trim();
-            if (!posRaw) return;
-            position = parseInt(posRaw, 10);
-            const [posMin, posMax] = _SENSOR_RANGES['position'] || [0, 100];
-            if (isNaN(position) || position < posMin || position > posMax) return;
-        }
-        const body = { variable: v, value: val, edificio_id: EDIFICIO_ID };
-        if (position !== undefined) body.position = position;
-        try {
-            const resp = await csrfFetch(API.manualUpdate, { method: 'POST', body: JSON.stringify(body) });
-            const res = await resp.json();
-            if (res.status === 'ok') showToast('Valor enviado correctamente.', 'success');
-            else showToast(res.message || 'No se pudo aplicar el valor.', 'error');
-        } catch (_) { showToast('Error de conexión. Inténtelo de nuevo.', 'error'); }
     }
 
     const setSimMessage = (msg, type) =>
@@ -2144,11 +1896,6 @@
         }
     }
 
-    function _onManualChange() {
-        validateManualInput();
-        updateManualRiskPreview();
-    }
-
     function setupAdminEvents() {
         const togglePumpBtn = document.getElementById('togglePumpBtn');
         const toggleElevBtn = document.getElementById('toggleElevatorBtn');
@@ -2181,51 +1928,11 @@
         const resetAllLimitsBtn = document.getElementById('resetAllLimitsBtn');
         if (resetAllLimitsBtn) resetAllLimitsBtn.addEventListener('click', resetAllLimits);
 
-        // Controles de valor manual (un solo listener por elemento)
-        const manualValInput = document.getElementById('manualValueInput');
-        const manualValSelect = document.getElementById('manualValueSelect');
-        const manualSensorSel = document.getElementById('manualSensorSelect');
-        const manualEquipSel = document.getElementById('manualEquipmentSelect');
-        const sendManualBtn = document.getElementById('sendManualBtn');
-
-        if (manualValInput) manualValInput.addEventListener('input', _onManualChange);
-        if (manualValSelect) manualValSelect.addEventListener('change', _onManualChange);
-        if (manualSensorSel) {
-            manualSensorSel.addEventListener('change', () => {
-                _posInputTouched = false;
-                const posInp = document.getElementById('manualPositionInput');
-                if (posInp) { posInp.value = ''; posInp.classList.remove('input-error-state'); posInp.removeAttribute('aria-invalid'); }
-                const posErrMsg = document.getElementById('manualPositionErrorMsg');
-                if (posErrMsg) { posErrMsg.textContent = ''; posErrMsg.style.visibility = 'hidden'; }
-                updateManualInputType();
-                updateSensorTypeIndicator();
-                _onManualChange();
-            });
+        if (typeof window.ManualController !== 'undefined') {
+            window.ManualController.populateSensorSelect();
+            window.ManualController.updateSensorIndicator();
+            window.ManualController.validate();
         }
-        if (manualEquipSel) {
-            manualEquipSel.addEventListener('change', () => {
-                populateManualSensorSelect();
-                updateSensorTypeIndicator();
-                _onManualChange();
-            });
-        }
-        if (sendManualBtn) sendManualBtn.addEventListener('click', sendManualValue);
-
-        const posInpEl = document.getElementById('manualPositionInput');
-        if (posInpEl) {
-            posInpEl.addEventListener('input', () => {
-                _posInputTouched = true;
-                updateManualRiskPreview();
-            });
-            posInpEl.addEventListener('blur', () => {
-                _posInputTouched = true;
-                updateManualRiskPreview();
-            });
-        }
-
-        populateManualSensorSelect();
-        updateSensorTypeIndicator();
-        validateManualInput();
     }
 
     function setupBuildingSelector() {
@@ -2736,7 +2443,6 @@
     window.initDropdowns = initDropdowns;
     window.initConfirmDelete = initConfirmDelete;
     window.updateFaultWarnings = updateFaultWarnings;
-    window.validateManualInput = validateManualInput;
     window.fetchInitialData = fetchInitialData;
 
 })(window, document);
