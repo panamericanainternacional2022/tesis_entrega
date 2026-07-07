@@ -40,7 +40,7 @@ def build_required_errors(data: dict) -> dict[str, str]:
 
 
 def count_history_records_for_building(building_id: int) -> int:
-    from apps.events.models import History
+    from apps.history.models import History
     return History.objects.filter(
         monitoring_equipment__building_id=building_id,
     ).count()

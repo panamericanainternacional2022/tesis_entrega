@@ -59,7 +59,7 @@ def get_equipment_sensors(equipment: MonitoringEquipment) -> list[dict]:
 
 
 def filter_severity(queryset: QuerySet, severity: str) -> QuerySet:
-    from apps.events.shared import filter_severity_include
+    from apps.history.shared import filter_severity_include
     return filter_severity_include(queryset, severity)
 
 
@@ -93,7 +93,7 @@ def get_user_building_ids(user_id: int) -> list[int]:
 
 
 def parse_history(records: QuerySet) -> list:
-    from apps.events.shared import parse_history_record_for_display
+    from apps.history.shared import parse_history_record_for_display
     parsed = []
     for record in records:
         parsed.append(parse_history_record_for_display(record))

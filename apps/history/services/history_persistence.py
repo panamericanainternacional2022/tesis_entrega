@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from apps.events.models import History
+from apps.history.models import History
 
 logger = logging.getLogger(__name__)
 

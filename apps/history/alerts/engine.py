@@ -26,7 +26,7 @@ def _build_alert_email_body(
     variable: str, value: float, risk_level: str, recommended_action: str,
     edificio_nombre: str = "",
 ) -> str:
-    from apps.events.services.alert_service import build_standard_email_body, get_unit
+    from apps.history.services.alert_service import build_standard_email_body, get_unit
     var_display = translate_variable_to_spanish(variable)
     timestamp = time.strftime("%d/%m/%Y %H:%M:%S")
     unit = get_unit(variable)
@@ -57,7 +57,7 @@ def _send_alert_email(
     last_email_time: float,
     sim: Optional['BuildingSimulator'],
 ) -> float:
-    from apps.events.services.alert_service import send_email_alert, get_building_emails
+    from apps.history.services.alert_service import send_email_alert, get_building_emails
     new_les = last_email_time
     send_email = risk_level in (RISK_ALTO, RISK_CRITICO)
     now = time.time()
@@ -129,14 +129,14 @@ def send_alert(
     }
     pn.append(alert_payload)
 
-    from apps.events.services.alert_service import save_history_record
+    from apps.history.services.alert_service import save_history_record
     eid = sim.edificio_id if sim else None
     save_history_record(variable, value, risk_level, combined_action, edificio_id=eid)
 
 
 def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None) -> None:
     from apps.sensors.simulation.constants import RATIONING_THRESHOLD
-    from apps.events.services.alert_service import get_professional_action
+    from apps.history.services.alert_service import get_professional_action
     if flow_rate < RATIONING_THRESHOLD:
         # Skip si la bomba está en arranque o en transición manual
         if sim is not None:

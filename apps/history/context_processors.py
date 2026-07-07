@@ -1,6 +1,6 @@
 import datetime as dt
 
-from apps.events.shared import _build_history_query
+from apps.history.shared import _build_history_query
 
 
 def unread_history_count(request):

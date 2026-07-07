@@ -29,7 +29,7 @@ from apps.buildings.models import (
     UserBuilding,
     MonitoringEquipment,
 )
-from apps.events.models import History
+from apps.history.models import History
 from apps.thresholds.models import ThresholdConfig
 from apps.limits.models import SensorLimitConfig
 from apps.sensors.sensor_config import DEFAULT_THRESHOLDS, SENSOR_RANGES

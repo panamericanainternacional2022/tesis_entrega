@@ -5,7 +5,7 @@ from typing import Any
 from django.http import JsonResponse
 
 from apps.buildings.models import MonitoringEquipment, UserBuilding
-from apps.events.models import History
+from apps.history.models import History
 from apps.sensors.sensor_config import UNKNOWN_PERSON_NAME, UNKNOWN_EMAIL_LABEL
 
 from .shared import get_simulator, get_first_simulator, json_error_response

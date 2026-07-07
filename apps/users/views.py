@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
 
-from apps.events.models import History
+from apps.history.models import History
 from apps.buildings.models import Building, UserBuilding
 from apps.core.auth_decorators import ADMIN_ROLES, login_required, admin_required
 from apps.core.services.http_response import json_error, json_ok
@@ -23,8 +23,8 @@ from apps.users.services import (
     send_activation_email,
 )
 from apps.users.validators import validate_user_form
-from apps.events.services.email_sender import build_report_email_html, send_email_raw
-from apps.events.services.alert_service import get_building_emails
+from apps.history.services.email_sender import build_report_email_html, send_email_raw
+from apps.history.services.alert_service import get_building_emails
 from apps.core.services.pdf_shared import _pdf_font, draw_row
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,

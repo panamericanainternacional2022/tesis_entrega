@@ -12,7 +12,7 @@ from apps.sensors.simulation.physics.pump import (
 )
 from apps.sensors.simulation.physics.elevator import _update_elevator
 from apps.sensors.engine import _run_sim_tick, _handle_enum_alert
-from apps.events.models import History
+from apps.history.models import History
 from apps.sensors.sensor_config import RISK_CRITICO
 
 
@@ -167,13 +167,13 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # -----------------------------------------------------------------------
     # 8. Email cooldown per variable
     # -----------------------------------------------------------------------
-    @patch("apps.events.alerts.engine.threading.Thread")
+    @patch("apps.history.alerts.engine.threading.Thread")
     def test_email_cooldown_per_variable(self, mock_thread):
-        with patch("apps.events.services.alert_service.get_building_emails") as mock_emails:
+        with patch("apps.history.services.alert_service.get_building_emails") as mock_emails:
             mock_emails.return_value = ["juanp@example.com"]
             self.sim.last_email_sent_time_per_var.clear()
             self.sim.active_alerts.clear()
-            from apps.events.alerts.engine import send_alert
+            from apps.history.alerts.engine import send_alert
             send_alert("motor_stuck", True, "Crítico", "Revisar motor", sim=self.sim)
             self.assertEqual(mock_thread.call_count, 1)
             send_alert("door_status", "open", "Crítico", "Puerta abierta", sim=self.sim)

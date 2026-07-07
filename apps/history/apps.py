@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class EventsConfig(AppConfig):
+class HistoryConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.events"
+    name = "apps.history"

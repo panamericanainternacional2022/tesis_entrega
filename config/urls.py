@@ -7,7 +7,7 @@ urlpatterns = [
     path("", include("apps.authentication.urls")),
     path("", include("apps.users.urls")),
     path("", include("apps.buildings.urls")),
-    path("", include("apps.events.urls")),
+    path("", include("apps.history.urls")),
     path("", include("apps.limits.urls")),
     path("", include("apps.thresholds.urls")),
     path("", include("apps.settings.urls")),

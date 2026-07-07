@@ -1,7 +1,7 @@
 {% extends 'core/layouts/base_sidebar.html' %}
 {% load static %}
 
-{% block title %}Historial de Eventos{% endblock %}
+{% block title %}Historial{% endblock %}
 {% block meta_description %}<meta name="description" content="Historial completo de eventos, alertas y registros del sistema INES.">{% endblock %}
 
 {% block content %}
@@ -9,7 +9,7 @@
 
     <header class="page-header">
         <div class="row-start">
-            <h1 class="m-0" id="history-title">Historial de Eventos</h1>
+            <h1 class="m-0" id="history-title">Historial</h1>
             <span id="historyBadgeCount" class="hist-count-badge{% if total_count > 0 %} visible{% endif %}">{{ total_count }}</span>
         </div>
         <p class="mt-1">Historial cronológico de alertas, eventos del sistema y reportes de sensores. Filtra por severidad, variable o período para analizar el comportamiento del sistema.</p>

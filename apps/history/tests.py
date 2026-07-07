@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.events.models import History
+from apps.history.models import History
 from apps.users.models import Persona, Usuario
 from apps.buildings.models import Building, MonitoringEquipment
 from apps.sensors.sensor_config import RISK_ALTO

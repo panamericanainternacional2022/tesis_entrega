@@ -85,8 +85,8 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
             str_val = str(value).lower() if value is not None else ""
             risk_cache[var] = RISK_CRITICO if str_val in risky_values else RISK_NORMAL
             continue
-        from apps.events.alerts.engine import send_alert
-        from apps.events.services.alert_service import get_professional_action
+        from apps.history.alerts.engine import send_alert
+        from apps.history.services.alert_service import get_professional_action
         risk, _ = classify_risk(
             var, value, thresholds,
             pump_on=sim.pump_on,
@@ -106,7 +106,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         else:
             sim.active_alerts.pop(var, None)
             sim._alert_consecutive.pop(var, None)
-    from apps.events.alerts.engine import check_rationing
+    from apps.history.alerts.engine import check_rationing
     _skip_rationing = (
         getattr(sim, "_pump_start_grace_ticks", 0) > 0
         or "flow_rate" in getattr(sim, "manual_overrides", {})
@@ -128,8 +128,8 @@ def _handle_motor_stuck_alert(
         consecutive = sim._alert_consecutive.get(var, 0) + 1
         sim._alert_consecutive[var] = consecutive
         if consecutive >= ALERT_DEBOUNCE_TICKS:
-            from apps.events.alerts.engine import send_alert
-            from apps.events.services.alert_service import get_professional_action
+            from apps.history.alerts.engine import send_alert
+            from apps.history.services.alert_service import get_professional_action
             action = get_professional_action(var, RISK_CRITICO, value)
             send_alert(var, value, RISK_CRITICO, action, sim=sim)
     else:
@@ -140,8 +140,8 @@ def _handle_motor_stuck_alert(
 def _handle_enum_alert(
     sim: BuildingSimulator, var: str, value: object,
 ) -> None:
-    from apps.events.alerts.engine import send_alert
-    from apps.events.services.alert_service import get_professional_action
+    from apps.history.alerts.engine import send_alert
+    from apps.history.services.alert_service import get_professional_action
     from apps.sensors.sensor_config import ENUM_RISK_VALUES, RISK_CRITICO, RISK_ALTO
     from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
 

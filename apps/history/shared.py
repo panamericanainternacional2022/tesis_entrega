@@ -7,7 +7,7 @@ from apps.sensors.sensor_config import (
     VAR_NAMES, UNITS, VALUE_DISPLAY_ES, FAULT_NAMES_ES,
     RISK_NORMAL, RISK_CRITICO, RISK_ALTO, RISK_INFORMATIVO,
 )
-from apps.events.models import History
+from apps.history.models import History
 
 
 _RISK_ICONS = {

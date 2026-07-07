@@ -15,8 +15,8 @@ from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_error, json_ok
 from apps.users.models import Usuario
 from apps.buildings.models import Building
-from apps.events.models import History
-from apps.events.shared import (
+from apps.history.models import History
+from apps.history.shared import (
     parse_history_record_for_display, _build_history_query,
 )
 from apps.sensors.sensor_config import RISK_ALTO, RISK_CRITICO, PAGE_SIZE
@@ -25,7 +25,7 @@ from apps.dashboard.shared import (
     parse_history, extract_variables,
     extract_severities, filter_severity_python, filter_by_variable,
 )
-from apps.events.services.alert_service import send_email_alert
+from apps.history.services.alert_service import send_email_alert
 from apps.core.services.pdf_shared import _pdf_font, safe_text, _get_period_label, draw_row
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,
@@ -47,7 +47,7 @@ def history_view(request: HttpRequest):
     from apps.core.auth_decorators import is_admin_role
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
-        return render(request, "events/history.html", {
+        return render(request, "history/history.html", {
             "records": None, "edificios": [], "rol": "US",
             "alerts_disabled": False, "alerts_disabled_until_ms": None,
             "filter_query_string": "",
@@ -128,7 +128,7 @@ def history_view(request: HttpRequest):
 
     return render(
         request,
-        "events/history.html",
+        "history/history.html",
         {
             "records": page_obj,
             "edificios": buildings,
@@ -322,12 +322,12 @@ def history_pdf_view(request: Any) -> HttpResponse:
         building_name = building_id_raw or "Todos los edificios"
 
     try:
-        pdf = _create_report_pdf("Historial de eventos")
+        pdf = _create_report_pdf("Historial")
         now = dt.datetime.now()
 
         render_pdf_header(
             pdf,
-            title="Historial de eventos",
+            title="Historial",
             now=now,
             meta_lines=[
                 f"Generado: {now.strftime('%d/%m/%Y %H:%M:%S')}",

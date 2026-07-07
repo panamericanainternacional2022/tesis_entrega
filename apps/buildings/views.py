@@ -22,7 +22,7 @@ from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS, RATIONING_THRESHOLD, SENSOR_RANGES,
     VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES,
 )
-from apps.events.models import History
+from apps.history.models import History
 from apps.core.services.risk_service import classify_risk
 from apps.thresholds.services import get_thresholds
 from apps.sensors.simulation.globals import simulators
@@ -636,7 +636,7 @@ def _render_alerts_section(
     usuario_rol: str = "US",
     alerts_cleared_at: float | None = None,
 ) -> None:
-    from apps.events.shared import _build_history_query
+    from apps.history.shared import _build_history_query
     from apps.dashboard.shared import filter_date_range, parse_history
 
     if pdf.get_y() > 230:
@@ -713,7 +713,7 @@ def _render_alerts_section(
 
 
 def _render_recommendations_section(pdf: _Any, sensor_data: dict, pump_on: bool = True) -> None:
-    from apps.events.services.recommendation_engine import generate_recommendations
+    from apps.history.services.recommendation_engine import generate_recommendations
     if pdf.get_y() > 240:
         pdf.add_page()
 
