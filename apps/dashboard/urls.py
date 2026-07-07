@@ -10,7 +10,7 @@ from .views import (
     simulator_restart_view,
 )
 from .simulation.streaming import sse_stream
-from .simulation.api import api_status, api_buildings, api_building_users, api_notifications
+from .simulation.api import api_status, api_buildings, api_building_users, api_history
 from .simulation.controls import (
     sim_status,
     sim_pause,
@@ -24,7 +24,6 @@ from .simulation.controls import (
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/login/", permanent=False), name="home"),
-    path("history/", RedirectView.as_view(url="/notifications/", permanent=False), name="history"),
     path("monitor/", monitoring_view, name="monitor"),
     path(
         "monitor/building/<int:building_id>/",
@@ -59,7 +58,7 @@ urlpatterns = [
         api_building_users,
         name="api_building_users",
     ),
-    path("api/notifications/", api_notifications, name="api_notifications"),
+    path("api/history/", api_history, name="api_history"),
     path(
         "api/sim/<int:building_id>/status/",
         sim_status,

@@ -11,8 +11,8 @@ from .recommendation_engine import (
     generate_recommendations,
     get_professional_action,
 )
-from .notification_persistence import (
-    persist_notification_in_django,
+from .history_persistence import (
+    save_history_record,
     get_alert_log,
 )
 
@@ -26,6 +26,6 @@ __all__ = [
     "EmailAttachment",
     "generate_recommendations",
     "get_professional_action",
-    "persist_notification_in_django",
+    "save_history_record",
     "get_alert_log",
 ]

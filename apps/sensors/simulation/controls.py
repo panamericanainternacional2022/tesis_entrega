@@ -192,17 +192,17 @@ def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> Non
     if not old_faults:
         return
     try:
-        from apps.events.services.alert_service import persist_notification_in_django
+        from apps.events.services.alert_service import save_history_record
         _DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
         for dev, fault_type in old_faults.items():
             nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
             nombre_dispositivo = _DEVICE_ES.get(dev, dev)
             action = f"Falla '{nombre_falla}' en {nombre_dispositivo} resuelta. Operación normal restaurada."
-            persist_notification_in_django(
+            save_history_record(
                 f"fault_resolved_{dev}", fault_type, RISK_INFORMATIVO, action, edificio_id=edificio_id,
             )
     except Exception as exc:
-        logger.warning("No se pudo enviar notificación de resolución de falla: %s", exc)
+        logger.warning("No se pudo enviar alerta de resolución de falla: %s", exc)
 
 
 def reset_simulator(edificio_id: int) -> str:
@@ -217,7 +217,7 @@ def reset_simulator(edificio_id: int) -> str:
     sim.active_alerts.clear()
     sim.door_close_attempts = 0
     sim.history.clear()
-    sim.pending_notifications.clear()
+    sim.pending_alerts.clear()
     sim.sim_faults.clear()
     sim.fault_injected_at.clear()
     if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):

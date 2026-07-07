@@ -29,7 +29,7 @@ from apps.buildings.models import (
     UserBuilding,
     MonitoringEquipment,
 )
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.thresholds.models import ThresholdConfig
 from apps.limits.models import SensorLimitConfig
 from apps.sensors.sensor_config import DEFAULT_THRESHOLDS, SENSOR_RANGES
@@ -41,7 +41,7 @@ def populate():
     from django.db import connection
     with connection.cursor() as cursor:
         cursor.execute(
-            "TRUNCATE TABLE edificio, equipo_monitoreo, notificacion, persona, "
+            "TRUNCATE TABLE edificio, equipo_monitoreo, historial, persona, "
             "umbral_config, limite_sensor_config, usuario, usuario_edificio RESTART IDENTITY CASCADE;"
         )
     

@@ -41,9 +41,9 @@ def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
 
 
 # Minimum consecutive ticks a sensor must stay in Alto/Crítico before an
-# alert notification is generated.  At sim_speed=1 each tick ≈ 1 second.
+# alert is generated.  At sim_speed=1 each tick ≈ 1 second.
 # This eliminates single-tick pressure/flow spikes caused by pump start-up
-# or minor demand oscillations from creating spurious notifications.
+# or minor demand oscillations from creating spurious alerts.
 ALERT_DEBOUNCE_TICKS: int = 3
 
 

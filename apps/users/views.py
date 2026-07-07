@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
 
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.buildings.models import Building, UserBuilding
 from apps.core.auth_decorators import ADMIN_ROLES, login_required, admin_required
 from apps.core.services.http_response import json_error, json_ok
@@ -261,7 +261,7 @@ def user_delete_view(request: HttpRequest, user_id: int) -> HttpResponse:
     p_parts = [person.first_name, person.middle_name, person.first_last_name, person.second_last_name]
     full_name = " ".join(p for p in p_parts if p) if person else user.username
     with transaction.atomic():
-        Notification.objects.filter(user=user).delete()
+        History.objects.filter(user=user).delete()
         UserBuilding.objects.filter(user=user).delete()
         person_id = user.id_persona_id
         user.delete()

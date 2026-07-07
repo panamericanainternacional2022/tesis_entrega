@@ -1,22 +1,22 @@
 import datetime as dt
 
-from apps.events.shared import _build_notification_query
+from apps.events.shared import _build_history_query
 
 
-def unread_notifications(request):
+def unread_history_count(request):
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
-        return {"unread_notifications_count": 0}
+        return {"unread_history_count": 0}
 
     rol = request.session.get("usuario_rol", "US")
 
-    notifications, _ = _build_notification_query(usuario_id, rol)
+    records, _ = _build_history_query(usuario_id, rol)
 
     alerts_cleared_at = request.session.get("alerts_cleared_at")
     if alerts_cleared_at:
         cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
-        notifications = notifications.filter(date__gt=cleared_dt)
+        records = records.filter(date__gt=cleared_dt)
 
-    notifications_count = notifications.distinct().count()
+    records_count = records.distinct().count()
 
-    return {"unread_notifications_count": notifications_count}
+    return {"unread_history_count": records_count}

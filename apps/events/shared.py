@@ -7,7 +7,7 @@ from apps.sensors.sensor_config import (
     VAR_NAMES, UNITS, VALUE_DISPLAY_ES, FAULT_NAMES_ES,
     RISK_NORMAL, RISK_CRITICO, RISK_ALTO, RISK_INFORMATIVO,
 )
-from apps.events.models import Notification
+from apps.events.models import History
 
 
 _RISK_ICONS = {
@@ -46,7 +46,7 @@ def filter_severity_include(queryset: QuerySet, severity: str) -> QuerySet:
     )
 
 
-def _build_notification_query(
+def _build_history_query(
     user_id: int,
     role: str,
     building_id: Optional[str] = None,
@@ -56,9 +56,9 @@ def _build_notification_query(
 
     building_name = ""
     if is_admin_role(role):
-        notifications = Notification.objects.all()
+        records = History.objects.all()
         if building_id:
-            notifications = notifications.filter(monitoring_equipment__building_id=building_id)
+            records = records.filter(monitoring_equipment__building_id=building_id)
             try:
                 building_name = Building.objects.get(id=building_id).name
             except Building.DoesNotExist:
@@ -69,7 +69,7 @@ def _build_notification_query(
         ).values_list("building_id", flat=True))
         if building_id:
             if building_id.isdigit() and int(building_id) in user_building_ids:
-                notifications = Notification.objects.filter(
+                records = History.objects.filter(
                     monitoring_equipment__building_id=building_id
                 )
                 try:
@@ -77,15 +77,15 @@ def _build_notification_query(
                 except Building.DoesNotExist:
                     pass
             else:
-                notifications = Notification.objects.none()
+                records = History.objects.none()
         else:
             equipment_ids = list(MonitoringEquipment.objects.filter(
                 building_id__in=user_building_ids
             ).values_list("id", flat=True))
-            notifications = Notification.objects.filter(
+            records = History.objects.filter(
                 user_id=user_id
-            ) | Notification.objects.filter(monitoring_equipment_id__in=equipment_ids)
-    return notifications, building_name
+            ) | History.objects.filter(monitoring_equipment_id__in=equipment_ids)
+    return records, building_name
 
 
 def _make_parsed(
@@ -123,8 +123,8 @@ def _make_parsed(
     }
 
 
-def parse_notification_for_display(notif: Notification) -> Notification:
-    raw_msg = notif.message
+def parse_history_record_for_display(record: History) -> History:
+    raw_msg = record.message
     parsed_data: Optional[Dict[str, Any]] = None
 
     if isinstance(raw_msg, dict):
@@ -150,5 +150,5 @@ def parse_notification_for_display(notif: Notification) -> Notification:
     else:
         parsed_data = None
 
-    notif.parsed_data = parsed_data or {"parsed": False}
-    return notif
+    record.parsed_data = parsed_data or {"parsed": False}
+    return record

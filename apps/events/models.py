@@ -1,8 +1,8 @@
 from django.db import models
 
 
-class Notification(models.Model):
-    id = models.AutoField(primary_key=True, db_column="id_notificacion")
+class History(models.Model):
+    id = models.AutoField(primary_key=True, db_column="id_historial")
     user = models.ForeignKey(
         "users.Usuario", on_delete=models.CASCADE, db_column="id_usuario", blank=True, null=True
     )
@@ -14,7 +14,7 @@ class Notification(models.Model):
     message = models.JSONField(default=dict, blank=True, db_column="mensaje")
 
     class Meta:
-        db_table = "notificacion"
+        db_table = "historial"
 
     def __str__(self) -> str:
         msg_str = str(self.message)

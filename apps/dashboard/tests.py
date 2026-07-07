@@ -39,7 +39,7 @@ class SseStreamTests(TestCase):
         self.client.post(reverse("login"), {"username": "ssetest", "password": "pass"})
         mock_sim = MagicMock()
         mock_sim.sensor_data = {}
-        mock_sim.pending_notifications = []
+        mock_sim.pending_alerts = []
         mock_sim.pump_on = False
         mock_sim.elevator_on = False
         mock_sim.active_alerts = {}

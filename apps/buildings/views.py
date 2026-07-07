@@ -22,7 +22,7 @@ from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS, RATIONING_THRESHOLD, SENSOR_RANGES,
     VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES,
 )
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.core.services.risk_service import classify_risk
 from apps.thresholds.services import get_thresholds
 from apps.sensors.simulation.globals import simulators
@@ -188,7 +188,7 @@ def delete_building_view(request: HttpRequest, building_id: int) -> HttpResponse
     building = get_object_or_404(Building, id=building_id)
     with transaction.atomic():
         equipment = list(building.equipment.all())
-        Notification.objects.filter(
+        History.objects.filter(
             monitoring_equipment__building=building,
         ).delete()
         for eq in equipment:
@@ -636,8 +636,8 @@ def _render_alerts_section(
     usuario_rol: str = "US",
     alerts_cleared_at: float | None = None,
 ) -> None:
-    from apps.events.shared import _build_notification_query
-    from apps.dashboard.shared import filter_date_range, parse_notifications
+    from apps.events.shared import _build_history_query
+    from apps.dashboard.shared import filter_date_range, parse_history
 
     if pdf.get_y() > 230:
         pdf.add_page()
@@ -645,32 +645,32 @@ def _render_alerts_section(
     render_section_divider(pdf, "Alertas detectadas en el período")
 
     if usuario_id:
-        notifications, _ = _build_notification_query(usuario_id, usuario_rol, str(edificio_id))
+        records, _ = _build_history_query(usuario_id, usuario_rol, str(edificio_id))
     else:
-        notifications = Notification.objects.filter(
+        records = History.objects.filter(
             monitoring_equipment__building_id=edificio_id,
         )
 
     if alerts_cleared_at:
         cleared_dt = _dt_bld.datetime.fromtimestamp(alerts_cleared_at, tz=_dt_bld.timezone.utc)
-        notifications = notifications.filter(date__gt=cleared_dt)
+        records = records.filter(date__gt=cleared_dt)
 
-    notifications = filter_date_range(notifications, "24h", "", "")
+    records = filter_date_range(records, "24h", "", "")
 
-    notifications = (
-        notifications
+    records = (
+        records
         .select_related("monitoring_equipment__building")
         .distinct()
         .order_by("-date")
     )
 
-    total = notifications.count()
+    total = records.count()
     _pdf_font(pdf, "", 10)
     pdf.set_text_color(26, 26, 26)
     pdf.cell(0, 7, safe_text(f"Últimas 24 horas: {total} alerta(s) registrada(s)"), ln=1)
     pdf.ln(3)
 
-    parsed = parse_notifications(notifications)
+    parsed = parse_history(records)
     counts: dict[str, int] = {}
     for n in parsed:
         risk = n.parsed_data.get("risk", "") if hasattr(n, "parsed_data") else ""

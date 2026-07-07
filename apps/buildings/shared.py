@@ -39,8 +39,8 @@ def build_required_errors(data: dict) -> dict[str, str]:
     return errors
 
 
-def count_notifications_for_building(building_id: int) -> int:
-    from apps.events.models import Notification
-    return Notification.objects.filter(
+def count_history_records_for_building(building_id: int) -> int:
+    from apps.events.models import History
+    return History.objects.filter(
         monitoring_equipment__building_id=building_id,
     ).count()

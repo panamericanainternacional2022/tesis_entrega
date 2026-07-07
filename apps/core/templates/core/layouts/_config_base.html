@@ -13,8 +13,8 @@
         <p class="mt-1">{% block config_subtext %}{% endblock %}</p>
     </header>
     {% if not edificios %}
-    <div class="notif-card mt-3">
-        <div class="no-notif">
+    <div class="hist-card mt-3">
+        <div class="no-history">
             <i class="fa-solid fa-building" aria-hidden="true"></i>
             {% if request.session.usuario_es_admin %}
             <p>No hay edificios registrados en el sistema. Crea uno para comenzar.</p>
@@ -43,7 +43,7 @@
         </div>
     </div>
 
-    <div class="notif-card mt-3" id="stateCard">
+    <div class="hist-card mt-3" id="stateCard">
         {% block config_loading %}{% endblock %}
     </div>
 

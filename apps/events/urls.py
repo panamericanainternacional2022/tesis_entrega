@@ -1,29 +1,29 @@
 from django.urls import path
 from .views import (
-    notifications_view,
+    history_view,
     toggle_alerts_session_view,
-    clear_notifications_view,
-    view_notification_count,
+    clear_history_view,
+    view_unread_count,
     view_clear_alerts,
     history_pdf_view,
 )
 
 urlpatterns = [
-    path("notifications/", notifications_view, name="notifications"),
+    path("history/", history_view, name="history"),
     path(
-        "notifications/toggle-alerts/",
+        "history/toggle-alerts/",
         toggle_alerts_session_view,
         name="toggle_alerts_session",
     ),
     path(
-        "notifications/clear/",
-        clear_notifications_view,
-        name="clear_notifications",
+        "history/clear/",
+        clear_history_view,
+        name="clear_history",
     ),
-    path("api/notifications/count/", view_notification_count, name="api_notification_count"),
-    path("api/clear-alerts/", view_clear_alerts, name="api_clear_alerts"),
+    path("history/api/count/", view_unread_count, name="api_unread_count"),
+    path("history/api/clear-alerts/", view_clear_alerts, name="api_clear_alerts"),
     path(
-        "historial/pdf/",
+        "history/pdf/",
         history_pdf_view,
         name="history_pdf",
     ),

@@ -119,19 +119,19 @@ def send_alert(
     new_les = _send_alert_email(variable, value, risk_level, recommended_action, les, sim)
     set_attribute(sim, "last_email_sent_time", new_les)
 
-    pn = get_attribute(sim, "pending_notifications")
-    notification_payload = {
+    pn = get_attribute(sim, "pending_alerts")
+    alert_payload = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "variable": variable,
         "value": value,
         "risk": risk_level,
         "message": combined_action,
     }
-    pn.append(notification_payload)
+    pn.append(alert_payload)
 
-    from apps.events.services.alert_service import persist_notification_in_django
+    from apps.events.services.alert_service import save_history_record
     eid = sim.edificio_id if sim else None
-    persist_notification_in_django(variable, value, risk_level, combined_action, edificio_id=eid)
+    save_history_record(variable, value, risk_level, combined_action, edificio_id=eid)
 
 
 def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None) -> None:
@@ -146,7 +146,7 @@ def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None)
                 return
         # Suprimir racionamiento si flow_rate ya tiene una alerta activa:
         # ambas condiciones comparten la misma causa raíz y generarían
-        # notificaciones duplicadas simultáneas.
+        # alertas duplicadas simultáneas.
         aa = get_attribute(sim, "active_alerts")
         if isinstance(aa, dict) and aa.get("flow_rate") in (RISK_ALTO, RISK_CRITICO):
             return

@@ -92,11 +92,11 @@ def get_user_building_ids(user_id: int) -> list[int]:
     return list(UserBuilding.objects.filter(user_id=user_id).values_list("building_id", flat=True))
 
 
-def parse_notifications(notifications: QuerySet) -> list:
-    from apps.events.shared import parse_notification_for_display
+def parse_history(records: QuerySet) -> list:
+    from apps.events.shared import parse_history_record_for_display
     parsed = []
-    for notif in notifications:
-        parsed.append(parse_notification_for_display(notif))
+    for record in records:
+        parsed.append(parse_history_record_for_display(record))
     return parsed
 
 

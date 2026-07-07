@@ -47,10 +47,10 @@
         <a href="{% url 'building_list' %}" class="sidebar-link">
             <i class="fa-solid fa-building" aria-hidden="true"></i> Edificios
         </a>
-        <a href="{% url 'notifications' %}" class="sidebar-link">
+        <a href="{% url 'history' %}" class="sidebar-link">
             <i class="fa-solid fa-bell" aria-hidden="true"></i>
-            <span>Eventos</span>
-            <span id="notificationBadgeSidebar" class="sidebar-notif-badge{% if unread_notifications_count > 0 %} visible{% endif %}" aria-label="eventos sin leer" aria-live="polite">{% if unread_notifications_count > 0 %}{{ unread_notifications_count }}{% endif %}</span>
+            <span>Historial de Eventos</span>
+            <span id="historyBadgeSidebar" class="sidebar-hist-badge{% if unread_history_count > 0 %} visible{% endif %}" aria-label="historial de eventos sin leer" aria-live="polite">{% if unread_history_count > 0 %}{{ unread_history_count }}{% endif %}</span>
         </a>
         <a href="{% url 'thresholds' %}" class="sidebar-link">
             <i class="fa-solid fa-sliders" aria-hidden="true"></i> Umbrales
@@ -65,10 +65,10 @@
         <a href="{% url 'monitor' %}" class="sidebar-link">
             <i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Panel de control
         </a>
-        <a href="{% url 'notifications' %}" class="sidebar-link">
+        <a href="{% url 'history' %}" class="sidebar-link">
             <i class="fa-solid fa-bell" aria-hidden="true"></i>
-            <span>Eventos</span>
-            <span id="notificationBadgeSidebar" class="sidebar-notif-badge{% if unread_notifications_count > 0 %} visible{% endif %}" aria-label="eventos sin leer" aria-live="polite">{% if unread_notifications_count > 0 %}{{ unread_notifications_count }}{% endif %}</span>
+            <span>Historial de Eventos</span>
+            <span id="historyBadgeSidebar" class="sidebar-hist-badge{% if unread_history_count > 0 %} visible{% endif %}" aria-label="historial de eventos sin leer" aria-live="polite">{% if unread_history_count > 0 %}{{ unread_history_count }}{% endif %}</span>
         </a>
         <a href="{% url 'configuration' %}" class="sidebar-link">
             <i class="fa-solid fa-gears" aria-hidden="true"></i> Configuración

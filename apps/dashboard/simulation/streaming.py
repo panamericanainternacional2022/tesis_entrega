@@ -23,9 +23,9 @@ def sse_stream(request, building_id: int) -> StreamingHttpResponse | StreamingHt
                 eventlet.sleep(SIM_TICK_INTERVAL)
                 payload = build_live_payload_for_sim(sim)
                 yield f"data: {json.dumps(payload)}\n\n"
-                while sim.pending_notifications:
-                    notif = sim.pending_notifications.popleft()
-                    yield f"event: notification\ndata: {json.dumps(notif)}\n\n"
+                while sim.pending_alerts:
+                    notif = sim.pending_alerts.popleft()
+                    yield f"event: history-event\ndata: {json.dumps(notif)}\n\n"
         except (GeneratorExit, IOError, OSError):
             logger.info("Cliente SSE desconectado del edificio %s", building_id)
 

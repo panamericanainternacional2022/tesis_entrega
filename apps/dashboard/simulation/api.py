@@ -5,7 +5,7 @@ from typing import Any
 from django.http import JsonResponse
 
 from apps.buildings.models import MonitoringEquipment, UserBuilding
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.sensors.sensor_config import UNKNOWN_PERSON_NAME, UNKNOWN_EMAIL_LABEL
 
 from .shared import get_simulator, get_first_simulator, json_error_response
@@ -76,15 +76,15 @@ def api_building_users(request, building_id: int) -> JsonResponse:
     return JsonResponse(data, safe=False)
 
 
-def api_notifications(request) -> JsonResponse:
-    from apps.sensors.sensor_config import API_NOTIFICATION_LIMIT
-    qs = Notification.objects.select_related(
+def api_history(request) -> JsonResponse:
+    from apps.sensors.sensor_config import API_HISTORY_LIMIT
+    qs = History.objects.select_related(
         "monitoring_equipment__building"
-    ).order_by("-fecha")[:API_NOTIFICATION_LIMIT]
+    ).order_by("-fecha")[:API_HISTORY_LIMIT]
 
     data: list[dict[str, Any]] = []
-    for notification in qs:
-        msg = notification.message or {}
+    for record in qs:
+        msg = record.message or {}
         if isinstance(msg, str):
             try:
                 msg = json.loads(msg)
@@ -93,14 +93,14 @@ def api_notifications(request) -> JsonResponse:
         elif not isinstance(msg, dict):
             msg = {"raw": str(msg)}
         data.append({
-            "id": notification.id,
-            "timestamp": notification.date.isoformat() if notification.date else "",
+            "id": record.id,
+            "timestamp": record.date.isoformat() if record.date else "",
             "variable": msg.get("variable", ""),
             "value": msg.get("value"),
             "risk": msg.get("risk", ""),
             "message": msg.get("action", msg.get("raw", json.dumps(msg, ensure_ascii=False))),
-            "edificio": notification.monitoring_equipment.building.name
-            if notification.monitoring_equipment and notification.monitoring_equipment.building
+            "edificio": record.monitoring_equipment.building.name
+            if record.monitoring_equipment and record.monitoring_equipment.building
             else None,
         })
     return JsonResponse(data, safe=False)

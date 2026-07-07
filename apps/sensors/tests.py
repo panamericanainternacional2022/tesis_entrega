@@ -12,7 +12,7 @@ from apps.sensors.simulation.physics.pump import (
 )
 from apps.sensors.simulation.physics.elevator import _update_elevator
 from apps.sensors.engine import _run_sim_tick, _handle_enum_alert
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.sensors.sensor_config import RISK_CRITICO
 
 

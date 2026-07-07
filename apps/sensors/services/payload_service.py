@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from typing import Callable
 
-from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, VAR_NAMES, RISK_CRITICO, RISK_NORMAL, BOOLEAN_VARS, PAYLOAD_HISTORY_SLICE, API_NOTIFICATION_LIMIT
+from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, VAR_NAMES, RISK_CRITICO, RISK_NORMAL, BOOLEAN_VARS, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "sensors": sensors,
         "history": [h for h in ctx.history[-PAYLOAD_HISTORY_SLICE:] if h.get("variable") in relevant_vars],
         "thresholds": thresholds,
-        "alert_log": get_alert_log(ctx.active_edificio_id, API_NOTIFICATION_LIMIT),
+        "alert_log": get_alert_log(ctx.active_edificio_id, API_HISTORY_LIMIT),
         "stats": stats,
         "recommendations": recommendations,
         "rationing": ctx.sensor_data.get("flow_rate", 0) < ctx.rationing_threshold,

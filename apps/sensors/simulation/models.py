@@ -18,7 +18,7 @@ class BuildingSimulator:
         self.active_alerts: dict = {}
         self.door_close_attempts: int = 0
         self.history: list = []
-        self.pending_notifications: deque = deque()
+        self.pending_alerts: deque = deque()
         self.last_email_sent_time: float = 0.0
         self.last_email_sent_time_per_var: dict = {}
         self.manual_overrides: dict = {}

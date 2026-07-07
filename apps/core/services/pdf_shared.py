@@ -6,7 +6,7 @@ from typing import Any
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
 from apps.sensors.sensor_config import (
     RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO,

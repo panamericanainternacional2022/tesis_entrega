@@ -3,7 +3,7 @@
         {% for message in messages %}
             <div class="toast-item {% if message.tags == 'success' %}toast-success js-alert-fadeable{% elif message.tags == 'warning' %}toast-warning{% elif message.tags == 'error' %}toast-error{% else %}toast-info{% endif %}">
                 {% if message.tags != 'success' %}
-                <button type="button" class="btn btn-icon toast-close" aria-label="Cerrar notificación"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-icon toast-close" aria-label="Cerrar mensaje"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
                 {% endif %}
                 <div class="toast-body-content">
                     {{ message.message }}
@@ -14,7 +14,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Toast Notifications Slide-in
+ 
             const toastItems = document.querySelectorAll('.toast-item');
             toastItems.forEach((toast, idx) => {
                 setTimeout(() => {

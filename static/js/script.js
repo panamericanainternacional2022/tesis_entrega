@@ -378,9 +378,9 @@
         });
     }
 
-    // Polling ligero para actualizar el badge de notificaciones en el sidebar
+    // Polling ligero para actualizar el badge de historial en el sidebar
     function initSidebarPolling() {
-        const badgeEl = document.getElementById('notificationBadgeSidebar');
+        const badgeEl = document.getElementById('historyBadgeSidebar');
         if (!badgeEl) return;
 
         // El dashboard tiene su propio SSE que ya actualiza el badge en tiempo real.
@@ -388,7 +388,7 @@
         if (isDashboard) return;
 
         const POLL_INTERVAL_MS = 30000;   // 30 segundos
-        const COUNT_URL = '/api/notifications/count/';
+        const COUNT_URL = '/history/api/count/';
 
         function applyCount(count) {
             if (count > 0) {
@@ -428,8 +428,8 @@
     const API = {
         thresholdsUpdate: '/api/thresholds/update/',
         limitsUpdate: '/api/sensor-limits/update/',
-        toggleAlerts: '/notifications/toggle-alerts/',
-        clearNotifications: '/notifications/clear/',
+        toggleAlerts: '/history/toggle-alerts/',
+        clearHistory: '/history/clear/',
         simStatus: (id) => `/api/sim/${id}/status/`,
         simPause: (id) => `/api/sim/${id}/pause/`,
         simReset: (id) => `/api/sim/${id}/reset/`,
@@ -485,7 +485,7 @@
     let _lastPosition = null;
     let currentDoorCloseAttempts = 0;
     let chart1, chart2;
-    let unreadNotificationCount = 0;
+    let unreadHistoryCount = 0;
     let alertCountdownInterval = null;
     let _originalLimits = {};
     function _hasUnsavedChanges() {
@@ -932,8 +932,8 @@
 
     }
 
-    function setNotificationBadge(count) {
-        const pageBadge = document.getElementById('notificationBadgeCount');
+    function setHistoryBadge(count) {
+        const pageBadge = document.getElementById('historyBadgeCount');
         if (!pageBadge) return;
         if (count > 0) { pageBadge.textContent = count; pageBadge.style.display = 'inline-flex'; pageBadge.hidden = false; }
         else { pageBadge.textContent = ''; pageBadge.style.display = 'none'; pageBadge.hidden = true; }
@@ -970,8 +970,8 @@
             try { applyPayload(JSON.parse(event.data)); } catch (_) { }
         };
 
-        sseSource.addEventListener('notification', (event) => {
-            try { addLiveNotificationEvent(JSON.parse(event.data)); } catch (_) { }
+        sseSource.addEventListener('history-event', (event) => {
+            try { addLiveHistoryEvent(JSON.parse(event.data)); } catch (_) { }
         });
 
         if (isMonitoring) fetchInitialData();
@@ -1023,11 +1023,11 @@
             updateStatsAndRecs(data.stats, data.recommendations, data.door_close_attempts);
         }
 
-        const isNotifPage = !!document.getElementById('live-notifications-list');
-        if (!isNotifPage) {
+        const isHistoryPage = !!document.getElementById('live-history-list');
+        if (!isHistoryPage) {
             const totalAlerts = _countUnreadAlerts(data.alert_log);
-            unreadNotificationCount = totalAlerts;
-            setNotificationBadge(totalAlerts);
+            unreadHistoryCount = totalAlerts;
+            setHistoryBadge(totalAlerts);
         }
     }
 
@@ -1673,29 +1673,29 @@
 
 
     // =============================================================================
-    // 11. NOTIFICACIONES EN VIVO
+    // 11. HISTORIAL EN VIVO
     // =============================================================================
 
-    function renderNotificationList(alerts) {
-        const container = document.getElementById('live-notifications-list');
+    function renderHistoryList(alerts) {
+        const container = document.getElementById('live-history-list');
         if (!container) return;
-        document.getElementById('live-no-notif')?.remove();
+        document.getElementById('live-no-history')?.remove();
 
         const filtered = (alerts || []).filter(a => a.risk !== _RISK.informativo);
         if (!filtered.length) {
-            unreadNotificationCount = 0;
-            setNotificationBadge(0);
-            container.innerHTML = `<div class="no-notif" id="live-no-notif"><i class="fa-solid fa-bell-slash"></i><p>No hay alertas pendientes.</p></div>`;
+            unreadHistoryCount = 0;
+            setHistoryBadge(0);
+            container.innerHTML = `<div class="no-history" id="live-no-history"><i class="fa-solid fa-bell-slash"></i><p>No hay alertas pendientes.</p></div>`;
             return;
         }
-        unreadNotificationCount = filtered.length;
-        setNotificationBadge(unreadNotificationCount);
+        unreadHistoryCount = filtered.length;
+        setHistoryBadge(unreadHistoryCount);
         container.innerHTML = filtered.map(alert => `
-            <div class="notif-item">
-                <div class="notif-icon"><i class="fa-solid fa-bell"></i></div>
-                <div class="notif-body">
+            <div class="hist-item">
+                <div class="hist-icon"><i class="fa-solid fa-bell"></i></div>
+                <div class="hist-body">
                     <p>${safeText(alert.message)}</p>
-                    <div class="notif-meta">
+                    <div class="hist-meta">
                         <span><i class="fa-solid fa-clock"></i> ${new Date(alert.timestamp).toLocaleString()}</span>
                         <span><strong>Variable:</strong> ${safeText(getVariableName(alert.variable))}</span>
                         <span><strong>Riesgo:</strong> ${safeText(alert.risk)}</span>
@@ -1710,16 +1710,16 @@
         return isNaN(d.getTime()) ? ts : d.toLocaleString();
     }
 
-    function addLiveNotificationEvent(data) {
-        const container = document.getElementById('live-notifications-list');
+    function addLiveHistoryEvent(data) {
+        const container = document.getElementById('live-history-list');
         if (!container) return;
-        document.getElementById('live-no-notif')?.remove();
+        document.getElementById('live-no-history')?.remove();
 
-        let ul = container.querySelector('.notif-list');
-        if (!ul) { ul = document.createElement('ul'); ul.className = 'notif-list'; container.appendChild(ul); }
+        let ul = container.querySelector('.hist-list');
+        if (!ul) { ul = document.createElement('ul'); ul.className = 'hist-list'; container.appendChild(ul); }
 
         const li = document.createElement('li');
-        li.className = 'notif-item';
+        li.className = 'hist-item';
 
         const BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'INFORMATIVO': 'sensor-info', 'NORMAL': 'sensor-normal' };
         const badgeClass = BADGE_MAP[data.risk] || 'sensor-info';
@@ -1732,21 +1732,21 @@
             : '';
 
         li.innerHTML = `
-            <div class="notif-body">
+            <div class="hist-body">
                 <div class="flex-wrap mb-1">
                     <span class="sensor-badge ${badgeClass}">${safeText(data.risk)}</span>
                     ${valueHtml}
                     <span class="value-bold">${safeText(getVariableName(data.variable))}</span>
                 </div>
-                <p class="notif-meta-text">${safeText(data.message)}</p>
-                <div class="notif-meta" style="margin-top:8px;">
+                <p class="hist-meta-text">${safeText(data.message)}</p>
+                <div class="hist-meta" style="margin-top:8px;">
                     <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
                 </div>
             </div>`;
 
         ul.prepend(li);
-        unreadNotificationCount++;
-        setNotificationBadge(unreadNotificationCount);
+        unreadHistoryCount++;
+        setHistoryBadge(unreadHistoryCount);
     }
 
     function showDurationPicker() {
@@ -1829,7 +1829,7 @@
     // 12. MANEJADORES DE EVENTOS
     // =============================================================================
 
-    function initLiveNotifications() {
+    function initLiveHistory() {
         const toggleBtn = document.getElementById('toggleAlertsBtn');
         if (toggleBtn) {
             toggleBtn.addEventListener('click', async () => {
@@ -1859,12 +1859,12 @@
             });
         }
 
-        const clearBtn = document.getElementById('clearDbNotificationsBtn');
+        const clearBtn = document.getElementById('clearDbHistoryBtn');
         if (clearBtn) {
             clearBtn.addEventListener('click', async () => {
                 if (!await showConfirm('¿Estás seguro de que deseas limpiar todas las alertas?')) return;
                 try {
-                    const resp = await csrfFetch(API.clearNotifications, { method: 'POST' });
+                    const resp = await csrfFetch(API.clearHistory, { method: 'POST' });
                     if (resp.ok) { window.location.href = window.location.pathname; }
                     else throw new Error('Error al limpiar');
                 } catch (_) { await showAlert('No se pudieron limpiar las alertas.', 'error'); }
@@ -2106,10 +2106,10 @@
         const isMonitoringPage = document.getElementById('activeMonitoring') !== null;
 
         if (!isMonitoringPage) {
-            if (document.getElementById('live-notifications-list')) {
-                const badgeCountEl = document.getElementById('notificationBadgeCount');
-                if (badgeCountEl) unreadNotificationCount = parseInt(badgeCountEl.textContent, 10) || 0;
-                initLiveNotifications();
+            if (document.getElementById('live-history-list')) {
+                const badgeCountEl = document.getElementById('historyBadgeCount');
+                if (badgeCountEl) unreadHistoryCount = parseInt(badgeCountEl.textContent, 10) || 0;
+                initLiveHistory();
                 if (EDIFICIO_ID) connectSSE();
             }
 
@@ -2133,7 +2133,7 @@
             return;
         }
 
-        setNotificationBadge(0);
+        setHistoryBadge(0);
         showState('stateLoading');
         initCharts();
 

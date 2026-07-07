@@ -261,7 +261,7 @@ button {
    ============================================================ */
 .page-header,
 .panel,
-.notif-card,
+.hist-card,
 .sensor-section,
 .chart-panel,
 .form-card,
@@ -470,7 +470,7 @@ button {
         overflow: hidden;
     }
 
-    .sidebar span:not(.sidebar-notif-badge),
+    .sidebar span:not(.sidebar-hist-badge),
     .sidebar-system-name,
     .sidebar-user {
         display: none;
@@ -1254,17 +1254,17 @@ button {
 
 
 /* ============================================================
-   11. NOTIFICACIONES
+   11. HISTORIAL
    ============================================================ */
 
 /* ─── Lista ─── */
-.notif-list {
+.hist-list {
     list-style: none;
     border: var(--border-brutal);
     background: var(--color-surface);
 }
 
-.notif-item {
+.hist-item {
     position: relative;
     display: flex;
     align-items: flex-start;
@@ -1274,15 +1274,15 @@ button {
     transition: background var(--transition-fast);
 }
 
-.notif-item:last-child {
+.hist-item:last-child {
     border-bottom: none;
 }
 
-.notif-item:hover {
+.hist-item:hover {
     background: var(--color-bg);
 }
 
-.notif-item::before {
+.hist-item::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1294,23 +1294,23 @@ button {
     transition: background var(--transition-base);
 }
 
-.notif-item.risk-normal::before {
+.hist-item.risk-normal::before {
     background: var(--color-accent);
 }
 
-.notif-item.risk-high::before {
+.hist-item.risk-high::before {
     background: var(--color-accent);
 }
 
-.notif-item.risk-crit::before {
+.hist-item.risk-crit::before {
     background: var(--color-accent);
 }
 
-.notif-item.risk-info::before {
+.hist-item.risk-info::before {
     background: var(--color-accent);
 }
 
-.notif-icon {
+.hist-icon {
     width: 32px;
     height: 32px;
     display: flex;
@@ -1321,23 +1321,23 @@ button {
     color: var(--color-accent);
 }
 
-.notif-body {
+.hist-body {
     flex: 1;
 }
 
-.notif-body p {
+.hist-body p {
     margin: 0 0 var(--sp-1);
     font-size: var(--text-sm);
     line-height: var(--leading-normal);
 }
 
-.notif-body-text {
+.hist-body-text {
     margin: 0;
     font-size: var(--text-base);
     line-height: var(--leading-normal);
 }
 
-.notif-meta {
+.hist-meta {
     font-size: var(--text-xs);
     color: var(--color-text-secondary);
     display: flex;
@@ -1345,14 +1345,14 @@ button {
     gap: var(--sp-4);
 }
 
-.notif-meta-text {
+.hist-meta-text {
     margin: 0;
     font-size: var(--text-xs);
     color: var(--color-text-secondary);
     line-height: var(--leading-normal);
 }
 
-.notif-title {
+.hist-title {
     font-weight: var(--weight-bold);
     font-size: var(--text-base);
     color: var(--color-ink);
@@ -1369,7 +1369,7 @@ button {
 }
 
 /* ─── Estado vacío ─── */
-.no-notif {
+.no-history {
     text-align: center;
     padding: var(--sp-9) var(--sp-5);
     color: var(--color-text-secondary);
@@ -1377,7 +1377,7 @@ button {
     background: var(--color-surface);
 }
 
-.no-notif i {
+.no-history i {
     display: block;
     font-size: var(--text-2xl);
     color: var(--color-ink);
@@ -1385,20 +1385,20 @@ button {
 }
 
 /* ─── Notif card ─── */
-.notif-card {
+.hist-card {
     overflow: hidden;
     margin-top: var(--sp-5);
 }
 
-.notif-card .notif-list,
-.notif-card .no-notif {
+.hist-card .hist-list,
+.hist-card .no-history {
     border: none;
     box-shadow: none;
 }
 
 /* ─── Badges de conteo ─── */
-.notif-count-badge,
-.sidebar-notif-badge {
+.hist-count-badge,
+.sidebar-hist-badge {
     display: none;
     align-items: center;
     justify-content: center;
@@ -1411,7 +1411,7 @@ button {
     flex-shrink: 0;
 }
 
-.notif-count-badge {
+.hist-count-badge {
     min-width: 22px;
     height: 22px;
     padding: 0 var(--sp-1);
@@ -1421,7 +1421,7 @@ button {
     box-shadow: 2px 2px 0px var(--color-ink);
 }
 
-.page-header .notif-count-badge {
+.page-header .hist-count-badge {
     min-width: 28px;
     height: 28px;
     font-size: var(--text-sm);
@@ -1429,7 +1429,7 @@ button {
     box-shadow: 3px 3px 0px var(--color-ink);
 }
 
-.sidebar-notif-badge {
+.sidebar-hist-badge {
     min-width: 24px;
     height: 24px;
     padding: 0 var(--sp-1);
@@ -1439,8 +1439,8 @@ button {
     box-shadow: 2px 2px 0px var(--color-ink);
 }
 
-.sidebar-notif-badge.visible,
-.notif-count-badge.visible {
+.sidebar-hist-badge.visible,
+.hist-count-badge.visible {
     display: inline-flex;
 }
 

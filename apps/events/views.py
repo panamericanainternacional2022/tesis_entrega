@@ -15,14 +15,14 @@ from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_error, json_ok
 from apps.users.models import Usuario
 from apps.buildings.models import Building
-from apps.events.models import Notification
+from apps.events.models import History
 from apps.events.shared import (
-    parse_notification_for_display, _build_notification_query,
+    parse_history_record_for_display, _build_history_query,
 )
 from apps.sensors.sensor_config import RISK_ALTO, RISK_CRITICO, PAGE_SIZE
 from apps.dashboard.shared import (
     filter_date_range, build_query_string,
-    parse_notifications, extract_variables,
+    parse_history, extract_variables,
     extract_severities, filter_severity_python, filter_by_variable,
 )
 from apps.events.services.alert_service import send_email_alert
@@ -43,12 +43,12 @@ logger = logging.getLogger(__name__)
 
 
 @login_required
-def notifications_view(request: HttpRequest):
+def history_view(request: HttpRequest):
     from apps.core.auth_decorators import is_admin_role
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
-        return render(request, "events/notifications.html", {
-            "notifications": None, "edificios": [], "rol": "US",
+        return render(request, "events/history.html", {
+            "records": None, "edificios": [], "rol": "US",
             "alerts_disabled": False, "alerts_disabled_until_ms": None,
             "filter_query_string": "",
             "severidad": "", "variable_filter": "", "all_variables": [],
@@ -69,7 +69,7 @@ def notifications_view(request: HttpRequest):
         filter_params["edificio"] = building_id_raw
     filter_query_string = urlencode(filter_params)
 
-    notifications, _ = _build_notification_query(usuario_id, rol, building_id_raw)
+    records, _ = _build_history_query(usuario_id, rol, building_id_raw)
 
     if is_admin_role(rol):
         buildings = Building.objects.all()
@@ -83,21 +83,21 @@ def notifications_view(request: HttpRequest):
     alerts_cleared_at = request.session.get("alerts_cleared_at")
     if alerts_cleared_at:
         cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
-        notifications = notifications.filter(date__gt=cleared_dt)
+        records = records.filter(date__gt=cleared_dt)
 
     # Total global sin filtrar por fecha/severidad/variable (para el badge)
-    total_count = notifications.distinct().count()
+    total_count = records.distinct().count()
 
-    notifications = filter_date_range(notifications, period, date_from, date_to)
+    records = filter_date_range(records, period, date_from, date_to)
 
-    notifications = (
-        notifications
+    records = (
+        records
         .select_related("user", "monitoring_equipment__building")
         .distinct()
         .order_by("-date")
     )
 
-    parsed_list = parse_notifications(notifications)
+    parsed_list = parse_history(records)
 
     all_variables = extract_variables(parsed_list)
     available_severities = extract_severities(parsed_list)
@@ -123,14 +123,14 @@ def notifications_view(request: HttpRequest):
     paginator = Paginator(parsed_list, PAGE_SIZE)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    for notif in page_obj:
-        parse_notification_for_display(notif)
+    for record in page_obj:
+        parse_history_record_for_display(record)
 
     return render(
         request,
-        "events/notifications.html",
+        "events/history.html",
         {
-            "notifications": page_obj,
+            "records": page_obj,
             "edificios": buildings,
             "selected_edificio_id": int(building_id_raw) if building_id_raw and building_id_raw.isdigit() else None,
             "rol": rol,
@@ -150,20 +150,20 @@ def notifications_view(request: HttpRequest):
 
 
 @require_http_methods(["GET"])
-def view_notification_count(request: HttpRequest) -> JsonResponse:
+def view_unread_count(request: HttpRequest) -> JsonResponse:
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
         return JsonResponse({"count": 0})
 
     rol = request.session.get("usuario_rol", "US")
-    notifications, _ = _build_notification_query(usuario_id, rol)
+    records, _ = _build_history_query(usuario_id, rol)
 
     alerts_cleared_at = request.session.get("alerts_cleared_at")
     if alerts_cleared_at:
         cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
-        notifications = notifications.filter(date__gt=cleared_dt)
+        records = records.filter(date__gt=cleared_dt)
 
-    return JsonResponse({"count": notifications.distinct().count()})
+    return JsonResponse({"count": records.distinct().count()})
 
 
 @login_required
@@ -222,7 +222,7 @@ def _disable_alerts(
 
 @login_required
 @require_http_methods(["POST"])
-def clear_notifications_view(request: HttpRequest) -> JsonResponse:
+def clear_history_view(request: HttpRequest) -> JsonResponse:
     now = timezone.now()
     request.session["alerts_cleared_at"] = now.timestamp()
 
@@ -246,13 +246,13 @@ def clear_notifications_view(request: HttpRequest) -> JsonResponse:
     except Usuario.DoesNotExist:
         pass
 
-    return json_ok({"message": "Notifications cleared successfully"})
+    return json_ok({"message": "History cleared successfully"})
 
 
 @require_http_methods(["POST"])
 @login_required
 def view_clear_alerts(request: HttpRequest) -> JsonResponse:
-    return clear_notifications_view(request)
+    return clear_history_view(request)
 
 
 def _update_alert_disabled_state(request: HttpRequest, usuario_id: int) -> None:
@@ -280,7 +280,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
     import datetime as dt
     from collections import OrderedDict
     from apps.dashboard.shared import (
-        filter_date_range, parse_notifications,
+        filter_date_range, parse_history,
         filter_severity_python, filter_by_variable,
     )
 
@@ -297,22 +297,22 @@ def history_pdf_view(request: Any) -> HttpResponse:
     date_from      = request.GET.get("fecha_desde", "").strip()
     date_to        = request.GET.get("fecha_hasta", "").strip()
 
-    notifications, building_name = _build_notification_query(usuario_id, rol, building_id_raw)
+    records, building_name = _build_history_query(usuario_id, rol, building_id_raw)
 
     alerts_cleared_at = request.session.get("alerts_cleared_at")
     if alerts_cleared_at:
         cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
-        notifications = notifications.filter(date__gt=cleared_dt)
+        records = records.filter(date__gt=cleared_dt)
 
-    notifications = filter_date_range(notifications, period, date_from, date_to)
+    records = filter_date_range(records, period, date_from, date_to)
 
-    notifications = (
-        notifications
+    records = (
+        records
         .select_related("user", "monitoring_equipment__building")
         .distinct()
         .order_by("-date")
     )
-    parsed_list = parse_notifications(notifications)
+    parsed_list = parse_history(records)
 
     parsed_list = filter_severity_python(parsed_list, severity)
     parsed_list = filter_by_variable(parsed_list, variable_filter)

@@ -31,7 +31,7 @@
 
     <script>
         // Timestamp (Unix segundos) desde el que se cuentan alertas "no leídas".
-        // Coincide con la lógica del context_processor y de notifications_view.
+        // Coincide con la lógica del context_processor y de history_view.
         window.ALERTS_CLEARED_AT = {% if request.session.alerts_cleared_at %}{{ request.session.alerts_cleared_at }}{% else %}null{% endif %};
         window.CSRF_TOKEN = "{{ csrf_token|escapejs }}";
     </script>
