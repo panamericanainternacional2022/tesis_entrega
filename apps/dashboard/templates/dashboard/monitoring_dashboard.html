@@ -414,6 +414,8 @@
                             self._updateSpeedButtons(1.0);
                             self._updateControlStates();
                             self._updateFaultUI();
+                            if (window.clearCurrentReadings) window.clearCurrentReadings();
+                            document.getElementById('lastUpdate').innerText = '--:--:--';
                             window.fetchInitialData();
                         } else {
                             window.showToast(data.message, 'error');
@@ -445,14 +447,9 @@
                         _csVal(document.getElementById('simFaultPump'), '');
                         self._updateFaultUI();
                         self._updateControlStates();
-                        window.showToast('Fallas restablecidas.', 'success');
-                    } else {
-                        window.showToast('Error al restablecer fallas.', 'error');
                     }
                 })
-                .catch(function () {
-                    window.showToast('Error de conexión.', 'error');
-                });
+                .catch(function () {});
         };
 
         // ─────────────── UI UPDATES ───────────────
@@ -495,8 +492,10 @@
             _csDis(document.getElementById('simFaultPump'), !running);
             _csDis(document.getElementById('simFaultElevator'), !running);
 
-            // Clear faults button - disabled when not started
-            if (this.clearFaultsBtn) this.clearFaultsBtn.disabled = !started;
+            // Clear faults button - enabled only when there are active faults
+            if (this.clearFaultsBtn) {
+                this.clearFaultsBtn.disabled = !(this._activeElevFault || this._activePumpFault);
+            }
 
             // Reset button - disabled when not started
             if (this.btnReset) this.btnReset.disabled = !started;

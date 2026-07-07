@@ -479,6 +479,7 @@
     let _limitsDirtyKeys = new Set();
     let _unsavedGuardDisabled = false;
     let currentReadings = {};
+    window.clearCurrentReadings = function () { currentReadings = {}; };
     let currentPumpOn = false;
     let currentElevOn = false;
     let _lastPosition = null;
@@ -1011,7 +1012,9 @@
         if (data.history) updateCharts(data.history);
 
         const lastUpd = document.getElementById('lastUpdate');
-        if (lastUpd && data.sim_started) lastUpd.innerText = new Date().toLocaleTimeString();
+        if (lastUpd) {
+            lastUpd.innerText = data.sim_started ? new Date().toLocaleTimeString() : '--:--:--';
+        }
 
         const hasEquipment = updateEquipmentVisibility(data.equipment_types);
         if (IS_ADMIN) updateAdminControlsByEquipment(data.equipment_types);
