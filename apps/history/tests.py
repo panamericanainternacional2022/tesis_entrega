@@ -54,22 +54,3 @@ class HistoryViewTests(TestCase):
         data = json.loads(response.content)
         self.assertEqual(data["status"], "ok")
 
-
-class AlertControlsTests(TestCase):
-    def setUp(self):
-        self.persona = Persona.objects.create(ci="12345678", first_name="Admin", first_last_name="User", email="a@a.com")
-        from django.contrib.auth.hashers import make_password
-        self.usuario = Usuario.objects.create(username="admin", password=make_password("admin123"), id_persona=self.persona, rol="SA", registered=True)
-        self.client.post(reverse("login"), {"username": "admin", "password": "admin123"})
-
-    def test_toggle_alerts_session_disabled(self):
-        response = self.client.post(reverse("toggle_alerts_session"), json.dumps({"enabled": False, "duration_minutes": 60}), content_type="application/json")
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.content)
-        self.assertTrue(data["alerts_disabled"])
-
-    def test_toggle_alerts_session_enabled(self):
-        self.client.post(reverse("toggle_alerts_session"), json.dumps({"enabled": False, "duration_minutes": 60}), content_type="application/json")
-        response = self.client.post(reverse("toggle_alerts_session"), json.dumps({"enabled": True}), content_type="application/json")
-        data = json.loads(response.content)
-        self.assertFalse(data["alerts_disabled"])

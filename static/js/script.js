@@ -428,7 +428,6 @@
     const API = {
         thresholdsUpdate: '/api/thresholds/update/',
         limitsUpdate: '/api/sensor-limits/update/',
-        toggleAlerts: '/history/toggle-alerts/',
         clearHistory: '/history/clear/',
         simStatus: (id) => `/api/sim/${id}/status/`,
         simPause: (id) => `/api/sim/${id}/pause/`,
@@ -486,7 +485,6 @@
     let currentDoorCloseAttempts = 0;
     let chart1, chart2;
     let unreadHistoryCount = 0;
-    let alertCountdownInterval = null;
     let _originalLimits = {};
     function _hasUnsavedChanges() {
         return _dirtySensorKeys.size > 0 || _limitsDirtyKeys.size > 0;
@@ -1749,116 +1747,11 @@
         setHistoryBadge(unreadHistoryCount);
     }
 
-    function showDurationPicker() {
-        return new Promise((resolve) => {
-            const durations = [
-                { label: '5 min', value: 5 },
-                { label: '10 min', value: 10 },
-                { label: '30 min', value: 30 },
-                { label: '1 hora', value: 60 },
-                { label: '3 horas', value: 180 },
-                { label: 'Siempre', value: null },
-            ];
-            const backdrop = document.createElement('div');
-            backdrop.className = 'custom-modal-backdrop';
-            const container = document.createElement('div');
-            container.className = 'custom-modal-container';
-            container.innerHTML = `
-                <div class="custom-modal-header">
-                    <i class="fa-solid fa-clock custom-modal-icon custom-modal-icon-warn"></i>
-                    <span class="custom-modal-title">Desactivar alertas</span>
-                </div>
-                <div class="custom-modal-body">¿Por cuánto tiempo deseas desactivar las alertas?</div>
-                <div id="durationGrid" class="duration-grid">
-                    ${durations.map(d => `<button class="btn btn-secondary" data-minutes="${d.value === null ? 'null' : d.value}">${d.label}</button>`).join('')}
-                </div>
-                <div class="custom-modal-actions">
-                    <button id="durationCancelBtn" class="btn btn-secondary">Cancelar</button>
-                </div>`;
-            backdrop.appendChild(container);
-            document.body.appendChild(backdrop);
-            setTimeout(() => backdrop.classList.add('active'), 10);
-
-            const cleanUp = (value) => {
-                backdrop.classList.remove('active');
-                setTimeout(() => { backdrop.remove(); resolve(value); }, 150);
-            };
-            container.querySelector('#durationCancelBtn').addEventListener('click', () => cleanUp(undefined));
-            container.querySelector('#durationGrid').addEventListener('click', (e) => {
-                const btn = e.target.closest('button[data-minutes]');
-                if (!btn) return;
-                cleanUp(btn.dataset.minutes === 'null' ? null : parseInt(btn.dataset.minutes, 10));
-            });
-        });
-    }
-
-    function formatCountdown(remainingMs) {
-        const totalSecs = Math.ceil(remainingMs / 1000);
-        const h = Math.floor(totalSecs / 3600);
-        const m = Math.floor((totalSecs % 3600) / 60);
-        const s = totalSecs % 60;
-        if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function startAlertCountdown(disabledUntilMs) {
-        if (alertCountdownInterval) { clearInterval(alertCountdownInterval); alertCountdownInterval = null; }
-        const btn = document.getElementById('toggleAlertsBtn');
-        if (!btn) return;
-        const tick = () => {
-            const remaining = disabledUntilMs - Date.now();
-            if (remaining <= 0) { clearInterval(alertCountdownInterval); alertCountdownInterval = null; reEnableAlerts(); return; }
-            btn.innerHTML = `<i class="fa-solid fa-bell-slash"></i> Activar alertas <span style="font-size:var(--text-xs);opacity:0.7;font-weight:normal;">(${formatCountdown(remaining)})</span>`;
-        };
-        tick();
-        alertCountdownInterval = setInterval(tick, 1000);
-    }
-
-    async function reEnableAlerts() {
-        const btn = document.getElementById('toggleAlertsBtn');
-        if (!btn) return;
-        btn.dataset.enabled = 'true'; btn.dataset.disabledUntilMs = '';
-        btn.className = 'btn btn-critical';
-        btn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
-        await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: true }) });
-        window.location.reload();
-    }
-
-
     // =============================================================================
     // 12. MANEJADORES DE EVENTOS
     // =============================================================================
 
     function initLiveHistory() {
-        const toggleBtn = document.getElementById('toggleAlertsBtn');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', async () => {
-                const isEnabled = toggleBtn.dataset.enabled === 'true';
-                if (!isEnabled) {
-                    if (alertCountdownInterval) { clearInterval(alertCountdownInterval); alertCountdownInterval = null; }
-                    toggleBtn.dataset.enabled = 'true'; toggleBtn.dataset.disabledUntilMs = '';
-                    toggleBtn.className = 'btn btn-critical';
-                    toggleBtn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
-                    await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: true }) });
-                    window.location.reload();
-                } else {
-                    const minutes = await showDurationPicker();
-                    if (minutes === undefined) return;
-                    toggleBtn.dataset.enabled = 'false'; toggleBtn.className = 'btn btn-secondary';
-                    if (minutes !== null) {
-                        const untilMs = Date.now() + minutes * 60 * 1000;
-                        toggleBtn.dataset.disabledUntilMs = untilMs;
-                        startAlertCountdown(untilMs);
-                    } else {
-                        toggleBtn.dataset.disabledUntilMs = '';
-                        toggleBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> Activar alertas';
-                    }
-                    await csrfFetch(API.toggleAlerts, { method: 'POST', body: JSON.stringify({ enabled: false, duration_minutes: minutes }) });
-                    window.location.reload();
-                }
-            });
-        }
-
         const clearBtn = document.getElementById('clearDbHistoryBtn');
         if (clearBtn) {
             clearBtn.addEventListener('click', async () => {
@@ -1997,10 +1890,6 @@
             clearTimeout(monitorConnectionTimeout);
             monitorConnectionTimeout = null;
         }
-        if (alertCountdownInterval) {
-            clearInterval(alertCountdownInterval);
-            alertCountdownInterval = null;
-        }
     };
 
     // Liberar memoria al ocultar/descargar la página
@@ -2113,23 +2002,6 @@
                 if (EDIFICIO_ID) connectSSE();
             }
 
-            const toggleBtn = document.getElementById('toggleAlertsBtn');
-            if (toggleBtn) {
-                toggleBtn.disabled = false;
-                toggleBtn.classList.remove('is-hidden');
-                const sessionEnabled = toggleBtn.dataset.enabled === 'true';
-                const disabledUntilMs = parseInt(toggleBtn.dataset.disabledUntilMs || '0', 10);
-                if (sessionEnabled) {
-                    toggleBtn.className = 'btn btn-critical';
-                    toggleBtn.innerHTML = '<i class="fa-solid fa-bell"></i> Desactivar alertas';
-                } else if (disabledUntilMs && disabledUntilMs > Date.now()) {
-                    toggleBtn.className = 'btn btn-secondary';
-                    startAlertCountdown(disabledUntilMs);
-                } else {
-                    toggleBtn.className = 'btn btn-secondary';
-                    toggleBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> Activar alertas';
-                }
-            }
             return;
         }
 

@@ -65,10 +65,6 @@
                     {% endif %}
                 </button>
 
-                <button type="button" id="toggleAlertsBtn" class="btn {% if alerts_disabled %}btn-critical{% else %}btn-secondary{% endif %} is-hidden" data-enabled="{% if alerts_disabled %}false{% else %}true{% endif %}" data-disabled-until-ms="{% if alerts_disabled_until_ms %}{{ alerts_disabled_until_ms }}{% endif %}" data-is-admin="{% if request.session.usuario_es_admin %}true{% else %}false{% endif %}">
-                    <span class="js-fallback">Alertas</span>
-                </button>
-
                 <div class="actions-dropdown">
                     <button type="button" class="btn btn-icon" aria-label="Más acciones">
                         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
@@ -125,11 +121,6 @@
                 <div class="empty-state-action">
                     <a href="{% url 'history' %}" class="btn btn-secondary"><i class="fa-solid fa-eye" aria-hidden="true"></i> Ver todo el historial</a>
                 </div>
-            </div>
-            {% elif alerts_disabled %}
-            <div class="no-history">
-                <i class="fa-solid fa-bell-slash" aria-hidden="true"></i>
-                <p>Las alertas están desactivadas. Los operadores no recibirán notificaciones hasta que se activen desde el panel de control.</p>
             </div>
             {% else %}
             <div class="no-history">

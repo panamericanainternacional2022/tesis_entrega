@@ -22,7 +22,6 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     error = "Usuario o contraseña incorrectos."
                 else:
                     _setup_session(request, user)
-                    _check_alert_cooldown(user)
                     _setup_alert_session(request, user)
                     return redirect("monitor")
             except Usuario.DoesNotExist:
@@ -144,28 +143,7 @@ def _setup_session(request: HttpRequest, user: Usuario) -> None:
         request.session["usuario_nombre_completo"] = user.username
 
 
-def _check_alert_cooldown(user: Usuario) -> None:
-    if (
-        user.alerts_disabled
-        and user.alerts_disabled_until
-        and timezone.now() > user.alerts_disabled_until
-    ):
-        user.alerts_disabled = False
-        user.alerts_disabled_until = None
-        user.save(update_fields=["alerts_disabled", "alerts_disabled_until"])
-
-
 def _setup_alert_session(request: HttpRequest, user: Usuario) -> None:
-    alerts_disabled = user.alerts_disabled
-    alerts_until = user.alerts_disabled_until
-    if alerts_disabled and alerts_until and timezone.now() > alerts_until:
-        alerts_disabled = False
-        alerts_until = None
-    request.session["alerts_disabled"] = alerts_disabled
-    if alerts_until:
-        request.session["alerts_disabled_until_ts"] = alerts_until.timestamp()
-    else:
-        request.session.pop("alerts_disabled_until_ts", None)
     if user.alerts_cleared_at:
         request.session["alerts_cleared_at"] = user.alerts_cleared_at.timestamp()
     else:

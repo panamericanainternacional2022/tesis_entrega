@@ -1,7 +1,6 @@
 from django.urls import path
 from .views import (
     history_view,
-    toggle_alerts_session_view,
     clear_history_view,
     view_unread_count,
     view_clear_alerts,
@@ -10,11 +9,6 @@ from .views import (
 
 urlpatterns = [
     path("history/", history_view, name="history"),
-    path(
-        "history/toggle-alerts/",
-        toggle_alerts_session_view,
-        name="toggle_alerts_session",
-    ),
     path(
         "history/clear/",
         clear_history_view,

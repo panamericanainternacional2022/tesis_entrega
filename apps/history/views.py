@@ -1,7 +1,6 @@
-import json
 import logging
 import datetime as dt
-from typing import Any, Optional
+from typing import Any
 
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -10,22 +9,21 @@ from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from urllib.parse import urlencode
 
-from apps.core.auth_decorators import login_required, admin_required
+from apps.core.auth_decorators import login_required
 from apps.core.services.http_request import get_building_id_param
-from apps.core.services.http_response import json_error, json_ok
+from apps.core.services.http_response import json_ok
 from apps.users.models import Usuario
 from apps.buildings.models import Building
 from apps.history.models import History
 from apps.history.shared import (
     parse_history_record_for_display, _build_history_query,
 )
-from apps.sensors.sensor_config import RISK_ALTO, RISK_CRITICO, PAGE_SIZE
+from apps.sensors.sensor_config import PAGE_SIZE
 from apps.dashboard.shared import (
     filter_date_range, build_query_string,
     parse_history, extract_variables,
     extract_severities, filter_severity_python, filter_by_variable,
 )
-from apps.history.services.alert_service import send_email_alert
 from apps.core.services.pdf_shared import _pdf_font, safe_text, _get_period_label, draw_row
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,
@@ -49,7 +47,6 @@ def history_view(request: HttpRequest):
     if not usuario_id:
         return render(request, "history/history.html", {
             "records": None, "edificios": [], "rol": "US",
-            "alerts_disabled": False, "alerts_disabled_until_ms": None,
             "filter_query_string": "",
             "severidad": "", "variable_filter": "", "all_variables": [],
             "ALL_SEVERITIES": [], "fecha_desde": "", "fecha_hasta": "",
@@ -105,12 +102,6 @@ def history_view(request: HttpRequest):
     parsed_list = filter_severity_python(parsed_list, severity)
     parsed_list = filter_by_variable(parsed_list, variable_filter)
 
-    _update_alert_disabled_state(request, usuario_id)
-
-    alerts_disabled = request.session.get("alerts_disabled", False)
-    alerts_disabled_until_ts = request.session.get("alerts_disabled_until_ts", None)
-    alerts_disabled_until_ms = int(alerts_disabled_until_ts * 1000) if alerts_disabled_until_ts else None
-
     query_string = build_query_string(
         edificio=building_id_raw,
         severidad=severity,
@@ -134,8 +125,6 @@ def history_view(request: HttpRequest):
             "edificios": buildings,
             "selected_edificio_id": int(building_id_raw) if building_id_raw and building_id_raw.isdigit() else None,
             "rol": rol,
-            "alerts_disabled": alerts_disabled,
-            "alerts_disabled_until_ms": alerts_disabled_until_ms,
             "filter_query_string": query_string,
             "severidad": severity,
             "variable_filter": variable_filter,
@@ -164,60 +153,6 @@ def view_unread_count(request: HttpRequest) -> JsonResponse:
         records = records.filter(date__gt=cleared_dt)
 
     return JsonResponse({"count": records.distinct().count()})
-
-
-@login_required
-@require_http_methods(["POST"])
-def toggle_alerts_session_view(request: HttpRequest) -> JsonResponse:
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return json_error("Invalid JSON")
-
-    enabled = data.get("enabled", True)
-    duration_minutes = data.get("duration_minutes", None)
-
-    usuario_id = request.session.get("usuario_id")
-    try:
-        usuario_obj = Usuario.objects.get(pk=usuario_id)
-    except Exception:
-        usuario_obj = None
-
-    if enabled:
-        _enable_alerts(usuario_obj, request)
-        return json_ok({"alerts_disabled": False, "alerts_disabled_until_ms": None})
-    else:
-        until_ts = _disable_alerts(usuario_obj, request, duration_minutes)
-        until_ms = int(until_ts * 1000) if until_ts else None
-        return json_ok({"alerts_disabled": True, "alerts_disabled_until_ms": until_ms})
-
-
-def _enable_alerts(usuario_obj: Optional[Usuario], request: HttpRequest) -> None:
-    if usuario_obj:
-        usuario_obj.alerts_disabled = False
-        usuario_obj.alerts_disabled_until = None
-        usuario_obj.save(update_fields=["alerts_disabled", "alerts_disabled_until"])
-    request.session["alerts_disabled"] = False
-    request.session.pop("alerts_disabled_until_ts", None)
-
-
-def _disable_alerts(
-    usuario_obj: Optional[Usuario], request: HttpRequest, duration_minutes: Optional[float]
-) -> Optional[float]:
-    until_ts: Optional[float] = None
-    if duration_minutes is not None:
-        dt_val = timezone.now() + dt.timedelta(minutes=float(duration_minutes))
-        until_ts = dt_val.timestamp()
-    if usuario_obj:
-        usuario_obj.alerts_disabled = True
-        usuario_obj.alerts_disabled_until = timezone.now() + dt.timedelta(minutes=float(duration_minutes)) if duration_minutes is not None else None
-        usuario_obj.save(update_fields=["alerts_disabled", "alerts_disabled_until"])
-    request.session["alerts_disabled"] = True
-    if until_ts:
-        request.session["alerts_disabled_until_ts"] = until_ts
-    else:
-        request.session.pop("alerts_disabled_until_ts", None)
-    return until_ts
 
 
 @login_required
@@ -253,23 +188,6 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
 @login_required
 def view_clear_alerts(request: HttpRequest) -> JsonResponse:
     return clear_history_view(request)
-
-
-def _update_alert_disabled_state(request: HttpRequest, usuario_id: int) -> None:
-    try:
-        usuario_obj = Usuario.objects.get(pk=usuario_id)
-        if (
-            usuario_obj.alerts_disabled
-            and usuario_obj.alerts_disabled_until
-            and timezone.now() > usuario_obj.alerts_disabled_until
-        ):
-            usuario_obj.alerts_disabled = False
-            usuario_obj.alerts_disabled_until = None
-            usuario_obj.save(update_fields=["alerts_disabled", "alerts_disabled_until"])
-            request.session["alerts_disabled"] = False
-            request.session.pop("alerts_disabled_until_ts", None)
-    except Exception:
-        pass
 
 
 # ── History PDF Report (moved from reports.views.history) ──────────────────
