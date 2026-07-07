@@ -1,10 +1,7 @@
 import json
 import logging
-import smtplib
-import threading
-import time as time_module
 import datetime as dt
-from typing import Optional
+from typing import Any, Optional
 
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -28,11 +25,19 @@ from apps.dashboard.shared import (
     parse_notifications, extract_variables,
     extract_severities, filter_severity_python, filter_by_variable,
 )
-from apps.events.services.alert_service import (
-    send_email_alert,
-    get_building_emails,
+from apps.events.services.alert_service import send_email_alert
+from apps.core.services.pdf_shared import _pdf_font, safe_text, _get_period_label, draw_row
+from apps.core.services.pdf_rendering import (
+    _create_report_pdf,
+    get_column_config,
+    make_pdf_response,
+    render_event_rows,
+    render_pdf_header,
+    render_section_divider,
+    render_severity_legend,
+    render_stats_summary,
+    render_table_header,
 )
-from apps.events.services.email_sender import build_report_email_html, send_email_raw
 
 logger = logging.getLogger(__name__)
 
@@ -250,127 +255,6 @@ def view_clear_alerts(request: HttpRequest) -> JsonResponse:
     return clear_notifications_view(request)
 
 
-def _build_report_email_body(sim) -> tuple[str, str]:
-    timestamp = time_module.strftime("%d/%m/%Y %H:%M:%S")
-    edificio = getattr(sim, "nombre", "") or ""
-    subject = f"Reporte de monitoreo: {edificio} — {timestamp}" if edificio else f"Reporte de monitoreo — {timestamp}"
-    body = build_report_email_html(edificio=edificio)
-    return subject, body
-
-
-def _smtp_error_message(exc: Exception) -> str:
-    """Traduce excepciones SMTP a mensajes claros para el admin."""
-    if isinstance(exc, smtplib.SMTPDataError):
-        code = exc.args[0]
-        raw = exc.args[1]
-        msg = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
-        if code == 550 and "limit" in msg.lower():
-            return "Límite diario de envío de Gmail excedido. Intente mañana o reduzca la frecuencia de alertas."
-        return f"Error SMTP ({code}): {msg[:200]}"
-    if isinstance(exc, smtplib.SMTPAuthenticationError):
-        return "Error de autenticación SMTP. Verifique las credenciales en el archivo .env."
-    if isinstance(exc, smtplib.SMTPConnectError):
-        return "No se pudo conectar al servidor SMTP. Verifique SMTP_SERVER y SMTP_PORT."
-    return f"Error al enviar correo: {type(exc).__name__}: {exc}"
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def send_test_email(request: HttpRequest) -> JsonResponse:
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return json_error("Invalid JSON")
-
-    email = data.get("email", "")
-    if not email:
-        return json_error("Missing field 'email'")
-
-    from apps.sensors.simulation.globals import simulators
-    sim = next(iter(simulators.values()), None)
-    if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
-
-    subject, html_body = _build_report_email_body(sim)
-
-    pdf_bytes = None
-    pdf_name = "reporte.pdf"
-    try:
-        from apps.reports.views.building_report import generate_building_report_bytes
-        pdf_bytes, pdf_name = generate_building_report_bytes(sim.edificio_id)
-    except Exception as e:
-        logger.warning("Could not generate building report PDF: %s", e)
-
-    try:
-        send_email_raw(
-            to_addrs=[email],
-            subject=subject,
-            html_body=html_body,
-            attachment_pdf=pdf_bytes,
-            attachment_name=pdf_name,
-        )
-    except Exception as exc:
-        logger.error("send_test_email failed: %s", exc)
-        return json_error(_smtp_error_message(exc), 502)
-
-    return json_ok({"message": f"Reporte enviado a {email}"})
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def send_all_subscribers(request: HttpRequest) -> JsonResponse:
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return json_error("Invalid JSON")
-
-    edificio_id = data.get("edificio_id")
-
-    from apps.sensors.simulation.globals import simulators
-    try:
-        eid = int(edificio_id) if edificio_id is not None else None
-    except (ValueError, TypeError):
-        eid = None
-    sim = simulators.get(eid) if eid else next(iter(simulators.values()), None)
-    if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
-
-    # Usar siempre el edificio_id del simulador resuelto para garantizar que
-    # los destinatarios, el cuerpo del correo y el PDF sean del mismo edificio.
-    actual_eid = sim.edificio_id
-
-    emails = get_building_emails(actual_eid)
-    if not emails:
-        return json_error("No subscribers for this building")
-
-    subject, html_body = _build_report_email_body(sim)
-
-    pdf_bytes = None
-    pdf_name = "reporte.pdf"
-    try:
-        from apps.reports.views.building_report import generate_building_report_bytes
-        pdf_bytes, pdf_name = generate_building_report_bytes(actual_eid)
-    except Exception as e:
-        logger.warning("Could not generate building report PDF: %s", e)
-
-    try:
-        send_email_raw(
-            to_addrs=emails,
-            subject=subject,
-            html_body=html_body,
-            attachment_pdf=pdf_bytes,
-            attachment_name=pdf_name,
-        )
-    except Exception as exc:
-        logger.error("send_all_subscribers failed: %s", exc)
-        return json_error(_smtp_error_message(exc), 502)
-
-    return json_ok({"message": f"Reporte enviado a {len(emails)} suscriptores"})
-
-
-
 def _update_alert_disabled_state(request: HttpRequest, usuario_id: int) -> None:
     try:
         usuario_obj = Usuario.objects.get(pk=usuario_id)
@@ -386,3 +270,153 @@ def _update_alert_disabled_state(request: HttpRequest, usuario_id: int) -> None:
             request.session.pop("alerts_disabled_until_ts", None)
     except Exception:
         pass
+
+
+# ── History PDF Report (moved from reports.views.history) ──────────────────
+
+
+@login_required
+def history_pdf_view(request: Any) -> HttpResponse:
+    import datetime as dt
+    from collections import OrderedDict
+    from apps.dashboard.shared import (
+        filter_date_range, parse_notifications,
+        filter_severity_python, filter_by_variable,
+    )
+
+    usuario_id = request.session.get("usuario_id")
+    if not usuario_id:
+        return HttpResponse("No autorizado", status=401)
+
+    rol = request.session.get("usuario_rol", "US")
+    building_id_raw = get_building_id_param(request, "building", "edificio")
+
+    severity       = request.GET.get("severidad", "").strip()
+    variable_filter = request.GET.get("variable", "").strip()
+    period         = request.GET.get("periodo", "1h").strip()
+    date_from      = request.GET.get("fecha_desde", "").strip()
+    date_to        = request.GET.get("fecha_hasta", "").strip()
+
+    notifications, building_name = _build_notification_query(usuario_id, rol, building_id_raw)
+
+    alerts_cleared_at = request.session.get("alerts_cleared_at")
+    if alerts_cleared_at:
+        cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
+        notifications = notifications.filter(date__gt=cleared_dt)
+
+    notifications = filter_date_range(notifications, period, date_from, date_to)
+
+    notifications = (
+        notifications
+        .select_related("user", "monitoring_equipment__building")
+        .distinct()
+        .order_by("-date")
+    )
+    parsed_list = parse_notifications(notifications)
+
+    parsed_list = filter_severity_python(parsed_list, severity)
+    parsed_list = filter_by_variable(parsed_list, variable_filter)
+
+    range_label = _get_period_label(period, date_from, date_to)
+    if not building_name:
+        building_name = building_id_raw or "Todos los edificios"
+
+    try:
+        pdf = _create_report_pdf("Historial de eventos")
+        now = dt.datetime.now()
+
+        render_pdf_header(
+            pdf,
+            title="Historial de eventos",
+            now=now,
+            meta_lines=[
+                f"Generado: {now.strftime('%d/%m/%Y %H:%M:%S')}",
+                f"Edificio: {building_name}",
+                f"Severidad: {severity if severity else 'Todas'}",
+                f"Variable: {variable_filter if variable_filter else 'Todas'}",
+                f"Per\u00edodo: {range_label}",
+                (
+                    f"Rango personalizado: {date_from} al {date_to}"
+                    if date_from and date_to
+                    else None
+                ),
+                f"Total de eventos: {len(parsed_list)}",
+            ],
+        )
+
+        if parsed_list:
+            render_stats_summary(pdf, parsed_list)
+
+        render_severity_legend(pdf)
+
+        groups: OrderedDict[str, list[Any]] = OrderedDict()
+        for n in parsed_list:
+            bld = (
+                n.monitoring_equipment.building.name
+                if (n.monitoring_equipment and n.monitoring_equipment.building)
+                else "Sin edificio"
+            )
+            groups.setdefault(bld, []).append(n)
+
+        if len(groups) > 1:
+            _render_building_summary(pdf, groups)
+
+        column_widths, column_headers, column_aligns = get_column_config()
+
+        if parsed_list:
+            for group_name, group_events in groups.items():
+                if pdf.get_y() > 240:
+                    pdf.add_page()
+
+                render_section_divider(pdf, f"{group_name} ({len(group_events)} evento(s))")
+                render_table_header(pdf, column_widths, column_aligns, column_headers)
+                render_event_rows(pdf, group_events, column_widths, column_aligns)
+                pdf.ln(4)
+        else:
+            _pdf_font(pdf, "I", 10)
+            pdf.set_text_color(95, 95, 95)
+            pdf.cell(0, 9, safe_text("No se encontraron eventos con los filtros aplicados."), ln=1)
+
+        filename = f"historial_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+        return make_pdf_response(pdf, filename)
+
+    except ImportError:
+        return HttpResponse(
+            "Error: fpdf2 no est\u00e1 instalado. Ejecute: pip install fpdf2",
+            content_type="text/plain",
+            status=500,
+        )
+    except Exception as e:
+        logger.warning("History PDF generation failed: %s", e)
+        return HttpResponse(
+            f"Error generando PDF: {e}",
+            content_type="text/plain",
+            status=500,
+        )
+
+
+def _render_building_summary(pdf: Any, groups: dict) -> None:
+    render_section_divider(pdf, "Distribuci\u00f3n de eventos por edificio")
+
+    col_widths = [120, 30, 40]
+    col_headers = ["Edificio", "Eventos", "% del total"]
+    col_aligns = ["L", "C", "C"]
+
+    render_table_header(pdf, col_widths, col_aligns, col_headers)
+
+    _pdf_font(pdf, "", 9)
+    pdf.set_draw_color(10, 10, 10)
+    total_events = sum(len(v) for v in groups.values())
+
+    for idx, (bld_name, events) in enumerate(groups.items()):
+        count = len(events)
+        pct = (count / total_events * 100) if total_events else 0
+        draw_row(
+            pdf,
+            col_widths,
+            col_aligns,
+            [bld_name, str(count), f"{pct:.1f}%"],
+            row_index=idx,
+        )
+
+    pdf.ln(6)

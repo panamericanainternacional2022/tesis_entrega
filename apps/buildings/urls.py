@@ -6,6 +6,7 @@ from .views import (
     edit_building_view,
     delete_building_view,
     check_rif_uniqueness_view,
+    building_report_pdf_view,
 )
 
 urlpatterns = [
@@ -22,4 +23,9 @@ urlpatterns = [
         name="delete_building",
     ),
     path("api/check-rif/", check_rif_uniqueness_view, name="check_rif"),
+    path(
+        "buildings/<int:edificio_id>/report/pdf/",
+        building_report_pdf_view,
+        name="building_report_pdf",
+    ),
 ]

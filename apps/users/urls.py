@@ -7,6 +7,9 @@ from .views import (
     user_update_view,
     user_delete_view,
     check_cedula_uniqueness_view,
+    send_test_email,
+    send_all_subscribers,
+    user_pdf_view,
 )
 
 urlpatterns = [
@@ -28,4 +31,19 @@ urlpatterns = [
         name="user_delete",
     ),
     path("api/check-cedula/", check_cedula_uniqueness_view, name="check_cedula"),
+    path(
+        "api/send-test-email/",
+        send_test_email,
+        name="send_test_email",
+    ),
+    path(
+        "api/send-all-subscribers/",
+        send_all_subscribers,
+        name="send_all_subscribers",
+    ),
+    path(
+        "usuarios/pdf/",
+        user_pdf_view,
+        name="user_pdf",
+    ),
 ]
