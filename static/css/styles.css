@@ -1378,10 +1378,8 @@ button {
 }
 
 .no-history i {
-    display: block;
-    font-size: var(--text-2xl);
     color: var(--color-ink);
-    margin-bottom: var(--sp-4);
+
 }
 
 /* ─── Notif card ─── */

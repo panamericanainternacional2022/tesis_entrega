@@ -30,9 +30,6 @@
     {% include 'core/components/toast_messages.html' %}
 
     <script>
-        // Timestamp (Unix segundos) desde el que se cuentan registros "no leídos".
-        // Coincide con la lógica del context_processor y de history_view.
-        window.HISTORY_CLEARED_AT = {% if request.session.history_cleared_at %}{{ request.session.history_cleared_at }}{% else %}null{% endif %};
         window.CSRF_TOKEN = "{{ csrf_token|escapejs }}";
     </script>
 

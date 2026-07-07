@@ -320,9 +320,7 @@ def generate_building_report_bytes(edificio_id: int, request: _Any = None) -> tu
 
     usuario_id = request.session.get("usuario_id") if request else None
     usuario_rol = request.session.get("usuario_rol", "US") if request else "US"
-    history_cleared_at = request.session.get("history_cleared_at") if request else None
-
-    _render_history_section(pdf, edificio_id, now, usuario_id, usuario_rol, history_cleared_at)
+    _render_history_section(pdf, edificio_id, now, usuario_id, usuario_rol)
     _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
     _render_limits_section(pdf, edificio_id, relevant_vars, VAR_NAMES, UNITS)
@@ -634,7 +632,6 @@ def _render_history_section(
     now: _dt_bld.datetime,
     usuario_id: int | None = None,
     usuario_rol: str = "US",
-    history_cleared_at: float | None = None,
 ) -> None:
     from apps.history.shared import _build_history_query
     from apps.dashboard.shared import filter_date_range, parse_history
@@ -650,10 +647,6 @@ def _render_history_section(
         records = History.objects.filter(
             monitoring_equipment__building_id=edificio_id,
         )
-
-    if history_cleared_at:
-        cleared_dt = _dt_bld.datetime.fromtimestamp(history_cleared_at, tz=_dt_bld.timezone.utc)
-        records = records.filter(date__gt=cleared_dt)
 
     records = filter_date_range(records, "24h", "", "")
 

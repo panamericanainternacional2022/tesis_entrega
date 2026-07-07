@@ -976,15 +976,7 @@
     }
 
     function _countUnreadAlerts(alertLog) {
-        const clearedAtMs = window.HISTORY_CLEARED_AT ? window.HISTORY_CLEARED_AT * 1000 : null;
-        return (alertLog || []).filter(a => {
-            if (clearedAtMs) {
-                const alertMs = a.timestamp ? new Date(a.timestamp.replace(' ', 'T') + 'Z').getTime() : 0;
-                if (alertMs <= clearedAtMs) return false;
-            }
-            if (a.risk === _RISK.normal) return false;
-            return true;
-        }).length;
+        return (alertLog || []).filter(a => a.risk !== _RISK.normal).length;
     }
 
     function applyPayload(data) {

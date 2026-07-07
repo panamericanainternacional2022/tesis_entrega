@@ -4,7 +4,6 @@ from typing import Any
 
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from urllib.parse import urlencode
@@ -12,7 +11,6 @@ from urllib.parse import urlencode
 from apps.core.auth_decorators import login_required
 from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_ok
-from apps.users.models import Usuario
 from apps.buildings.models import Building
 from apps.history.models import History
 from apps.history.shared import (
@@ -76,11 +74,6 @@ def history_view(request: HttpRequest):
             user_id=usuario_id
         ).values_list("building", flat=True)
         buildings = Building.objects.filter(id__in=user_building_ids)
-
-    history_cleared_at = request.session.get("history_cleared_at")
-    if history_cleared_at:
-        cleared_dt = dt.datetime.fromtimestamp(history_cleared_at, tz=dt.timezone.utc)
-        records = records.filter(date__gt=cleared_dt)
 
     # Total global sin filtrar por fecha/severidad/variable (para el badge)
     total_count = records.distinct().count()
@@ -147,47 +140,16 @@ def view_unread_count(request: HttpRequest) -> JsonResponse:
     rol = request.session.get("usuario_rol", "US")
     records, _ = _build_history_query(usuario_id, rol)
 
-    history_cleared_at = request.session.get("history_cleared_at")
-    if history_cleared_at:
-        cleared_dt = dt.datetime.fromtimestamp(history_cleared_at, tz=dt.timezone.utc)
-        records = records.filter(date__gt=cleared_dt)
-
     return JsonResponse({"count": records.distinct().count()})
 
 
 @login_required
 @require_http_methods(["POST"])
 def clear_history_view(request: HttpRequest) -> JsonResponse:
-    now = timezone.now()
-    request.session["history_cleared_at"] = now.timestamp()
-
-    try:
-        from apps.sensors.simulation.globals import simulators
-        for sim in simulators.values():
-            sim.active_alerts.clear()
-            sim.last_email_sent_time = 0.0
-            if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):
-                sim.manual_overrides.clear()
-            if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
-                sim.last_email_sent_time_per_var.clear()
-    except Exception as exc:
-        logger.warning("No se pudo limpiar active_alerts de los simuladores: %s", exc)
-
     usuario_id = request.session.get("usuario_id")
-    try:
-        usuario_obj = Usuario.objects.get(pk=usuario_id)
-        usuario_obj.history_cleared_at = now
-        usuario_obj.save(update_fields=["history_cleared_at"])
-    except Usuario.DoesNotExist:
-        pass
-
+    if usuario_id:
+        History.objects.filter(user_id=usuario_id).delete()
     return json_ok({"message": "History cleared successfully"})
-
-
-@require_http_methods(["POST"])
-@login_required
-def view_clear_history(request: HttpRequest) -> JsonResponse:
-    return clear_history_view(request)
 
 
 # ── History PDF Report (moved from reports.views.history) ──────────────────
@@ -216,11 +178,6 @@ def history_pdf_view(request: Any) -> HttpResponse:
     date_to        = request.GET.get("fecha_hasta", "").strip()
 
     records, building_name = _build_history_query(usuario_id, rol, building_id_raw)
-
-    history_cleared_at = request.session.get("history_cleared_at")
-    if history_cleared_at:
-        cleared_dt = dt.datetime.fromtimestamp(history_cleared_at, tz=dt.timezone.utc)
-        records = records.filter(date__gt=cleared_dt)
 
     records = filter_date_range(records, period, date_from, date_to)
 

@@ -22,7 +22,6 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     error = "Usuario o contraseña incorrectos."
                 else:
                     _setup_session(request, user)
-                    _setup_alert_session(request, user)
                     return redirect("monitor")
             except Usuario.DoesNotExist:
                 error = "Usuario o contraseña incorrectos."
@@ -143,8 +142,4 @@ def _setup_session(request: HttpRequest, user: Usuario) -> None:
         request.session["usuario_nombre_completo"] = user.username
 
 
-def _setup_alert_session(request: HttpRequest, user: Usuario) -> None:
-    if user.history_cleared_at:
-        request.session["history_cleared_at"] = user.history_cleared_at.timestamp()
-    else:
-        request.session.pop("history_cleared_at", None)
+
