@@ -433,7 +433,6 @@
         simStatus: (id) => `/api/sim/${id}/status/`,
         simPause: (id) => `/api/sim/${id}/pause/`,
         simReset: (id) => `/api/sim/${id}/reset/`,
-        simResetLight: (id) => `/api/sim/${id}/reset-light/`,
         simInjectFault: (id) => `/api/sim/${id}/inject-fault/`,
         simClearFault: (id) => `/api/sim/${id}/clear-fault/`,
         simSetSpeed: (id) => `/api/sim/${id}/set-speed/`,

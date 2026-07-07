@@ -34,6 +34,14 @@
         <div class="divider-v"></div>
         {% endif %}
         <span id="lastUpdate" class="badge badge-dark">--:--:--</span>
+        {% if is_admin %}
+        <div class="divider-v"></div>
+        <button type="button" id="simResetBtn" class="btn btn-critical" disabled
+                style="font-size:0.85rem;padding:4px 12px"
+                title="Reinicio completo: restaura TODO el simulador a su estado inicial.">
+            <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reiniciar simulador
+        </button>
+        {% endif %}
     </div>
 
     {% if not edificios %}
@@ -81,8 +89,16 @@
                         <button type="button" class="btn btn-secondary" data-speed="2.0">2.0x</button>
                     </div>
                 </div>
+                <div class="form-group" id="simTogglePumpGroup">
+                    <span class="form-label">Bomba de agua</span>
+                    <button type="button" id="togglePumpBtn" class="btn btn-secondary"
+                            title="Encender o apagar la bomba de agua" style="min-width:130px">
+                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                        <span>Encender</span>
+                    </button>
+                </div>
                 <div class="form-group flex-1" id="simFaultPumpGroup">
-                    <label class="form-label" for="simFaultPump">Falla (Bomba de agua)</label>
+                    <label class="form-label" for="simFaultPump">Falla</label>
                     <select id="simFaultPump" class="custom-select-init">
                         <option value="">Ninguna</option>
                         {% for key, name in PUMP_FAULT_OPTIONS %}
@@ -93,8 +109,16 @@
                         <span id="faultWarningPump" class="fault-warning"></span>
                     </div>
                 </div>
+                <div class="form-group" id="simToggleElevatorGroup">
+                    <span class="form-label">Elevador</span>
+                    <button type="button" id="toggleElevatorBtn" class="btn btn-secondary"
+                            title="Encender o apagar el elevador" style="min-width:130px">
+                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                        <span>Encender</span>
+                    </button>
+                </div>
                 <div class="form-group flex-1" id="simFaultElevatorGroup">
-                    <label class="form-label" for="simFaultElevator">Falla (Elevador)</label>
+                    <label class="form-label" for="simFaultElevator">Falla</label>
                     <select id="simFaultElevator" class="custom-select-init">
                         <option value="">Ninguna</option>
                         {% for key, name in ELEVATOR_FAULT_OPTIONS %}
@@ -105,44 +129,11 @@
                         <span id="faultWarningElevator" class="fault-warning"></span>
                     </div>
                 </div>
-                <div class="form-group" style="display:flex;gap:var(--sp-2)">
-                    <button type="button" id="simResetLightBtn" class="btn btn-secondary" disabled
-                            title="Restablece valores de sensores y fallas. Mantiene estado de equipos, velocidad e historial.">
-                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restablecer
+                <div class="form-group" style="display:flex;flex-direction:column;gap:var(--sp-1);align-self:flex-end;padding-bottom:24px">
+                    <button type="button" id="clearFaultsBtn" class="btn btn-secondary" disabled
+                            title="Restablece las fallas activas de ambos equipos. No afecta sensores, velocidad ni historial.">
+                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restablecer fallas
                     </button>
-                    <button type="button" id="simResetBtn" class="btn btn-critical" disabled
-                            title="Reinicio completo: restaura TODO el simulador a su estado inicial.">
-                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reiniciar
-                    </button>
-                </div>
-
-            </div>
-        </section>
-
-        <section class="panel mb-3" aria-labelledby="equipment-controls-title">
-            <div class="form-section-header ">
-                <h2 class="form-page-title form-section-title" id="equipment-controls-title">
-                    Control de equipos
-                </h2>
-            </div>
-            <div class="admin-controls-row">
-                <div class="form-group" style="display:flex;gap:var(--sp-2);padding-bottom:0">
-                    <div>
-                        <span class="form-label">Bomba de agua</span>
-                        <button type="button" id="togglePumpBtn" class="btn btn-secondary"
-                                title="Encender o apagar la bomba de agua manualmente" style="min-width:130px">
-                            <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-                            <span>Encender</span>
-                        </button>
-                    </div>
-                    <div>
-                        <span class="form-label">Elevador</span>
-                        <button type="button" id="toggleElevatorBtn" class="btn btn-secondary"
-                                title="Encender o apagar el elevador manualmente" style="min-width:130px">
-                            <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-                            <span>Encender</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </section>
@@ -241,7 +232,6 @@
             status:    '/api/sim/' + BID + '/status/',
             pause:     '/api/sim/' + BID + '/pause/',
             reset:     '/api/sim/' + BID + '/reset/',
-            resetLt:   '/api/sim/' + BID + '/reset-light/',
             inject:    '/api/sim/' + BID + '/inject-fault/',
             clear:     '/api/sim/' + BID + '/clear-fault/',
             setSpeed:  '/api/sim/' + BID + '/set-speed/',
@@ -274,13 +264,13 @@
         }
 
         SimulationController.prototype._cacheDOMElements = function () {
-            this.btnPause      = document.getElementById('simPauseBtn');
-            this.btnReset      = document.getElementById('simResetBtn');
-            this.btnResetLt    = document.getElementById('simResetLightBtn');
-            this.selFaultElev  = document.getElementById('simFaultElevator');
-            this.warnFaultElev = document.getElementById('faultWarningElevator');
-            this.selFaultPump  = document.getElementById('simFaultPump');
-            this.warnFaultPump = document.getElementById('faultWarningPump');
+            this.btnPause       = document.getElementById('simPauseBtn');
+            this.btnReset       = document.getElementById('simResetBtn');
+            this.clearFaultsBtn = document.getElementById('clearFaultsBtn');
+            this.selFaultElev   = document.getElementById('simFaultElevator');
+            this.warnFaultElev  = document.getElementById('faultWarningElevator');
+            this.selFaultPump   = document.getElementById('simFaultPump');
+            this.warnFaultPump  = document.getElementById('faultWarningPump');
         };
 
         SimulationController.prototype._bindEvents = function () {
@@ -294,8 +284,8 @@
                 this.btnReset.addEventListener('click', function () { self._resetSim(); });
             }
 
-            if (this.btnResetLt) {
-                this.btnResetLt.addEventListener('click', function () { self._resetSimLight(); });
+            if (this.clearFaultsBtn) {
+                this.clearFaultsBtn.addEventListener('click', function () { self._clearFaults(); });
             }
 
             if (this.selFaultElev) {
@@ -435,37 +425,34 @@
             });
         };
 
-        SimulationController.prototype._resetSimLight = function () {
+        SimulationController.prototype._clearFaults = function () {
             var self = this;
-            window.showConfirm(
-                'Se conservarán los siguientes parámetros:\n\n' +
-                '• Estado de equipos (encendido/apagado)\n' +
-                '• Velocidad personalizada\n' +
-                '• Historial de gráficas'
-            ).then(function (confirmed) {
-                if (!confirmed || !BID) return;
-                window.csrfFetch(URLS.resetLt, { method: 'POST', body: '{}' })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        if (data.status === 'ok') {
-                            self.simStarted = false;
-                            self.simPaused = true;
-                            self._activeElevFault = '';
-                            self._activePumpFault = '';
-                            _csVal(document.getElementById('simFaultElevator'), '');
-                            _csVal(document.getElementById('simFaultPump'), '');
-                            self._updatePauseBtn();
-                            self._updateControlStates();
-                            self._updateFaultUI();
-                            window.fetchInitialData();
-                        } else {
-                            window.showToast(data.message, 'error');
-                        }
-                    })
-                    .catch(function () {
-                        window.showToast('Error al restablecer la simulación.', 'error');
-                    });
-            });
+            if (!BID) return;
+
+            Promise.all([
+                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) }),
+                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
+            ])
+                .then(function (responses) {
+                    return Promise.all(responses.map(function (r) { return r.json(); }));
+                })
+                .then(function (dataArr) {
+                    var allOk = dataArr.every(function (d) { return d.status === 'ok'; });
+                    if (allOk) {
+                        self._activeElevFault = '';
+                        self._activePumpFault = '';
+                        _csVal(document.getElementById('simFaultElevator'), '');
+                        _csVal(document.getElementById('simFaultPump'), '');
+                        self._updateFaultUI();
+                        self._updateControlStates();
+                        window.showToast('Fallas restablecidas.', 'success');
+                    } else {
+                        window.showToast('Error al restablecer fallas.', 'error');
+                    }
+                })
+                .catch(function () {
+                    window.showToast('Error de conexión.', 'error');
+                });
         };
 
         // ─────────────── UI UPDATES ───────────────
@@ -499,7 +486,6 @@
         SimulationController.prototype._updateControlStates = function () {
             var running = this.simStarted && !this.simPaused;
             var started = this.simStarted;
-            var manualDisabled = !started;
 
             // Equipment toggles - disabled when not running
             _csDis(document.getElementById('togglePumpBtn'), !running);
@@ -509,9 +495,11 @@
             _csDis(document.getElementById('simFaultPump'), !running);
             _csDis(document.getElementById('simFaultElevator'), !running);
 
-            // Reset buttons - disabled when not started
+            // Clear faults button - disabled when not started
+            if (this.clearFaultsBtn) this.clearFaultsBtn.disabled = !started;
+
+            // Reset button - disabled when not started
             if (this.btnReset) this.btnReset.disabled = !started;
-            if (this.btnResetLt) this.btnResetLt.disabled = !started;
 
             // Notify other modules
             window.updateFaultWarnings();

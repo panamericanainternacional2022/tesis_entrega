@@ -72,19 +72,6 @@ def sim_reset(request, building_id: int) -> JsonResponse:
 @require_http_methods(["POST"])
 @login_required
 @admin_required
-def sim_reset_light(request, building_id: int) -> JsonResponse:
-    from apps.sensors.simulation.controls import reset_simulator_light
-
-    try:
-        message = reset_simulator_light(building_id)
-        return json_success_response({"message": message})
-    except SimulatorError as e:
-        return json_error_response(e.message, e.status_code)
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
 def sim_inject_fault(request, building_id: int) -> JsonResponse:
     try:
         body = parse_json_body(request)

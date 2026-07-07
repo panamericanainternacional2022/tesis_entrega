@@ -15,7 +15,6 @@ from .simulation.controls import (
     sim_status,
     sim_pause,
     sim_reset,
-    sim_reset_light,
     sim_inject_fault,
     sim_clear_fault,
     sim_set_speed,
@@ -75,11 +74,6 @@ urlpatterns = [
         "api/sim/<int:building_id>/reset/",
         sim_reset,
         name="api_sim_reset",
-    ),
-    path(
-        "api/sim/<int:building_id>/reset-light/",
-        sim_reset_light,
-        name="api_sim_reset_light",
     ),
     path(
         "api/sim/<int:building_id>/inject-fault/",
