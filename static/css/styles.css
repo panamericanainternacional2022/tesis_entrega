@@ -2113,9 +2113,6 @@ input.is-dirty.input-error-state:active {
 }
 
 /* — Grupo de recomendaciones — */
-.rec-group {
-    margin-top: var(--sp-2);
-}
 
 .rec-group-header {
     font-size: var(--text-sm);
