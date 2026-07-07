@@ -27,7 +27,6 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.buildings",
     "apps.sensors",
-    "apps.reports",
     "apps.authentication",
     "apps.dashboard",
     "apps.events",
