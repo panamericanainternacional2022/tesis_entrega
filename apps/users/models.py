@@ -31,7 +31,7 @@ class Usuario(models.Model):
         choices=[("US", "Usuario"), ("SA", "Super Administrador")],
     )
     registered = models.BooleanField(default=False, db_column="registrado")
-    alerts_cleared_at = models.DateTimeField(null=True, blank=True)
+    history_cleared_at = models.DateTimeField(null=True, blank=True)
     class Meta:
         db_table = "usuario"
 

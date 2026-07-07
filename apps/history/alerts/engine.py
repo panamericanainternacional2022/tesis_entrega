@@ -146,7 +146,7 @@ def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None)
                 return
         # Suprimir racionamiento si flow_rate ya tiene una alerta activa:
         # ambas condiciones comparten la misma causa raíz y generarían
-        # alertas duplicadas simultáneas.
+        # eventos duplicados simultáneos.
         aa = get_attribute(sim, "active_alerts")
         if isinstance(aa, dict) and aa.get("flow_rate") in (RISK_ALTO, RISK_CRITICO):
             return

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Historial{% endblock %}
-{% block meta_description %}<meta name="description" content="Historial completo de eventos, alertas y registros del sistema INES.">{% endblock %}
+{% block meta_description %}<meta name="description" content="Historial completo de eventos y registros del sistema INES.">{% endblock %}
 
 {% block content %}
 <section class="reports-card" aria-labelledby="history-title">
@@ -12,7 +12,7 @@
             <h1 class="m-0" id="history-title">Historial</h1>
             <span id="historyBadgeCount" class="hist-count-badge{% if total_count > 0 %} visible{% endif %}">{{ total_count }}</span>
         </div>
-        <p class="mt-1">Historial cronológico de alertas, eventos del sistema y reportes de sensores. Filtra por severidad, variable o período para analizar el comportamiento del sistema.</p>
+        <p class="mt-1">Historial cronológico de eventos del sistema y reportes de sensores. Filtra por severidad, variable o período para analizar el comportamiento del sistema.</p>
     </header>
 
     {% if not edificios %}
@@ -71,7 +71,7 @@
                     </button>
                     <div class="dropdown-menu">
                         <button type="button" id="clearDbHistoryBtn" class="dropdown-item">
-                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Limpiar alertas
+                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Limpiar historial
                         </button>
                         <a id="pdfDownloadBtn"
                            href="{% url 'history_pdf' %}?{{ filter_query_string }}"

@@ -320,9 +320,9 @@ def generate_building_report_bytes(edificio_id: int, request: _Any = None) -> tu
 
     usuario_id = request.session.get("usuario_id") if request else None
     usuario_rol = request.session.get("usuario_rol", "US") if request else "US"
-    alerts_cleared_at = request.session.get("alerts_cleared_at") if request else None
+    history_cleared_at = request.session.get("history_cleared_at") if request else None
 
-    _render_alerts_section(pdf, edificio_id, now, usuario_id, usuario_rol, alerts_cleared_at)
+    _render_history_section(pdf, edificio_id, now, usuario_id, usuario_rol, history_cleared_at)
     _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
     _render_limits_section(pdf, edificio_id, relevant_vars, VAR_NAMES, UNITS)
@@ -628,13 +628,13 @@ def _render_rationing_section(pdf: _Any, sensor_data: dict) -> None:
     pdf.ln(4)
 
 
-def _render_alerts_section(
+def _render_history_section(
     pdf: _Any,
     edificio_id: int,
     now: _dt_bld.datetime,
     usuario_id: int | None = None,
     usuario_rol: str = "US",
-    alerts_cleared_at: float | None = None,
+    history_cleared_at: float | None = None,
 ) -> None:
     from apps.history.shared import _build_history_query
     from apps.dashboard.shared import filter_date_range, parse_history
@@ -642,7 +642,7 @@ def _render_alerts_section(
     if pdf.get_y() > 230:
         pdf.add_page()
 
-    render_section_divider(pdf, "Alertas detectadas en el período")
+    render_section_divider(pdf, "Historial en el período")
 
     if usuario_id:
         records, _ = _build_history_query(usuario_id, usuario_rol, str(edificio_id))
@@ -651,8 +651,8 @@ def _render_alerts_section(
             monitoring_equipment__building_id=edificio_id,
         )
 
-    if alerts_cleared_at:
-        cleared_dt = _dt_bld.datetime.fromtimestamp(alerts_cleared_at, tz=_dt_bld.timezone.utc)
+    if history_cleared_at:
+        cleared_dt = _dt_bld.datetime.fromtimestamp(history_cleared_at, tz=_dt_bld.timezone.utc)
         records = records.filter(date__gt=cleared_dt)
 
     records = filter_date_range(records, "24h", "", "")
@@ -667,7 +667,7 @@ def _render_alerts_section(
     total = records.count()
     _pdf_font(pdf, "", 10)
     pdf.set_text_color(26, 26, 26)
-    pdf.cell(0, 7, safe_text(f"Últimas 24 horas: {total} alerta(s) registrada(s)"), ln=1)
+    pdf.cell(0, 7, safe_text(f"Últimas 24 horas: {total} registro(s)"), ln=1)
     pdf.ln(3)
 
     parsed = parse_history(records)
@@ -683,7 +683,7 @@ def _render_alerts_section(
     if not counts:
         pdf.set_text_color(95, 95, 95)
         _pdf_font(pdf, "", 10)
-        pdf.cell(0, 7, safe_text("No se registraron alertas en las últimas 24 horas."), ln=1)
+        pdf.cell(0, 7, safe_text("No se registraron eventos en las últimas 24 horas."), ln=1)
         pdf.ln(4)
         return
 

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
     {% block meta_description %}
-    <meta name="description" content="Panel de administración de INES - Monitoreo en tiempo real, configuración de umbrales e historial de alertas de edificios.">
+    <meta name="description" content="Panel de administración de INES - Monitoreo en tiempo real, configuración de umbrales e historial del sistema de edificios.">
     {% endblock %}
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -30,9 +30,9 @@
     {% include 'core/components/toast_messages.html' %}
 
     <script>
-        // Timestamp (Unix segundos) desde el que se cuentan alertas "no leídas".
+        // Timestamp (Unix segundos) desde el que se cuentan registros "no leídos".
         // Coincide con la lógica del context_processor y de history_view.
-        window.ALERTS_CLEARED_AT = {% if request.session.alerts_cleared_at %}{{ request.session.alerts_cleared_at }}{% else %}null{% endif %};
+        window.HISTORY_CLEARED_AT = {% if request.session.history_cleared_at %}{{ request.session.history_cleared_at }}{% else %}null{% endif %};
         window.CSRF_TOKEN = "{{ csrf_token|escapejs }}";
     </script>
 

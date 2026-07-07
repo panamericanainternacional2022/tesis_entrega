@@ -77,9 +77,9 @@ def history_view(request: HttpRequest):
         ).values_list("building", flat=True)
         buildings = Building.objects.filter(id__in=user_building_ids)
 
-    alerts_cleared_at = request.session.get("alerts_cleared_at")
-    if alerts_cleared_at:
-        cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
+    history_cleared_at = request.session.get("history_cleared_at")
+    if history_cleared_at:
+        cleared_dt = dt.datetime.fromtimestamp(history_cleared_at, tz=dt.timezone.utc)
         records = records.filter(date__gt=cleared_dt)
 
     # Total global sin filtrar por fecha/severidad/variable (para el badge)
@@ -147,9 +147,9 @@ def view_unread_count(request: HttpRequest) -> JsonResponse:
     rol = request.session.get("usuario_rol", "US")
     records, _ = _build_history_query(usuario_id, rol)
 
-    alerts_cleared_at = request.session.get("alerts_cleared_at")
-    if alerts_cleared_at:
-        cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
+    history_cleared_at = request.session.get("history_cleared_at")
+    if history_cleared_at:
+        cleared_dt = dt.datetime.fromtimestamp(history_cleared_at, tz=dt.timezone.utc)
         records = records.filter(date__gt=cleared_dt)
 
     return JsonResponse({"count": records.distinct().count()})
@@ -159,7 +159,7 @@ def view_unread_count(request: HttpRequest) -> JsonResponse:
 @require_http_methods(["POST"])
 def clear_history_view(request: HttpRequest) -> JsonResponse:
     now = timezone.now()
-    request.session["alerts_cleared_at"] = now.timestamp()
+    request.session["history_cleared_at"] = now.timestamp()
 
     try:
         from apps.sensors.simulation.globals import simulators
@@ -176,8 +176,8 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     usuario_id = request.session.get("usuario_id")
     try:
         usuario_obj = Usuario.objects.get(pk=usuario_id)
-        usuario_obj.alerts_cleared_at = now
-        usuario_obj.save(update_fields=["alerts_cleared_at"])
+        usuario_obj.history_cleared_at = now
+        usuario_obj.save(update_fields=["history_cleared_at"])
     except Usuario.DoesNotExist:
         pass
 
@@ -186,7 +186,7 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
 
 @require_http_methods(["POST"])
 @login_required
-def view_clear_alerts(request: HttpRequest) -> JsonResponse:
+def view_clear_history(request: HttpRequest) -> JsonResponse:
     return clear_history_view(request)
 
 
@@ -217,9 +217,9 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
     records, building_name = _build_history_query(usuario_id, rol, building_id_raw)
 
-    alerts_cleared_at = request.session.get("alerts_cleared_at")
-    if alerts_cleared_at:
-        cleared_dt = dt.datetime.fromtimestamp(alerts_cleared_at, tz=dt.timezone.utc)
+    history_cleared_at = request.session.get("history_cleared_at")
+    if history_cleared_at:
+        cleared_dt = dt.datetime.fromtimestamp(history_cleared_at, tz=dt.timezone.utc)
         records = records.filter(date__gt=cleared_dt)
 
     records = filter_date_range(records, period, date_from, date_to)

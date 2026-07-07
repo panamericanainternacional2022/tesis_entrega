@@ -976,7 +976,7 @@
     }
 
     function _countUnreadAlerts(alertLog) {
-        const clearedAtMs = window.ALERTS_CLEARED_AT ? window.ALERTS_CLEARED_AT * 1000 : null;
+        const clearedAtMs = window.HISTORY_CLEARED_AT ? window.HISTORY_CLEARED_AT * 1000 : null;
         return (alertLog || []).filter(a => {
             if (clearedAtMs) {
                 const alertMs = a.timestamp ? new Date(a.timestamp.replace(' ', 'T') + 'Z').getTime() : 0;
@@ -1683,7 +1683,7 @@
         if (!filtered.length) {
             unreadHistoryCount = 0;
             setHistoryBadge(0);
-            container.innerHTML = `<div class="no-history" id="live-no-history"><i class="fa-solid fa-bell-slash"></i><p>No hay alertas pendientes.</p></div>`;
+            container.innerHTML = `<div class="no-history" id="live-no-history"><i class="fa-solid fa-bell-slash"></i><p>No hay historial pendiente.</p></div>`;
             return;
         }
         unreadHistoryCount = filtered.length;
@@ -1755,12 +1755,12 @@
         const clearBtn = document.getElementById('clearDbHistoryBtn');
         if (clearBtn) {
             clearBtn.addEventListener('click', async () => {
-                if (!await showConfirm('¿Estás seguro de que deseas limpiar todas las alertas?')) return;
+                if (!await showConfirm('¿Estás seguro de que deseas limpiar todo el historial?')) return;
                 try {
                     const resp = await csrfFetch(API.clearHistory, { method: 'POST' });
                     if (resp.ok) { window.location.href = window.location.pathname; }
                     else throw new Error('Error al limpiar');
-                } catch (_) { await showAlert('No se pudieron limpiar las alertas.', 'error'); }
+                } catch (_) { await showAlert('No se pudo limpiar el historial.', 'error'); }
             });
         }
     }

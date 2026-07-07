@@ -144,7 +144,7 @@ def _setup_session(request: HttpRequest, user: Usuario) -> None:
 
 
 def _setup_alert_session(request: HttpRequest, user: Usuario) -> None:
-    if user.alerts_cleared_at:
-        request.session["alerts_cleared_at"] = user.alerts_cleared_at.timestamp()
+    if user.history_cleared_at:
+        request.session["history_cleared_at"] = user.history_cleared_at.timestamp()
     else:
-        request.session.pop("alerts_cleared_at", None)
+        request.session.pop("history_cleared_at", None)

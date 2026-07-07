@@ -303,7 +303,7 @@ def _smtp_error_message(exc: Exception) -> str:
         raw = exc.args[1]
         msg = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
         if code == 550 and "limit" in msg.lower():
-            return "L\u00edmite diario de env\u00edo de Gmail excedido. Intente ma\u00f1ana o reduzca la frecuencia de alertas."
+            return "L\u00edmite diario de env\u00edo de Gmail excedido. Intente ma\u00f1ana o reduzca la frecuencia de notificaciones."
         return f"Error SMTP ({code}): {msg[:200]}"
     if isinstance(exc, smtplib.SMTPAuthenticationError):
         return "Error de autenticaci\u00f3n SMTP. Verifique las credenciales en el archivo .env."
