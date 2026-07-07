@@ -1430,8 +1430,8 @@ button {
 }
 
 .sidebar-notif-badge {
-    min-width: 22px;
-    height: 22px;
+    min-width: 24px;
+    height: 24px;
     padding: 0 var(--sp-1);
     border-radius: var(--radius-badge);
     vertical-align: middle;
@@ -2110,6 +2110,37 @@ input.is-dirty.input-error-state:active {
 
 .status-banner i {
     font-size: var(--text-base);
+}
+
+/* — Grupo de recomendaciones — */
+.rec-group {
+    margin-top: var(--sp-2);
+}
+
+.rec-group-header {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    padding: var(--sp-2);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.rec-group-header .rec-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    box-shadow: 2px 2px 0px var(--color-ink);
+    padding: 0 var(--sp-1);
+    border-radius: var(--radius-badge);
+    border: var(--border-brutal);
+}
+
+/* Cartas adyacentes dentro de un grupo: borde interno reducido */
+.rec-group>.status-banner+.status-banner {
+    border-top: none;
 }
 
 

@@ -885,7 +885,7 @@
     window.getUnit = getUnit;
     window.getRiskClass = getRiskClass;
     window.setEquipmentState = (pumpOn, elevOn) => { currentPumpOn = pumpOn; currentElevOn = elevOn; };
-    Object.defineProperty(window, '_SENSOR_RANGES', { get: function() { return _SENSOR_RANGES; }, configurable: true });
+    Object.defineProperty(window, '_SENSOR_RANGES', { get: function () { return _SENSOR_RANGES; }, configurable: true });
 
     function updateFaultWarnings() {
         if (!IS_ADMIN) return;
@@ -1067,28 +1067,64 @@
         renderStatsTable(entries.filter(([k]) => _ELEVADOR_VARS.includes(k)), 'statsElevadorPanel', 'Estadísticas del elevador');
 
         const recsContent = document.getElementById('recommendationsContent');
-        if (!recsContent || !recs?.length) return;
+        if (!recsContent) return;
 
-        recsContent.innerHTML = '';
-        const isOk = recs.length === 1 && recs[0].includes('normales');
+        // OK — único mensaje de "normales"
+        if (recs?.length === 1 && recs[0].includes('normales')) {
+            recsContent.innerHTML =
+                '<div class="status-banner">' +
+                '<i class="fa-solid fa-circle-check"></i><span>' + recs[0] + '</span>' +
+                '</div>';
+            return;
+        }
 
-        recs.forEach(rec => {
-            let cardHtml;
-            if (isOk) {
-                cardHtml = `<div class="status-banner"><i class="fa-solid fa-circle-check"></i><span>${rec}</span></div>`;
-            } else {
-                const isCrit = rec.toLowerCase().includes('crític') || rec.toLowerCase().includes('urgente') || rec.toLowerCase().includes('atascado');
-                const bgColor = isCrit ? 'var(--state-critical-bg)' : 'var(--state-high-bg)';
-                const borderColor = isCrit ? 'var(--state-critical)' : 'var(--state-high)';
-                const icon = isCrit ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-triangle-exclamation';
-                const doorNote = (rec.includes('puertas') && typeof attempts === 'number' && attempts > 0)
-                    ? ` (Intentos fallidos: ${attempts})` : '';
-                cardHtml = `<div class="status-banner" style="background:${bgColor};color:${borderColor};"><i class="${icon}"></i><span>${rec}${doorNote}</span></div>`;
-            }
-            const div = document.createElement('div');
-            div.innerHTML = cardHtml.trim();
-            recsContent.appendChild(div.firstElementChild);
+        if (!recs?.length) return;
+
+        // Clasificar por severidad
+        var critical = [], warnings = [];
+        recs.forEach(function (rec) {
+            var isCrit = rec.toLowerCase().includes('crític') ||
+                rec.toLowerCase().includes('urgente') ||
+                rec.toLowerCase().includes('atascado');
+            (isCrit ? critical : warnings).push(rec);
         });
+
+        function buildCard(rec, isCrit) {
+            var bgColor = isCrit ? 'var(--state-critical-bg)' : 'var(--state-high-bg)';
+            var borderColor = isCrit ? 'var(--state-critical)' : 'var(--state-high)';
+            var icon = isCrit ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-triangle-exclamation';
+            var doorNote = (rec.includes('puertas') && typeof attempts === 'number' && attempts > 0)
+                ? ' (' + attempts + ' intentos fallidos)' : '';
+            return '<div class="status-banner" style="background:' + bgColor + ';color:' + borderColor + ';">' +
+                '<i class="' + icon + '"></i><span>' + rec + doorNote + '</span>' +
+                '</div>';
+        }
+
+        var html = '';
+
+        if (critical.length) {
+            html += '<div class="rec-group">' +
+                '<div class="rec-group-header">' +
+
+                '<span>Críticas</span>' +
+                '<span class="rec-badge" style="background:var(--state-critical);color:white;">' + critical.length + '</span>' +
+                '</div>';
+            critical.forEach(function (rec) { html += buildCard(rec, true); });
+            html += '</div>';
+        }
+
+        if (warnings.length) {
+            html += '<div class="rec-group">' +
+                '<div class="rec-group-header">' +
+
+                '<span>Advertencias</span>' +
+                '<span class="rec-badge" style="background:var(--state-high);color:white;">' + warnings.length + '</span>' +
+                '</div>';
+            warnings.forEach(function (rec) { html += buildCard(rec, false); });
+            html += '</div>';
+        }
+
+        recsContent.innerHTML = html;
     }
 
 
