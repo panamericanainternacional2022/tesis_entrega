@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password
 from django.core import signing
 from django.http import HttpRequest, HttpResponse
@@ -10,24 +9,37 @@ from apps.users.validators import REGEX_USERNAME
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
-    error: str | None = None
+    form_error: str | None = None
+    form_errors: dict[str, str] = {}
+    username_val = request.POST.get("username", "").strip()
+
     if request.method == "POST":
-        username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "").strip()
-        if username and password:
+
+        if not username_val or not password:
+            form_error = "Ingrese usuario y contraseña."
+            if not username_val:
+                form_errors["username"] = "Este campo es obligatorio."
+            if not password:
+                form_errors["password"] = "Este campo es obligatorio."
+        else:
             try:
-                user = Usuario.objects.get(username=username)
-                password_ok = _verify_password(password, user)
-                if not password_ok:
-                    error = "Usuario o contraseña incorrectos."
+                user = Usuario.objects.get(username=username_val)
+                if not _verify_password(password, user):
+                    form_error = "Usuario o contraseña incorrectos."
+                    form_errors["password"] = "Usuario o contraseña incorrectos."
                 else:
                     _setup_session(request, user)
                     return redirect("monitor")
             except Usuario.DoesNotExist:
-                error = "Usuario o contraseña incorrectos."
-        else:
-            error = "Ingrese usuario y contraseña."
-    return render(request, "authentication/login.html", {"error": error})
+                form_error = "Usuario o contraseña incorrectos."
+                form_errors["username"] = "Usuario o contraseña incorrectos."
+
+    return render(request, "authentication/login.html", {
+        "form_error": form_error,
+        "form_errors": form_errors,
+        "username_val": username_val,
+    })
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
