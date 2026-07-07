@@ -428,7 +428,6 @@
     const API = {
         thresholdsUpdate: '/api/thresholds/update/',
         limitsUpdate: '/api/sensor-limits/update/',
-        manualUpdate: '/api/manual-update/',
         toggleAlerts: '/notifications/toggle-alerts/',
         clearNotifications: '/notifications/clear/',
         simStatus: (id) => `/api/sim/${id}/status/`,
@@ -931,28 +930,6 @@
 
         updateFaultWarnings();
 
-        const eqSel = document.getElementById('manualEquipmentSelect');
-        const eqStatic = document.getElementById('manualEquipmentStatic');
-        if (!eqSel || !eqStatic) return;
-
-        const eqGroup = eqSel.closest('.form-group');
-
-        if (hasPump && hasElev) {
-            const cs = _csSelect(eqSel);
-            if (cs?.wrapper) cs.wrapper.style.display = '';
-            eqStatic.classList.add('d-none');
-            if (eqGroup) eqGroup.style.display = '';
-        } else if (hasPump) {
-            if (eqGroup) eqGroup.style.display = 'none';
-            _csSetValue(eqSel, 'pump');
-            if (window.ManualController) window.ManualController.populateSensorSelect();
-        } else if (hasElev) {
-            if (eqGroup) eqGroup.style.display = 'none';
-            _csSetValue(eqSel, 'elevator');
-            if (window.ManualController) window.ManualController.populateSensorSelect();
-        } else {
-            if (eqGroup) eqGroup.style.display = 'none';
-        }
     }
 
     function setNotificationBadge(count) {
@@ -1229,7 +1206,6 @@
         updateGlobalDirtyBadge();
         validateThresholdInputs('bomba');
         validateThresholdInputs('elevador');
-        if (window.ManualController) window.ManualController.updateInputType();
     }
 
     function updateDirtyState(scope) {
@@ -1383,7 +1359,6 @@
             if (res.status === 'ok') {
                 currentThresholds = res.thresholds;
                 renderThresholdsPanel(res.thresholds);
-                if (window.ManualController) window.ManualController.updateInputType();
             } else {
                 showToast(`Error al guardar: ${res.message || 'Inténtelo de nuevo.'}`, 'error');
             }
@@ -1519,7 +1494,6 @@
                 _SENSOR_RANGES = res.sensor_ranges;
                 currentThresholds = res.thresholds || currentThresholds;
                 renderLimitsPanel(res.sensor_ranges);
-                if (window.ManualController) window.ManualController.updateInputType();
             } else {
                 showToast(`Error al guardar: ${res.message || 'Inténtelo de nuevo.'}`, 'error');
             }
@@ -1931,11 +1905,6 @@
 
         const resetAllLimitsBtn = document.getElementById('resetAllLimitsBtn');
         if (resetAllLimitsBtn) resetAllLimitsBtn.addEventListener('click', resetAllLimits);
-
-        if (typeof window.ManualController !== 'undefined') {
-            window.ManualController.populateSensorSelect();
-            window.ManualController.validate();
-        }
     }
 
     function setupBuildingSelector() {

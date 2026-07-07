@@ -12,7 +12,6 @@ from .views import (
 from .simulation.streaming import sse_stream
 from .simulation.api import api_status, api_buildings, api_building_users, api_notifications
 from .simulation.controls import (
-    manual_update,
     sim_status,
     sim_pause,
     sim_reset,
@@ -62,7 +61,6 @@ urlpatterns = [
         name="api_building_users",
     ),
     path("api/notifications/", api_notifications, name="api_notifications"),
-    path("api/manual-update/", manual_update, name="api_manual_update"),
     path(
         "api/sim/<int:building_id>/status/",
         sim_status,

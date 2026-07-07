@@ -1,141 +1,15 @@
 import logging
 import math
-import time as time_module
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from apps.core.auth_decorators import login_required, admin_required
 from apps.sensors.simulation.exceptions import SimulatorError
-from .shared import get_simulator, get_first_simulator, json_error_response, json_success_response, parse_json_body
+from .shared import get_simulator, json_error_response, json_success_response, parse_json_body
 
 
 logger = logging.getLogger(__name__)
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def manual_update(request) -> JsonResponse:
-    from apps.sensors.sensor_config import PUMP_VARS, RISK_CRITICO, RISK_ALTO, RISK_NORMAL, BOOLEAN_VARS
-    from apps.sensors.simulation.constants import MAX_HISTORY_SIZE, FLOOR_HEIGHT
-    try:
-        body = parse_json_body(request)
-    except SimulatorError as e:
-        return json_error_response(e.message, e.status_code)
-
-    variable = body.get("variable")
-    value = body.get("value")
-    building_id = body.get("edificio_id")
-
-    sim = None
-    if building_id:
-        try:
-            sim = get_simulator(building_id)
-        except SimulatorError:
-            pass
-    if not sim:
-        sim = get_first_simulator()
-    if not sim:
-        return json_error_response("No hay simuladores activos", 404)
-
-    if variable not in sim.sensor_data:
-        return json_error_response("Variable no válida")
-
-    if variable in ("door_status", "trip_count"):
-        return json_error_response(f"La variable '{variable}' no puede controlarse manualmente")
-
-    if variable in BOOLEAN_VARS:
-        if isinstance(value, str) and value.lower() == "false":
-            parsed_value = False
-        else:
-            parsed_value = bool(value)
-    else:
-        try:
-            parsed_value = float(value)
-            if math.isnan(parsed_value) or math.isinf(parsed_value):
-                return json_error_response("Valor numérico inválido (NaN o Infinito)")
-        except (ValueError, TypeError):
-            return json_error_response("Valor numérico inválido")
-
-    import time
-    if not hasattr(sim, "manual_overrides") or not isinstance(sim.manual_overrides, dict):
-        sim.manual_overrides = {}
-    if not hasattr(sim, "manual_targets") or not isinstance(sim.manual_targets, dict):
-        sim.manual_targets = {}
-
-    if variable == "position":
-        # Posición manual es una solicitud de viaje del elevador, no bloquea el sensor
-        sim._elev_target_floor = int(parsed_value)
-        floor_num = round(sim._elev_position_meters / FLOOR_HEIGHT)
-        sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
-        if sim._elev_state in ("IDLE", "DOORS_OPEN"):
-            sim._elev_state = "DOOR_CLOSING"
-            sim._elev_timer = 0.0
-    elif variable == "speed":
-        sim.manual_overrides["speed"] = time.time() + 90.0
-        sim.manual_targets["speed"] = parsed_value
-        position = body.get("position")
-        if position is not None:
-            try:
-                pos_val = int(position)
-            except (ValueError, TypeError):
-                return json_error_response("El piso destino debe ser un número entero")
-            from apps.sensors.sensor_config import SENSOR_RANGES
-            pos_range = SENSOR_RANGES.get("position", (0, 100))
-            if not (pos_range[0] <= pos_val <= pos_range[1]):
-                return json_error_response(f"El piso destino debe estar entre {pos_range[0]} y {pos_range[1]}")
-            sim._elev_target_floor = pos_val
-            floor_num = round(sim._elev_position_meters / FLOOR_HEIGHT)
-            sim._elev_direction = 1 if sim._elev_target_floor > floor_num else -1
-            if sim._elev_state in ("IDLE", "DOORS_OPEN"):
-                sim._elev_state = "DOOR_CLOSING"
-                sim._elev_timer = 0.0
-    elif variable == "motor_stuck":
-        if parsed_value:
-            sim.manual_overrides["motor_stuck"] = time.time() + 90.0
-            sim.manual_targets["motor_stuck"] = True
-            sim.manual_overrides["speed"] = time.time() + 90.0
-            sim.manual_targets["speed"] = 0.0
-            sim.manual_overrides["energy"] = time.time() + 90.0
-            sim.manual_targets["energy"] = 15.0
-        else:
-            sim.sensor_data["motor_stuck"] = False
-            for k in ("motor_stuck", "speed", "energy"):
-                sim.manual_overrides.pop(k, None)
-                sim.manual_targets.pop(k, None)
-    else:
-        sim.manual_overrides[variable] = time.time() + 90.0
-        sim.manual_targets[variable] = parsed_value
-
-    from apps.core.services.risk_service import classify_risk
-    from apps.thresholds.services import get_thresholds
-
-    thresholds = get_thresholds(sim.edificio_id)
-    if variable in BOOLEAN_VARS:
-        risk = RISK_CRITICO if parsed_value else RISK_NORMAL
-    else:
-        risk, _ = classify_risk(
-            variable, parsed_value, thresholds,
-            pump_on=sim.pump_on,
-            speed=sim.sensor_data.get("speed", 0.0),
-            door_close_attempts=sim.door_close_attempts
-        )
-
-    timestamp = time_module.strftime("%Y-%m-%d %H:%M:%S")
-    sensor_type = "Bomba" if variable in PUMP_VARS else "Elevador"
-    sim.history.append({
-        "timestamp": timestamp,
-        "type": sensor_type,
-        "variable": variable,
-        "value": parsed_value,
-        "risk": risk,
-        "color": "red" if risk in (RISK_ALTO, RISK_CRITICO) else "green",
-    })
-    if len(sim.history) > MAX_HISTORY_SIZE:
-        sim.history = sim.history[-MAX_HISTORY_SIZE:]
-
-    return json_success_response({"variable": variable, "value": parsed_value, "risk": risk})
 
 
 @login_required

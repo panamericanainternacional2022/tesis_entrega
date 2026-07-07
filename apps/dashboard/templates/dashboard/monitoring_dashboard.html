@@ -107,7 +107,7 @@
                 </div>
                 <div class="form-group" style="display:flex;gap:var(--sp-2)">
                     <button type="button" id="simResetLightBtn" class="btn btn-secondary" disabled
-                            title="Restablece valores de sensores y fallas. Mantiene estado de equipos, controles manuales, velocidad e historial.">
+                            title="Restablece valores de sensores y fallas. Mantiene estado de equipos, velocidad e historial.">
                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restablecer
                     </button>
                     <button type="button" id="simResetBtn" class="btn btn-critical" disabled
@@ -119,13 +119,13 @@
             </div>
         </section>
 
-        <section class="panel mb-3" aria-labelledby="manual-controls-title">
+        <section class="panel mb-3" aria-labelledby="equipment-controls-title">
             <div class="form-section-header ">
-                <h2 class="form-page-title form-section-title" id="manual-controls-title">
-                    Controles manuales
+                <h2 class="form-page-title form-section-title" id="equipment-controls-title">
+                    Control de equipos
                 </h2>
             </div>
-            <div class="admin-controls-row" id="manualControlsRow">
+            <div class="admin-controls-row">
                 <div class="form-group" style="display:flex;gap:var(--sp-2);padding-bottom:0">
                     <div>
                         <span class="form-label">Bomba de agua</span>
@@ -143,41 +143,6 @@
                             <span>Encender</span>
                         </button>
                     </div>
-                </div>
-                <div class="form-group flex-1">
-                    <label class="form-label" for="manualEquipmentSelect">Equipo</label>
-                    <select id="manualEquipmentSelect" class="custom-select-init">
-                        <option value="pump">Bomba de agua</option>
-                        <option value="elevator">Elevador</option>
-                    </select>
-                    <span id="manualEquipmentStatic" class="input-static d-none"></span>
-                </div>
-                <div class="form-group flex-1">
-                    <label class="form-label" for="manualSensorSelect">Sensor</label>
-                    <select id="manualSensorSelect" class="custom-select-init"></select>
-                </div>
-                <div class="form-group flex-1" id="manualValueContainer">
-                    <label class="form-label" for="manualValueInput">Valor</label>
-                    <input type="number" step="any" id="manualValueInput" class="form-input"
-                           placeholder="Ej: 42.5">
-                    <select id="manualValueSelect" aria-label="Valor manual del sensor" class="custom-select-init"></select>
-                    <div class="form-group-messages">
-                        <div class="error-msg" id="manualErrorMsg"></div>
-                        <div id="manualRiskPreview" class="risk-preview"></div>
-                    </div>
-                </div>
-                <div id="manualSpeedExtra" class="form-group flex-1 d-none">
-                    <label class="form-label" for="manualPositionInput">Piso destino</label>
-                    <input type="number" step="1" id="manualPositionInput" class="form-input"
-                           placeholder="Ej: 5">
-                    <div class="form-group-messages">
-                        <div class="error-msg" id="manualPositionErrorMsg"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <button type="button" id="sendManualBtn" class="btn btn-primary">
-                        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar
-                    </button>
                 </div>
             </div>
         </section>
@@ -439,7 +404,6 @@
             window.showConfirm(
                 'Se restablecerán o eliminarán los siguientes parámetros:\n\n' +
                 '• Estado de equipos (se apagarán)\n' +
-                '• Controles manuales (se deshabilitarán)\n' +
                 '• Velocidad personalizada (vuelve a 1.0x)\n' +
                 '• Historial de gráficas (se borrará)\n' +
                 '• Datos de sensores (valores por defecto)\n' +
@@ -476,7 +440,6 @@
             window.showConfirm(
                 'Se conservarán los siguientes parámetros:\n\n' +
                 '• Estado de equipos (encendido/apagado)\n' +
-                '• Controles manuales (activos)\n' +
                 '• Velocidad personalizada\n' +
                 '• Historial de gráficas'
             ).then(function (confirmed) {
@@ -542,11 +505,6 @@
             _csDis(document.getElementById('togglePumpBtn'), !running);
             _csDis(document.getElementById('toggleElevatorBtn'), !running);
 
-            // Manual controls - delegated to ManualController
-            if (typeof window.ManualController !== 'undefined') {
-                window.ManualController.setDisabled(manualDisabled);
-            }
-
             // Fault selects - disabled when not running
             _csDis(document.getElementById('simFaultPump'), !running);
             _csDis(document.getElementById('simFaultElevator'), !running);
@@ -557,9 +515,6 @@
 
             // Notify other modules
             window.updateFaultWarnings();
-            if (typeof window.ManualController !== 'undefined') {
-                window.ManualController.validate();
-            }
         };
 
         SimulationController.prototype._updateFaultUI = function () {
@@ -628,351 +583,9 @@
             this._updateControlStates();
         };
 
-        // ─────────────── ManualController ───────────────
 
-        function ManualController() {
-            var cfgEl = document.getElementById('appConfig');
-            var cfg;
-            try { cfg = JSON.parse(cfgEl.textContent); } catch (_) { cfg = {}; }
-
-            this._bid = cfg.edificio_id || 0;
-            this._bombaVars = cfg.pump_vars || [];
-            this._elevVars = (cfg.elevator_vars || []).filter(function (v) {
-                return v !== 'door_status' && v !== 'trip_count';
-            });
-            this._valueDisplay = cfg.value_display_es || {};
-            this._noRiskVars = cfg.no_risk_vars || [];
-            this._API = '/api/manual-update/';
-            this._posInputTouched = false;
-
-            this._cacheDOMElements();
-            this._bindEvents();
-        }
-
-        ManualController.prototype._cacheDOMElements = function () {
-            this.elSensorSelect  = document.getElementById('manualSensorSelect');
-            this.elValueInput    = document.getElementById('manualValueInput');
-            this.elValueSelect   = document.getElementById('manualValueSelect');
-            this.elEquipSelect   = document.getElementById('manualEquipmentSelect');
-            this.elSendBtn       = document.getElementById('sendManualBtn');
-            this.elPositionInput = document.getElementById('manualPositionInput');
-            this.elRiskPreview   = document.getElementById('manualRiskPreview');
-            this.elErrorMsg      = document.getElementById('manualErrorMsg');
-            this.elPosErrorMsg   = document.getElementById('manualPositionErrorMsg');
-            this.elSpeedExtra    = document.getElementById('manualSpeedExtra');
-        };
-
-        ManualController.prototype._bindEvents = function () {
-            var self = this;
-
-            if (this.elValueInput) {
-                this.elValueInput.addEventListener('input', function () { self._onChange(); });
-            }
-            if (this.elValueSelect) {
-                this.elValueSelect.addEventListener('change', function () { self._onChange(); });
-            }
-            if (this.elSensorSelect) {
-                this.elSensorSelect.addEventListener('change', function () {
-                    self._posInputTouched = false;
-                    var pi = self.elPositionInput;
-                    if (pi) { pi.value = ''; pi.classList.remove('input-error-state'); pi.removeAttribute('aria-invalid'); }
-                    var pem = self.elPosErrorMsg;
-                    if (pem) { pem.textContent = ''; pem.style.visibility = 'hidden'; }
-                    self.updateInputType();
-                    self._onChange();
-                });
-            }
-            if (this.elEquipSelect) {
-                this.elEquipSelect.addEventListener('change', function () {
-                    self.populateSensorSelect();
-                    self._onChange();
-                });
-            }
-            if (this.elSendBtn) {
-                this.elSendBtn.addEventListener('click', function () { self.sendValue(); });
-            }
-            if (this.elPositionInput) {
-                this.elPositionInput.addEventListener('input', function () {
-                    self._posInputTouched = true;
-                    self.updateRiskPreview();
-                });
-                this.elPositionInput.addEventListener('blur', function () {
-                    self._posInputTouched = true;
-                    self.updateRiskPreview();
-                });
-            }
-        };
-
-        ManualController.prototype._onChange = function () {
-            this.validate();
-            this.updateRiskPreview();
-        };
-
-        ManualController.prototype._getRanges = function () {
-            return window._SENSOR_RANGES || {};
-        };
-
-        ManualController.prototype.setDisabled = function (disabled) {
-            var csDis = window._csSetDisabled || function () {};
-            csDis(this.elEquipSelect, disabled);
-            csDis(this.elSensorSelect, disabled);
-            csDis(this.elValueSelect, disabled);
-            if (this.elValueInput) this.elValueInput.disabled = disabled;
-            if (this.elSendBtn) {
-                this.elSendBtn.disabled = disabled || !this.elValueInput || !this.elValueInput.value.trim();
-            }
-        };
-
-        ManualController.prototype.populateSensorSelect = function () {
-            var sel = this.elSensorSelect;
-            var eqSel = this.elEquipSelect;
-            if (!sel || !eqSel) return;
-
-            sel.innerHTML = '';
-            var eq = eqSel.value || 'pump';
-            var vars = eq === 'pump' ? this._bombaVars : this._elevVars;
-            var container = sel.closest('.form-group');
-
-            if (vars.length <= 1) {
-                if (container) container.style.display = 'none';
-                if (vars.length === 1) {
-                    var unit = window.getUnit ? window.getUnit(vars[0]) : '';
-                    var name = window.getVariableName ? window.getVariableName(vars[0]) : vars[0];
-                    var opt = document.createElement('option');
-                    opt.value = vars[0];
-                    opt.textContent = name + (unit && vars[0] !== 'trip_count' ? ' (' + unit + ')' : '');
-                    sel.appendChild(opt);
-                    if (window._csSyncOptions) window._csSyncOptions(sel);
-                    if (window._csSetValue) window._csSetValue(sel, vars[0]);
-                }
-                return;
-            }
-            if (container) container.style.display = '';
-            vars.forEach(function (v) {
-                var unit = window.getUnit ? window.getUnit(v) : '';
-                var name = window.getVariableName ? window.getVariableName(v) : v;
-                var opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = name + (unit && v !== 'trip_count' ? ' (' + unit + ')' : '');
-                sel.appendChild(opt);
-            });
-            if (window._csSyncOptions) window._csSyncOptions(sel);
-            this.updateInputType();
-        };
-
-        ManualController.prototype.updateInputType = function () {
-            var v = this.elSensorSelect ? this.elSensorSelect.value : '';
-            var inp = this.elValueInput;
-            var sel = this.elValueSelect;
-            var speedExtra = this.elSpeedExtra;
-            if (!v || !inp || !sel) return;
-
-            var csWrapper = (window._csSelect ? window._csSelect(sel) : null)?.wrapper;
-            var isEnum = v === 'motor_stuck';
-            var valueLabel = document.querySelector('label[for="manualValueInput"]');
-
-            inp.style.display = isEnum ? 'none' : 'block';
-            if (csWrapper) csWrapper.style.display = isEnum ? 'block' : 'none';
-            if (valueLabel) valueLabel.style.display = isEnum ? 'none' : '';
-            if (speedExtra) {
-                speedExtra.classList.toggle('d-none', v !== 'speed');
-                if (v === 'speed') {
-                    var posInp = this.elPositionInput;
-                    if (posInp) {
-                        var ranges = this._getRanges();
-                        var posRange = ranges['position'];
-                        if (posRange) {
-                            posInp.min = posRange[0]; posInp.max = posRange[1];
-                            posInp.placeholder = 'Ej: ' + posRange[0] + ' - ' + posRange[1] + ' piso';
-                            posInp.step = '1';
-                        }
-                    }
-                }
-            }
-
-            if (v === 'motor_stuck') {
-                sel.innerHTML = '<option value="true">Sí</option><option value="false">No</option>';
-                inp.value = '';
-                if (window._csSyncOptions) window._csSyncOptions(sel);
-            } else {
-                var ranges = this._getRanges();
-                var range = ranges[v];
-                if (range) {
-                    inp.min = range[0]; inp.max = range[1];
-                    var u = window.getUnit ? window.getUnit(v) : '';
-                    inp.placeholder = 'Ej: ' + range[0] + ' - ' + range[1] + (u ? ' ' + u : '');
-                    inp.step = v === 'position' ? '1' : 'any';
-                } else {
-                    inp.removeAttribute('min'); inp.removeAttribute('max');
-                    var u = window.getUnit ? window.getUnit(v) : '';
-                    inp.placeholder = 'Ingrese valor numérico' + (u ? ' (' + u + ')' : '');
-                    inp.step = 'any';
-                }
-            }
-            this.updateRiskPreview();
-            this.validate();
-        };
-
-        ManualController.prototype.updateRiskPreview = function () {
-            var v = this.elSensorSelect ? this.elSensorSelect.value : '';
-            var inp = this.elValueInput;
-            var sel = this.elValueSelect;
-            var span = this.elRiskPreview;
-            if (!span || !v) return;
-
-            var errorMsg = this.elErrorMsg;
-            var posErrorMsg = this.elPosErrorMsg;
-            var status = this.validate();
-
-            if (errorMsg) {
-                errorMsg.textContent = status.errorText;
-                errorMsg.style.visibility = status.hasError ? 'visible' : 'hidden';
-            }
-            if (posErrorMsg) {
-                posErrorMsg.textContent = status.posErrorText;
-                posErrorMsg.style.visibility = status.posHasError ? 'visible' : 'hidden';
-            }
-
-            if (status.hasError || status.posHasError) {
-                span.innerHTML = '';
-                return;
-            }
-            if (status.empty) {
-                span.innerHTML = '';
-                return;
-            }
-
-            var isEnum = v === 'motor_stuck';
-            var raw = isEnum ? sel.value : inp.value;
-            var val = raw;
-            if (v === 'motor_stuck') val = (raw === 'true' || raw === '1');
-            else { var n = parseFloat(raw); if (isNaN(n)) return; val = n; }
-
-            if (this._noRiskVars.indexOf(v) !== -1) {
-                span.innerHTML = '';
-                return;
-            }
-
-            var ri = window.getRiskClass ? window.getRiskClass(v, val) : { badge: 'badge-info', label: 'Desconocido' };
-            var cls = ri.badge.replace('badge-', '');
-            var ICONS = { crit: 'fa-circle-exclamation', high: 'fa-circle-exclamation', normal: 'fa-circle-check', info: 'fa-circle-check', unknown: 'fa-circle-check' };
-            var CLASSES = { crit: 'risk-crit', high: 'risk-high', normal: 'risk-normal', info: 'risk-info', unknown: 'risk-info' };
-            span.innerHTML = 'Riesgo estimado: <span class="risk-icon ' + (CLASSES[cls] || 'risk-info') + '"><i class="fa-solid ' + (ICONS[cls] || 'fa-circle-check') + '" aria-hidden="true"></i> ' + ri.label + '</span>';
-        };
-
-        ManualController.prototype.validate = function () {
-            var v = this.elSensorSelect ? this.elSensorSelect.value : '';
-            var inp = this.elValueInput;
-            var sendBtn = this.elSendBtn;
-            var posInp = this.elPositionInput;
-            if (!v) return { hasError: false, posHasError: false, empty: true, errorText: '', posErrorText: '' };
-
-            var isEnum = v === 'motor_stuck';
-            var hasError = false, errorText = '', empty = false;
-            var posHasError = false, posErrorText = '', posEmpty = false;
-
-            if (!isEnum && inp) {
-                var raw = inp.value.trim();
-                empty = !raw;
-                if (!empty) {
-                    var val = parseFloat(raw);
-                    if (isNaN(val)) { hasError = true; errorText = 'Introduzca un número válido.'; }
-                    else {
-                        var ranges = this._getRanges();
-                        var range = ranges[v];
-                        if (range) {
-                            if (val < range[0] || val > range[1]) {
-                                hasError = true;
-                                var u = window.getUnit ? window.getUnit(v) : '';
-                                errorText = 'El valor debe estar entre ' + range[0] + ' y ' + range[1] + (u ? ' ' + u : '') + '.';
-                            }
-                        }
-                    }
-                }
-            }
-            if (v === 'speed' && posInp) {
-                var posRaw = posInp.value.trim();
-                posEmpty = !posRaw;
-                if (posEmpty) {
-                    if (this._posInputTouched) {
-                        posHasError = true;
-                        posErrorText = 'Indique el piso destino.';
-                    }
-                } else {
-                    var posVal = parseInt(posRaw, 10);
-                    var ranges = this._getRanges();
-                    var posRange = ranges['position'] || [0, 100];
-                    if (isNaN(posVal) || posVal < posRange[0] || posVal > posRange[1]) {
-                        posHasError = true;
-                        posErrorText = 'El piso debe estar entre ' + posRange[0] + ' y ' + posRange[1] + '.';
-                    }
-                }
-            }
-            if (inp) {
-                inp.classList.toggle('input-error-state', hasError);
-                if (hasError) inp.setAttribute('aria-invalid', 'true');
-                else inp.removeAttribute('aria-invalid');
-            }
-            if (posInp) {
-                posInp.classList.toggle('input-error-state', posHasError);
-                if (posHasError) posInp.setAttribute('aria-invalid', 'true');
-                else posInp.removeAttribute('aria-invalid');
-            }
-
-            var totalEmpty = empty || (v === 'speed' && posEmpty);
-            var totalHasError = hasError || posHasError;
-
-            var simCtrl = window.SimulationController;
-            var simStarted = simCtrl ? simCtrl.simStarted : false;
-            var simPaused = simCtrl ? simCtrl.simPaused : true;
-            if (sendBtn) sendBtn.disabled = totalEmpty || totalHasError || !simStarted || simPaused;
-            return { hasError: hasError, posHasError: posHasError, errorText: errorText, posErrorText: posErrorText, empty: totalEmpty };
-        };
-
-        ManualController.prototype.sendValue = function () {
-            var self = this;
-            var v = this.elSensorSelect ? this.elSensorSelect.value : '';
-            var inp = this.elValueInput;
-            var sel = this.elValueSelect;
-            var posInp = this.elPositionInput;
-            if (!v) return;
-
-            var isEnum = v === 'motor_stuck';
-            var raw = isEnum ? sel.value : inp.value;
-            if (raw === undefined || raw === '') return;
-
-            var val = raw, position;
-            if (v === 'motor_stuck') {
-                val = raw === 'true' || raw === '1';
-            } else {
-                var n = parseFloat(raw);
-                if (isNaN(n)) return;
-                var ranges = this._getRanges();
-                if (ranges[v] && (n < ranges[v][0] || n > ranges[v][1])) return;
-                val = n;
-            }
-            if (v === 'speed' && posInp) {
-                var posRaw = posInp.value.trim();
-                if (!posRaw) return;
-                position = parseInt(posRaw, 10);
-                var ranges = this._getRanges();
-                var posRange = ranges['position'] || [0, 100];
-                if (isNaN(position) || position < posRange[0] || position > posRange[1]) return;
-            }
-            var body = { variable: v, value: val, edificio_id: this._bid };
-            if (position !== undefined) body.position = position;
-
-            window.csrfFetch(this._API, { method: 'POST', body: JSON.stringify(body) })
-                .then(function (r) { return r.json(); })
-                .then(function (res) {
-                    if (res.status === 'ok') window.showToast('Valor enviado correctamente.', 'success');
-                    else window.showToast(res.message || 'No se pudo aplicar el valor.', 'error');
-                })
-                .catch(function () { window.showToast('Error de conexión. Inténtelo de nuevo.', 'error'); });
-        };
 
         window.SimulationController = new SimulationController();
-        window.ManualController = new ManualController();
     })();
     </script>
 {% endblock %}
