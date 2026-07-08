@@ -3,8 +3,8 @@ from django.http import HttpRequest
 from apps.buildings.services import EquipmentConfig
 
 
-def pop_messages(request: HttpRequest, key: str = "_bld_msg") -> list:
-    return request.session.pop(key, [])
+def pop_messages(request: HttpRequest) -> list:
+    return request.session.pop("_bld_msg", [])
 
 
 def extract_building_data(request: HttpRequest) -> dict:
@@ -21,18 +21,6 @@ def extract_equipment_config(request: HttpRequest) -> EquipmentConfig:
         has_elevator=request.POST.get("con_elevador") == "true",
     )
 
-
-def build_required_errors(data: dict) -> dict[str, str]:
-    errors = {}
-    if not data["name"]:
-        errors["nombreEdificio"] = "Este campo es obligatorio."
-    if not data["rif"]:
-        errors["rif"] = "Este campo es obligatorio."
-    if not data["address"]:
-        errors["direccion"] = "Este campo es obligatorio."
-    if not data.get("floors"):
-        errors["cantidadPisos"] = "Este campo es obligatorio."
-    return errors
 
 
 

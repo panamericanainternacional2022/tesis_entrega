@@ -105,7 +105,7 @@ class RegisterBuildingViewTests(BuildingViewTestBase):
     def test_post_missing_fields_shows_error(self) -> None:
         response = self.client.post(reverse("register_building"), {})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Complete el nombre")
+        self.assertContains(response, "Corrija los errores")
 
     def test_building_name_with_numbers_is_valid(self) -> None:
         response = self.client.post(reverse("register_building"), {

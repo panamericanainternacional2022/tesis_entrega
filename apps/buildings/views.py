@@ -14,7 +14,7 @@ from apps.buildings.validators import validate_building_form
 from apps.users.validators import normalize_rif
 from apps.buildings.shared import (
     pop_messages, extract_building_data,
-    extract_equipment_config, build_required_errors,
+    extract_equipment_config,
 )
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
@@ -78,34 +78,30 @@ def register_building_view(request: HttpRequest) -> HttpResponse:
         building_data = data
         config = extract_equipment_config(request)
 
-        if not (data["name"] and data["rif"] and data["address"] and data.get("floors")):
-            messages.error(request, "Complete el nombre, la dirección, el RIF y la cantidad de pisos del edificio.")
-            form_errors = build_required_errors(data)
+        form_errors = validate_building_form({
+            "nombreEdificio": data["name"],
+            "direccion": data["address"],
+            "rif": data["rif"],
+            "cantidadPisos": data.get("floors"),
+        })
+        if not form_errors:
+            try:
+                floors_val = int(data["floors"])
+                if config.has_elevator and floors_val <= 1:
+                    form_errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
+            except (ValueError, TypeError):
+                form_errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
+        if form_errors:
+            messages.error(request, "Corrija los errores indicados en el formulario.")
         else:
-            form_errors = validate_building_form({
-                "nombreEdificio": data["name"],
-                "direccion": data["address"],
-                "rif": data["rif"],
-                "cantidadPisos": data.get("floors"),
-            })
-            if not form_errors:
-                try:
-                    floors_val = int(data["floors"])
-                    if config.has_elevator and floors_val <= 1:
-                        form_errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
-                except (ValueError, TypeError):
-                    form_errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
-            if form_errors:
-                messages.error(request, "Corrija los errores indicados en el formulario.")
-            else:
-                with transaction.atomic():
-                    building = Building.objects.create(
-                        name=data["name"], rif=data["rif"], address=data["address"],
-                        floors=int(data["floors"]),
-                    )
-                    create_equipment_for_building(building, config)
-                messages.success(request, "Edificio registrado correctamente.")
-                return redirect("building_list")
+            with transaction.atomic():
+                building = Building.objects.create(
+                    name=data["name"], rif=data["rif"], address=data["address"],
+                    floors=int(data["floors"]),
+                )
+                create_equipment_for_building(building, config)
+            messages.success(request, "Edificio registrado correctamente.")
+            return redirect("building_list")
 
     return render(
         request,
@@ -136,38 +132,34 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
         has_elevator = request.POST.get("con_elevador") == "true"
         config = EquipmentConfig(has_elevator=has_elevator)
 
-        if not (data["name"] and data["rif"] and data["address"] and data.get("floors")):
-            messages.error(request, "Complete el nombre, la dirección, el RIF y la cantidad de pisos del edificio.")
-            form_errors = build_required_errors(data)
+        form_errors = validate_building_form(
+            {
+                "nombreEdificio": data["name"],
+                "direccion": data["address"],
+                "rif": data["rif"],
+                "cantidadPisos": data.get("floors"),
+            },
+            exclude_building_id=building.id,
+        )
+        if not form_errors:
+            try:
+                floors_val = int(data["floors"])
+                if config.has_elevator and floors_val <= 1:
+                    form_errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
+            except (ValueError, TypeError):
+                form_errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
+        if form_errors:
+            messages.error(request, "Corrija los errores indicados en el formulario.")
         else:
-            form_errors = validate_building_form(
-                {
-                    "nombreEdificio": data["name"],
-                    "direccion": data["address"],
-                    "rif": data["rif"],
-                    "cantidadPisos": data.get("floors"),
-                },
-                exclude_building_id=building.id,
-            )
-            if not form_errors:
-                try:
-                    floors_val = int(data["floors"])
-                    if config.has_elevator and floors_val <= 1:
-                        form_errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
-                except (ValueError, TypeError):
-                    form_errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
-            if form_errors:
-                messages.error(request, "Corrija los errores indicados en el formulario.")
-            else:
-                with transaction.atomic():
-                    building.name = data["name"]
-                    building.address = data["address"]
-                    building.rif = data["rif"]
-                    building.floors = int(data["floors"])
-                    building.save()
-                    sync_equipment_for_building(building, config)
-                messages.success(request, "Edificio actualizado correctamente.")
-                return redirect("building_list")
+            with transaction.atomic():
+                building.name = data["name"]
+                building.address = data["address"]
+                building.rif = data["rif"]
+                building.floors = int(data["floors"])
+                building.save()
+                sync_equipment_for_building(building, config)
+            messages.success(request, "Edificio actualizado correctamente.")
+            return redirect("building_list")
 
     return render(
         request,
@@ -185,15 +177,7 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
 @admin_required
 def delete_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
     building = get_object_or_404(Building, id=building_id)
-    with transaction.atomic():
-        equipment = list(building.equipment.all())
-        History.objects.filter(
-            monitoring_equipment__building=building,
-        ).delete()
-        for eq in equipment:
-            eq.delete()
-        UserBuilding.objects.filter(building=building).delete()
-        building.delete()
+    building.delete()
     messages.success(
         request,
         "El edificio y todos sus datos asociados se eliminaron correctamente.",
@@ -229,7 +213,7 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
 
 import datetime as _dt_bld
 import logging as _logging_bld
-from typing import Any as _Any
+from typing import Any
 
 _logger_bld = _logging_bld.getLogger(__name__)
 
@@ -247,7 +231,7 @@ _EQUIP_TYPE_ES: dict[str, str] = {
 }
 
 
-def generate_building_report_bytes(edificio_id: int, request: _Any = None) -> tuple[bytes, str]:
+def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tuple[bytes, str]:
 
     building = get_object_or_404(Building, id=edificio_id)
     pdf = _create_report_pdf("Reporte de estado del edificio")
@@ -298,7 +282,7 @@ def generate_building_report_bytes(edificio_id: int, request: _Any = None) -> tu
         pdf, sensor_data, thresholds, relevant_vars, pump_status, elevator_status, equip_types,
         pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
     )
-    _render_equipment_summary(pdf, equipment, pump_status, elevator_status)
+    _render_equipment_summary(pdf, equipment)
     render_severity_legend(pdf)
 
     critical_items = _get_critical_items(
@@ -319,7 +303,7 @@ def generate_building_report_bytes(edificio_id: int, request: _Any = None) -> tu
 
     usuario_id = request.session.get("usuario_id") if request else None
     usuario_rol = request.session.get("usuario_rol", "US") if request else "US"
-    _render_history_section(pdf, edificio_id, now, usuario_id, usuario_rol)
+    _render_history_section(pdf, edificio_id, usuario_id, usuario_rol)
     _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
     _render_limits_section(pdf, edificio_id, relevant_vars, VAR_NAMES, UNITS)
@@ -339,7 +323,7 @@ def generate_building_report_bytes(edificio_id: int, request: _Any = None) -> tu
 
 
 @login_required
-def building_report_pdf_view(request: _Any, edificio_id: int) -> HttpResponse:
+def building_report_pdf_view(request: Any, edificio_id: int) -> HttpResponse:
     try:
         pdf_bytes, filename = generate_building_report_bytes(edificio_id, request=request)
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
@@ -409,7 +393,7 @@ def _format_value(var: str, value, units: dict, value_display_map: dict = None) 
 
 
 def _render_executive_summary(
-    pdf: _Any, sensor_data: dict, thresholds: dict,
+    pdf: Any, sensor_data: dict, thresholds: dict,
     relevant_vars: set, pump_status, elevator_status,
     equip_types: set, pump_on: bool = True, speed: float = 0.0,
     door_close_attempts: int = 0
@@ -450,10 +434,8 @@ def _render_executive_summary(
 
 
 def _render_equipment_summary(
-    pdf: _Any,
+    pdf: Any,
     equipment: list,
-    pump_status,
-    elevator_status,
 ) -> None:
 
     if not equipment:
@@ -487,7 +469,7 @@ def _render_equipment_summary(
 
 
 def _render_critical_section(
-    pdf: _Any, critical_items: list[dict],
+    pdf: Any, critical_items: list[dict],
     _VAR_NAMES: dict, _UNITS: dict, _ACTIONS: dict,
     _VALUE_DISPLAY_ES: dict = None,
 ) -> None:
@@ -525,7 +507,7 @@ def _render_critical_section(
 
 
 def _render_current_readings(
-    pdf: _Any, sensor_data: dict, thresholds: dict,
+    pdf: Any, sensor_data: dict, thresholds: dict,
     relevant_vars: set, equip_types: set,
     _VAR_NAMES: dict, _UNITS: dict, _ACTIONS: dict,
     _VALUE_DISPLAY_ES: dict = None,
@@ -585,7 +567,7 @@ def _render_current_readings(
         pdf.ln(4)
 
 
-def _render_rationing_section(pdf: _Any, sensor_data: dict) -> None:
+def _render_rationing_section(pdf: Any, sensor_data: dict) -> None:
     if pdf.get_y() > 250:
         pdf.add_page()
 
@@ -626,9 +608,8 @@ def _render_rationing_section(pdf: _Any, sensor_data: dict) -> None:
 
 
 def _render_history_section(
-    pdf: _Any,
+    pdf: Any,
     edificio_id: int,
-    now: _dt_bld.datetime,
     usuario_id: int | None = None,
     usuario_rol: str = "US",
 ) -> None:
@@ -704,7 +685,7 @@ def _render_history_section(
     pdf.ln(6)
 
 
-def _render_recommendations_section(pdf: _Any, sensor_data: dict, pump_on: bool = True) -> None:
+def _render_recommendations_section(pdf: Any, sensor_data: dict, pump_on: bool = True) -> None:
     from apps.history.services.recommendation_engine import generate_recommendations
     if pdf.get_y() > 240:
         pdf.add_page()
@@ -723,7 +704,7 @@ def _render_recommendations_section(pdf: _Any, sensor_data: dict, pump_on: bool 
 
 
 def _render_stats_table(
-    pdf: _Any, stats: dict, relevant_vars: set,
+    pdf: Any, stats: dict, relevant_vars: set,
     _VAR_NAMES: dict, _UNITS: dict,
 ) -> None:
     if pdf.get_y() > 230:
@@ -760,7 +741,7 @@ def _render_stats_table(
 
 
 def _render_thresholds(
-    pdf: _Any, thresholds: dict, relevant_vars: set,
+    pdf: Any, thresholds: dict, relevant_vars: set,
     _VAR_NAMES: dict, _UNITS: dict,
 ) -> None:
     if pdf.get_y() > 230:
@@ -804,7 +785,7 @@ def _render_thresholds(
 
 
 def _render_limits_section(
-    pdf: _Any,
+    pdf: Any,
     edificio_id: int,
     relevant_vars: set,
     _VAR_NAMES: dict,

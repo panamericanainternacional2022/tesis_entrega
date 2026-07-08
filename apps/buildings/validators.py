@@ -22,8 +22,20 @@ def validate_unique_rif(rif: str, exclude_building_id: Optional[int] = None) -> 
 def validate_building_form(
     data: dict, exclude_building_id: Optional[int] = None
 ) -> dict[str, str]:
-    from apps.users.validators import REGEX_ADDRESS
     errors: dict[str, str] = {}
+
+    if not data.get("nombreEdificio"):
+        errors["nombreEdificio"] = "Este campo es obligatorio."
+    if not data.get("rif"):
+        errors["rif"] = "Este campo es obligatorio."
+    if not data.get("direccion"):
+        errors["direccion"] = "Este campo es obligatorio."
+    if not data.get("cantidadPisos"):
+        errors["cantidadPisos"] = "Este campo es obligatorio."
+    if errors:
+        return errors
+
+    from apps.users.validators import REGEX_ADDRESS
 
     _check_field(data, "nombreEdificio", REGEX_BUILDING_NAME,
                  "El nombre del edificio solo acepta letras y números.", errors, "nombreEdificio")
