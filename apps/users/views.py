@@ -256,8 +256,6 @@ def user_delete_view(request: HttpRequest, user_id: int) -> HttpResponse:
     person = user.id_persona
     full_name = person.get_full_name() or user.username
     with transaction.atomic():
-        History.objects.filter(user=user).delete()
-        UserBuilding.objects.filter(user=user).delete()
         person_id = user.id_persona_id
         user.delete()
         if person_id:
@@ -306,72 +304,28 @@ def _smtp_error_message(exc: Exception) -> str:
     return f"Error al enviar correo: {type(exc).__name__}: {exc}"
 
 
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def send_test_email(request: HttpRequest) -> JsonResponse:
+def _parse_json_body(request: HttpRequest) -> dict | None:
     try:
-        data = json.loads(request.body)
+        return json.loads(request.body)
     except json.JSONDecodeError:
-        return json_error("Invalid JSON")
+        return None
 
-    email = data.get("email", "")
-    if not email:
-        return json_error("Missing field 'email'")
 
-    sim = next(iter(simulators.values()), None)
-    if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
-
-    subject, html_body = _build_report_email_body(sim)
-
-    pdf_bytes = None
-    pdf_name = "reporte.pdf"
+def _safe_int(value: Any, default: int | None = None) -> int | None:
     try:
-        pdf_bytes, pdf_name = generate_building_report_bytes(sim.edificio_id)
-    except Exception as e:
-        logger_email.warning("Could not generate building report PDF: %s", e)
-
-    try:
-        send_email_raw(
-            to_addrs=[email],
-            subject=subject,
-            html_body=html_body,
-            attachment_pdf=pdf_bytes,
-            attachment_name=pdf_name,
-        )
-    except Exception as exc:
-        logger_email.error("send_test_email failed: %s", exc)
-        return json_error(_smtp_error_message(exc), 502)
-
-    return json_ok({"message": f"Reporte enviado a {email}"})
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def send_all_subscribers(request: HttpRequest) -> JsonResponse:
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return json_error("Invalid JSON")
-
-    edificio_id = data.get("edificio_id")
-
-    try:
-        eid = int(edificio_id) if edificio_id is not None else None
+        return int(value) if value is not None else default
     except (ValueError, TypeError):
-        eid = None
-    sim = simulators.get(eid) if eid else next(iter(simulators.values()), None)
+        return default
+
+
+def _send_report_to_recipients(
+    to_addrs: list[str], edificio_id: int | None, request: HttpRequest
+) -> JsonResponse | None:
+    sim = simulators.get(edificio_id) if edificio_id else next(iter(simulators.values()), None)
     if not sim:
         return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
 
     actual_eid = sim.edificio_id
-
-    emails = get_building_emails(actual_eid)
-    if not emails:
-        return json_error("No subscribers for this building")
-
     subject, html_body = _build_report_email_body(sim)
 
     pdf_bytes = None
@@ -383,17 +337,50 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
 
     try:
         send_email_raw(
-            to_addrs=emails,
+            to_addrs=to_addrs,
             subject=subject,
             html_body=html_body,
             attachment_pdf=pdf_bytes,
             attachment_name=pdf_name,
         )
     except Exception as exc:
-        logger_email.error("send_all_subscribers failed: %s", exc)
+        logger_email.error("send report failed: %s", exc)
         return json_error(_smtp_error_message(exc), 502)
 
-    return json_ok({"message": f"Reporte enviado a {len(emails)} suscriptores"})
+    return None
+
+
+@require_http_methods(["POST"])
+@login_required
+@admin_required
+def send_test_email(request: HttpRequest) -> JsonResponse:
+    data = _parse_json_body(request)
+    if data is None:
+        return json_error("Invalid JSON")
+
+    email = data.get("email", "")
+    if not email:
+        return json_error("Missing field 'email'")
+
+    error = _send_report_to_recipients([email], None, request)
+    return error if error else json_ok({"message": f"Reporte enviado a {email}"})
+
+
+@require_http_methods(["POST"])
+@login_required
+@admin_required
+def send_all_subscribers(request: HttpRequest) -> JsonResponse:
+    data = _parse_json_body(request)
+    if data is None:
+        return json_error("Invalid JSON")
+
+    eid = _safe_int(data.get("edificio_id"))
+    emails = get_building_emails(eid)
+    if not emails:
+        return json_error("No subscribers for this building")
+
+    error = _send_report_to_recipients(emails, eid, request)
+    return error if error else json_ok({"message": f"Reporte enviado a {len(emails)} suscriptores"})
 
 
 # ── User PDF Report (moved from reports.views.users) ───────────────────────

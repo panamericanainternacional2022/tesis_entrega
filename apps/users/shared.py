@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.db import IntegrityError
 from django.http import HttpRequest
 
+from apps.buildings.models import UserBuilding
 from apps.users.models import Usuario, Persona
 from apps.users.services import build_random_username
 
@@ -69,8 +70,6 @@ def create_user_with_retry(
 
 
 def build_edit_initial_data(user: Usuario, person: Persona) -> dict[str, Any]:
-    from apps.buildings.models import UserBuilding
-
     current_ue = UserBuilding.objects.filter(user=user).first()
     current_building = current_ue.building if current_ue else None
 

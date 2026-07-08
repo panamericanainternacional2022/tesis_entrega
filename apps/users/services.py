@@ -1,3 +1,4 @@
+import os
 import random
 import string
 from typing import Any
@@ -69,7 +70,6 @@ def build_random_username(first_name: str, last_name: str) -> str:
 
 
 def send_activation_email(email: str, user_id: int, base_url: str) -> str:
-    import os
     token = signing.dumps({"user_id": user_id, "email": email})
     link = f"{base_url}{reverse('complete_registration')}?token={token}"
 

@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.test import TestCase
 from django.urls import reverse
 
@@ -224,7 +225,6 @@ class LoginViewTests(TestCase):
             ci="V-12345678", first_name="Admin", first_last_name="User",
             email="admin@test.com",
         )
-        from django.contrib.auth.hashers import make_password
         self.user = Usuario.objects.create(
             username="admin", password=make_password("admin123"),
             id_persona=self.persona, rol="SA", registered=True,
@@ -266,7 +266,6 @@ class UserListViewTests(TestCase):
             ci="V-12345678", first_name="Admin", first_last_name="User",
             email="admin@test.com",
         )
-        from django.contrib.auth.hashers import make_password
         self.user = Usuario.objects.create(
             username="admin", password=make_password("admin123"),
             id_persona=self.persona, rol="SA", registered=True,
@@ -281,7 +280,6 @@ class UserListViewTests(TestCase):
             ci="V-87654321", first_name="Normal", first_last_name="User",
             email="n@n.com",
         )
-        from django.contrib.auth.hashers import make_password
         Usuario.objects.create(
             username="us", password=make_password("abc"),
             id_persona=p, rol="US",
@@ -305,7 +303,6 @@ class UserCreateViewTests(TestCase):
             ci="V-12345678", first_name="Admin", first_last_name="User",
             email="admin@test.com",
         )
-        from django.contrib.auth.hashers import make_password
         self.user = Usuario.objects.create(
             username="admin", password=make_password("admin123"),
             id_persona=self.persona, rol="SA", registered=True,
