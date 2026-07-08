@@ -3,10 +3,6 @@ from django.http import HttpRequest
 from apps.buildings.services import EquipmentConfig
 
 
-def build_message(text: str, msg_type: str) -> dict[str, str]:
-    return {"text": text, "type": msg_type}
-
-
 def pop_messages(request: HttpRequest, key: str = "_bld_msg") -> list:
     return request.session.pop(key, [])
 
@@ -39,8 +35,4 @@ def build_required_errors(data: dict) -> dict[str, str]:
     return errors
 
 
-def count_history_records_for_building(building_id: int) -> int:
-    from apps.history.models import History
-    return History.objects.filter(
-        monitoring_equipment__building_id=building_id,
-    ).count()
+

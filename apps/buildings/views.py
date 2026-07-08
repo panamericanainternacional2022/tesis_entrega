@@ -13,11 +13,11 @@ from apps.buildings.services import (
 from apps.buildings.validators import validate_building_form
 from apps.users.validators import normalize_rif
 from apps.buildings.shared import (
-    build_message, pop_messages, extract_building_data,
+    pop_messages, extract_building_data,
     extract_equipment_config, build_required_errors,
 )
 from apps.sensors.sensor_config import (
-    RISK_NORMAL, RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO,
+    RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
     SEVERITY_LEVELS, SEVERITY_DISPLAY_LEVELS, RISK_STYLES,
     PUMP_VARS, ELEVATOR_VARS, RATIONING_THRESHOLD, SENSOR_RANGES,
     VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES,
@@ -28,8 +28,7 @@ from apps.thresholds.services import get_thresholds
 from apps.sensors.simulation.globals import simulators
 from apps.core.services.pdf_shared import _pdf_font, draw_row, safe_text
 from apps.core.services.pdf_rendering import (
-    ACCENT_COLOR, DIVIDER_COLOR, HEADER_BG, HEADER_TEXT,
-    _create_report_pdf, make_pdf_response,
+    _create_report_pdf,
     render_pdf_header, render_section_divider, render_summary_box,
     render_severity_legend, render_text_progress_bar, render_table_header,
 )
