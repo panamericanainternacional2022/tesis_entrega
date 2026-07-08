@@ -84,7 +84,8 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
     has_mixed_estado = (
         any(u["registered"] for u in users) and any(not u["registered"] for u in users)
     ) if users else False
-    show_filter = bool(buildings) and (len(buildings) > 1 or has_mixed_estado)
+    filter_active = bool(building_id) or bool(estado) or bool(query)
+    show_filter = filter_active or (bool(buildings) and bool(users) and (len(buildings) > 1 or has_mixed_estado))
 
     filter_params = {}
     if query:
