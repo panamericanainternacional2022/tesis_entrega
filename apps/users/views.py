@@ -79,7 +79,12 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
     estado = request.GET.get("estado", "").strip()
 
     users = [build_user_data(u) for u in _filter_users_query(query, building_id, estado)]
-    buildings = Building.objects.all()
+    buildings = list(Building.objects.all())
+
+    has_mixed_estado = (
+        any(u["registered"] for u in users) and any(not u["registered"] for u in users)
+    ) if users else False
+    show_filter = bool(buildings) and (len(buildings) > 1 or has_mixed_estado)
 
     filter_params = {}
     if query:
@@ -96,6 +101,7 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
         "selected_edificio_id": int(building_id) if building_id.isdigit() else None,
         "current_estado": estado,
         "filter_query_string": filter_query_string,
+        "show_filter": show_filter,
     })
 
 
@@ -104,7 +110,7 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
 @transaction.atomic
 def user_create_view(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
-        return render(request, "users/user_register.html", {"user": {}})
+        return render(request, "users/user_register.html", {"user": {}, "edificios": Building.objects.all()})
 
     generated_password = None
     user_data: dict[str, Any] = {}

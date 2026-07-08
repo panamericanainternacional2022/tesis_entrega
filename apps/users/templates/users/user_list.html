@@ -17,7 +17,7 @@
 {% block list_filters %}
 <input type="hidden" name="edificio" id="hidden-edificio" value="{{ selected_edificio_id|default:'' }}">
 <input type="hidden" name="estado" id="hidden-estado" value="{{ current_estado }}">
-<button id="openUserFilterPanel" type="button" class="btn btn-primary">
+<button id="openUserFilterPanel" type="button" class="btn btn-primary" {% if not show_filter %}disabled{% endif %}>
     <i class="fa-solid fa-sliders" aria-hidden="true"></i> Filtrar
     {% if selected_edificio_id or current_estado %}
     <span class="filter-dot"></span>
