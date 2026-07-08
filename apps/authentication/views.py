@@ -12,6 +12,7 @@ ERROR_INVALID_CREDENTIALS = "Usuario o contraseña incorrectos."
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
+    form_error: str | None = None
     form_errors: dict[str, str] = {}
     username_val = request.POST.get("username", "").strip()
 
@@ -29,10 +30,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
             if user and _verify_password(password, user):
                 _setup_session(request, user)
                 return redirect("monitor")
-            form_errors["password"] = ERROR_INVALID_CREDENTIALS
+            form_error = ERROR_INVALID_CREDENTIALS
 
     return render(request, "authentication/login.html", {
-        "form_error": _first_error(form_errors),
+        "form_error": form_error,
         "form_errors": form_errors,
         "username_val": username_val,
     })
