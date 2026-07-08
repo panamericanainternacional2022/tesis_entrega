@@ -282,7 +282,8 @@ button {
 .form-card,
 .table-wrapper,
 .toolbar,
-.login-card {
+.login-card,
+.no-history {
     position: relative;
 }
 
@@ -293,7 +294,8 @@ button {
 .form-card::before,
 .table-wrapper::before,
 .toolbar::before,
-.login-card::before {
+.login-card::before,
+.no-history::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1260,7 +1262,6 @@ button {
 /* ─── Lista ─── */
 .hist-list {
     list-style: none;
-    border: var(--border-brutal);
     background: var(--color-surface);
 }
 
@@ -1373,25 +1374,18 @@ button {
     text-align: center;
     padding: var(--sp-9) var(--sp-5);
     color: var(--color-text-secondary);
-    border: var(--border-brutal);
     background: var(--color-surface);
 }
 
-.no-history i {
+.no-history > i {
+    font-size: var(--text-2xl);
     color: var(--color-ink);
-
 }
 
 /* ─── Notif card ─── */
 .hist-card {
     overflow: hidden;
     margin-top: var(--sp-5);
-}
-
-.hist-card .hist-list,
-.hist-card .no-history {
-    border: none;
-    box-shadow: none;
 }
 
 /* ─── Badges de conteo ─── */
@@ -2225,24 +2219,6 @@ input.is-dirty.input-error-state:active {
     font-weight: var(--weight-medium);
     font-size: var(--text-sm);
     color: var(--color-ink);
-}
-
-.equip-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--sp-2);
-    padding: var(--sp-3) var(--sp-4);
-    border: var(--border-brutal);
-    box-shadow: var(--shadow-brutal);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    user-select: none;
-    font-weight: var(--weight-bold);
-    font-size: var(--text-sm);
-    font-family: inherit;
-    line-height: var(--leading-none);
 }
 
 /* ─── Duración grid ─── */

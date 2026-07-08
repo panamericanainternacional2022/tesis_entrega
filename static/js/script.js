@@ -2024,6 +2024,7 @@
             cedula: /^[VE]\d{6,9}$/,
             email: /^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$/,
             password: /(?=.*[a-zA-Z])(?=.*\d)/,
+            direccion: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,\.#\-\/()]*$/,
         };
 
         const KEYPRESS_CONFIG = {
@@ -2034,6 +2035,7 @@
             'rif': { regex: /^[J\d\-]$/, useUpper: true, allowDelete: false },
             'cedula': { regex: /^[VE\d.\-]$/, useUpper: true, allowDelete: false },
             'cantidad-pisos': { regex: /^\d$/, useUpper: false, allowDelete: true },
+            'direccion': { regex: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,\.#\-\/()]$/, useUpper: false, allowDelete: false },
         };
 
         const mostrarError = (input, mensaje) => {
@@ -2066,7 +2068,7 @@
         };
 
         const toggleSubmit = (form) => {
-            const btn = form.querySelector('button[type="submit"], .btn-primary');
+            const btn = form.querySelector('button[type="submit"]');
             if (btn) btn.disabled = tieneErrores(form);
         };
 
@@ -2198,6 +2200,23 @@
             toggleSubmit(input.form);
         };
 
+        const validarDireccion = (input) => {
+            const valor = input.value;
+            const maximo = input.maxLength > 0 ? input.maxLength : 100;
+            const minimo = 8;
+            if (valor && !REGEX.direccion.test(valor)) {
+                input.value = valor.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,\.#\-/()]/g, '');
+                mostrarError(input, 'La dirección contiene caracteres no válidos.');
+            } else if (valor.length > maximo) {
+                input.value = valor.slice(0, maximo); mostrarError(input, `Máximo ${maximo} caracteres.`);
+            } else if (valor.length > 0 && valor.length < minimo) {
+                mostrarError(input, `La dirección debe tener al menos ${minimo} caracteres.`);
+            } else if (valor.length > 0 && valor.trim().length === 0) {
+                mostrarError(input, 'Completa este campo correctamente.');
+            } else { limpiarError(input); }
+            toggleSubmit(input.form);
+        };
+
         const VALIDATORS = {
             'solo-letras': validarSoloLetras,
             'solo-numeros': validarSoloNumeros,
@@ -2208,6 +2227,7 @@
             'confirm-password': validarConfirmPassword,
             'username': validarUsername,
             'cantidad-pisos': validarCantidadPisos,
+            'direccion': validarDireccion,
         };
 
         // --- Registro de Listeners Delegados en document ---

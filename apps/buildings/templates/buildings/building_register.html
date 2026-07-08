@@ -39,10 +39,10 @@
                 <div class="form-group">
                     <label for="direccion">Dirección</label>
                     <div class="input-with-icon">
-                        <input placeholder="Ej. Calle Principal, Ciudad" type="text" id="direccion" name="direccion" value="{{ building.address|default:'' }}" data-validate="direccion" maxlength="100" required class="form-input {% if form_errors.direccion or form_errors.direccion_long %}input-error-state{% endif %}" />
+                        <input placeholder="Ej. Calle Principal, Ciudad" type="text" id="direccion" name="direccion" value="{{ building.address|default:'' }}" data-validate="direccion" maxlength="100" required class="form-input {% if form_errors.direccion or form_errors.direccion_min or form_errors.direccion_long %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
-                    <div class="error-msg">{% if form_errors.direccion %}{{ form_errors.direccion }}{% elif form_errors.direccion_long %}{{ form_errors.direccion_long }}{% endif %}</div>
+                    <div class="error-msg">{% if form_errors.direccion %}{{ form_errors.direccion }}{% elif form_errors.direccion_min %}{{ form_errors.direccion_min }}{% elif form_errors.direccion_long %}{{ form_errors.direccion_long }}{% endif %}</div>
                 </div>
                 <div class="form-group">
                     <label for="cantidadPisos">Cantidad de pisos</label>
@@ -55,18 +55,18 @@
             </div>
 
             <div class="form-row">
-                <fieldset class="form-group full-width" style="border: none; padding: 0; margin: 0;">
-                    <legend class="field-label" style="display: block; margin-bottom: var(--sp-1);">Equipamiento del edificio</legend>
+                <div class="form-group full-width">
+                    <label class="form-label" style="display: block; margin-bottom: var(--sp-2);">¿El edificio cuenta con elevador?</label>
                     <div class="flex" role="group" style="gap:0.5rem">
-                        <button type="button" disabled class="equip-btn" style="background:var(--color-accent);color:var(--color-surface);cursor:default;opacity:0.65;filter:saturate(0.6)">
-                            <i class="fa-solid fa-tint" aria-hidden="true"></i> Bomba de agua
+                        <button type="button" class="btn js-equip-yes {% if has_elevator %}btn-primary{% else %}btn-secondary{% endif %}" data-value="true">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i> Sí, cuenta con uno
                         </button>
-                        <button type="button" class="equip-btn js-equip-toggle {% if has_elevator %}btn-primary{% else %}btn-secondary{% endif %}" aria-pressed="{% if has_elevator %}true{% else %}false{% endif %}" aria-label="Equipamiento de Elevador">
-                            <i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Elevador
+                        <button type="button" class="btn js-equip-no {% if not has_elevator %}btn-primary{% else %}btn-secondary{% endif %}" data-value="false">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i> No cuenta con ninguno
                         </button>
                         <input type="hidden" name="con_elevador" value="{% if has_elevator %}true{% else %}false{% endif %}" />
                     </div>
-                </fieldset>
+                </div>
             </div>
 
             <div class="actions-row">
@@ -88,14 +88,24 @@
         document.addEventListener('DOMContentLoaded', function () {
             var checkFormState = initFormState(document.querySelector('form'), {% if editing %}true{% else %}false{% endif %});
 
-            document.querySelectorAll('.js-equip-toggle').forEach(function (btn) {
+            document.querySelectorAll('.js-equip-yes, .js-equip-no').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    this.classList.toggle('btn-primary');
-                    this.classList.toggle('btn-secondary');
                     var inp = document.querySelector('input[name="con_elevador"]');
-                    var newValue = inp.value === 'true' ? 'false' : 'true';
-                    inp.value = newValue;
-                    this.setAttribute('aria-pressed', newValue);
+                    var value = this.getAttribute('data-value');
+                    inp.value = value;
+                    var yesBtn = document.querySelector('.js-equip-yes');
+                    var noBtn = document.querySelector('.js-equip-no');
+                    yesBtn.classList.remove('btn-primary');
+                    yesBtn.classList.add('btn-secondary');
+                    noBtn.classList.remove('btn-primary');
+                    noBtn.classList.add('btn-secondary');
+                    if (value === 'true') {
+                        yesBtn.classList.remove('btn-secondary');
+                        yesBtn.classList.add('btn-primary');
+                    } else {
+                        noBtn.classList.remove('btn-secondary');
+                        noBtn.classList.add('btn-primary');
+                    }
                     if (checkFormState) setTimeout(checkFormState, 0);
                 });
             });

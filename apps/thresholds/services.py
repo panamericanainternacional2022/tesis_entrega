@@ -1,39 +1,30 @@
 import logging
-from typing import Dict, Any
 
 from django.db import IntegrityError
 
+from apps.sensors.sensor_config import DEFAULT_THRESHOLDS
 from apps.thresholds.models import ThresholdConfig
-from apps.sensors.sensor_config import DEFAULT_THRESHOLDS as _DEFAULT
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_THRESHOLDS: Dict[str, Dict[str, Any]] = _DEFAULT
 
+def get_thresholds(building_id: int) -> dict:
+    result = {k: dict(v) for k, v in DEFAULT_THRESHOLDS.items()}
 
-def get_thresholds(building_id: int) -> Dict[str, Dict[str, Any]]:
+    from apps.buildings.models import Building
+    building = Building.objects.filter(id=building_id).first()
+    if building and building.floors > 0 and "position" in result:
+        result["position"]["high"] = float(building.floors)
 
-
-    result: Dict[str, Dict[str, Any]] = {k: dict(v) for k, v in DEFAULT_THRESHOLDS.items()}
-    try:
-        from apps.buildings.models import Building
-        building = Building.objects.filter(id=building_id).first()
-        if building and building.floors > 0:
-            if "position" in result:
-                result["position"]["high"] = float(building.floors)
-    except Exception as e:
-        logger.debug("Could not determine dynamic position threshold limit for building %s: %s", building_id, e)
-
-    try:
-        for row in ThresholdConfig.objects.filter(building_id=building_id):
-            result[row.variable] = {
-                "direction": row.direction,
-                "low": row.low,
-                "medium": row.medium,
-                "high": row.high,
-            }
-    except Exception as e:
-        logger.debug("Could not load thresholds from DB (building %s): %s", building_id, e)
+    for row in ThresholdConfig.objects.filter(
+        building_id=building_id
+    ).values("variable", "direction", "low", "medium", "high"):
+        result[row["variable"]] = {
+            "direction": row["direction"],
+            "low": row["low"],
+            "medium": row["medium"],
+            "high": row["high"],
+        }
     return result
 
 
@@ -41,14 +32,14 @@ class ThresholdPersistenceError(Exception):
     pass
 
 
-def update_threshold(variable: str, config: Dict[str, Any], building_id: int) -> None:
+def update_threshold(variable: str, config: dict, building_id: int) -> None:
+    medium = config.get("medium")
+    if medium is not None:
+        try:
+            medium = float(medium)
+        except (ValueError, TypeError):
+            medium = None
     try:
-        medium = config.get("medium")
-        if medium is not None:
-            try:
-                medium = float(medium)
-            except (ValueError, TypeError):
-                medium = None
         ThresholdConfig.objects.update_or_create(
             building_id=building_id,
             variable=variable,
@@ -61,11 +52,9 @@ def update_threshold(variable: str, config: Dict[str, Any], building_id: int) ->
         )
     except IntegrityError:
         raise ThresholdPersistenceError(f"Could not persist threshold {variable}: integrity error")
-    except Exception as e:
-        raise ThresholdPersistenceError(f"Could not persist threshold {variable}: {e}")
 
 
-def bulk_update(thresholds_dict: Dict[str, Dict[str, Any]], building_id: int) -> None:
+def bulk_update(thresholds_dict: dict, building_id: int) -> None:
     errors: list[str] = []
     for var, config in thresholds_dict.items():
         try:
