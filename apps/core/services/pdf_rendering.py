@@ -306,7 +306,7 @@ def _create_report_pdf(title: str) -> Any:
             self.set_text_color(95, 95, 95)
             footer_text = safe_text(
                 f"INES * Sistema inteligente de automatizacion"
-                f"  *  Pagina {self.page_no()} / {{nb}}"
+                f"  * Pagina {self.page_no()} / {{nb}}"
             )
             self.cell(0, 10, footer_text, 0, 0, "C")
 

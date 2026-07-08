@@ -14,9 +14,12 @@ class Persona(models.Model):
     class Meta:
         db_table = "persona"
 
+    def get_full_name(self) -> str:
+        parts = [self.first_name, self.middle_name, self.first_last_name, self.second_last_name]
+        return " ".join(p for p in parts if p)
+
     def __str__(self):
-        full = f"{self.first_name} {self.middle_name} {self.first_last_name} {self.second_last_name}"
-        return " ".join(full.split())
+        return self.get_full_name()
 
 
 class Usuario(models.Model):

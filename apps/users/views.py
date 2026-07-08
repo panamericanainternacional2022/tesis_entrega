@@ -1,30 +1,25 @@
+import datetime as dt
 import json
 import logging
 import smtplib
-import threading
 import time as time_module
+from collections import OrderedDict
 from typing import Any
+from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.core import signing
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
-from apps.history.models import History
 from apps.buildings.models import Building, UserBuilding
+from apps.buildings.views import generate_building_report_bytes
 from apps.core.auth_decorators import ADMIN_ROLES, login_required, admin_required
 from apps.core.services.http_response import json_error, json_ok
-from apps.users.models import Usuario, Persona
-from apps.users.services import (
-    build_user_data,
-    generate_random_password,
-    send_activation_email,
-)
-from apps.users.validators import validate_user_form
-from apps.history.services.email_sender import build_report_email_html, send_email_raw
-from apps.history.services.alert_service import get_building_emails
 from apps.core.services.pdf_shared import _pdf_font, draw_row
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,
@@ -34,6 +29,17 @@ from apps.core.services.pdf_rendering import (
     render_summary_box,
     render_table_header,
 )
+from apps.history.models import History
+from apps.history.services.alert_service import get_building_emails
+from apps.history.services.email_sender import build_report_email_html, send_email_raw
+from apps.sensors.simulation.globals import simulators
+from apps.users.models import Usuario, Persona
+from apps.users.services import (
+    build_user_data,
+    generate_random_password,
+    send_activation_email,
+)
+from apps.users.validators import validate_user_form, _validate_unique_ci
 from .shared import (
     extract_post_data,
     has_required_fields,
@@ -43,44 +49,36 @@ from .shared import (
 )
 
 
-@login_required
-@admin_required
-def user_register_view(request: HttpRequest) -> HttpResponse:
-    return render(request, "users/user_register.html", {"user": {}})
+def _filter_users_query(
+    query: str = "", building_id: str = "", estado: str = "", extra_fields: bool = False
+):
+    qs = (
+        Usuario.objects.select_related("id_persona")
+        .prefetch_related("building_assignments__building")
+        .exclude(rol__in=ADMIN_ROLES)
+    )
+    if building_id:
+        qs = qs.filter(building_assignments__building_id=building_id)
+    if estado == "registrado":
+        qs = qs.filter(registered=True)
+    elif estado == "por_registrar":
+        qs = qs.filter(registered=False)
+    if query:
+        q = Q(id_persona__ci__icontains=query) | Q(id_persona__first_name__icontains=query) | Q(id_persona__middle_name__icontains=query) | Q(id_persona__first_last_name__icontains=query) | Q(id_persona__second_last_name__icontains=query)
+        if extra_fields:
+            q |= Q(id_persona__email__icontains=query) | Q(username__icontains=query) | Q(building_assignments__building__name__icontains=query)
+        qs = qs.filter(q).distinct()
+    return qs
 
 
 @login_required
 @admin_required
 def user_list_view(request: HttpRequest) -> HttpResponse:
-    from apps.core.auth_decorators import ADMIN_ROLES
     query = request.GET.get("q", "").strip()
     building_id = request.GET.get("edificio", "").strip()
     estado = request.GET.get("estado", "").strip()
 
-    users = (
-        Usuario.objects.select_related("id_persona")
-        .prefetch_related("building_assignments__building")
-        .exclude(rol__in=ADMIN_ROLES)
-    )
-
-    if building_id:
-        users = users.filter(building_assignments__building_id=building_id)
-
-    if estado == "registrado":
-        users = users.filter(registered=True)
-    elif estado == "por_registrar":
-        users = users.filter(registered=False)
-
-    if query:
-        users = users.filter(
-            Q(id_persona__ci__icontains=query)
-            | Q(id_persona__first_name__icontains=query)
-            | Q(id_persona__middle_name__icontains=query)
-            | Q(id_persona__first_last_name__icontains=query)
-            | Q(id_persona__second_last_name__icontains=query)
-        ).distinct()
-
-    users = [build_user_data(u) for u in users]
+    users = [build_user_data(u) for u in _filter_users_query(query, building_id, estado)]
     buildings = Building.objects.all()
 
     filter_params = {}
@@ -90,94 +88,86 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
         filter_params["edificio"] = building_id
     if estado:
         filter_params["estado"] = estado
-    from urllib.parse import urlencode
     filter_query_string = urlencode(filter_params)
 
-    return render(
-        request,
-        "users/user_list.html",
-        {
-            "usuarios": users,
-            "edificios": buildings,
-            "selected_edificio_id": int(building_id) if building_id.isdigit() else None,
-            "current_estado": estado,
-            "filter_query_string": filter_query_string,
-        },
-    )
+    return render(request, "users/user_list.html", {
+        "usuarios": users,
+        "edificios": buildings,
+        "selected_edificio_id": int(building_id) if building_id.isdigit() else None,
+        "current_estado": estado,
+        "filter_query_string": filter_query_string,
+    })
 
 
 @login_required
 @admin_required
+@transaction.atomic
 def user_create_view(request: HttpRequest) -> HttpResponse:
+    if request.method == "GET":
+        return render(request, "users/user_register.html", {"user": {}})
+
     generated_password = None
     user_data: dict[str, Any] = {}
     form_errors: dict[str, str] = {}
     email_sent = False
     activation_link = ""
+    created_user = None
 
-    if request.method == "POST":
-        if Building.objects.count() == 0:
-            messages.error(request, "Debe registrar al menos un edificio antes de crear un usuario.")
+    if Building.objects.count() == 0:
+        messages.error(request, "Debe registrar al menos un edificio antes de crear un usuario.")
+    else:
+        post_data = extract_post_data(request)
+        user_data = post_data
+
+        if not has_required_fields(post_data):
+            messages.error(request, "Complete los campos obligatorios: nombre, apellido, correo electrónico, cédula y edificio.")
+            form_errors = build_required_field_errors(post_data)
         else:
-            post_data = extract_post_data(request)
-            user_data = post_data
-
-            if not has_required_fields(post_data):
-                messages.error(request, "Complete los campos obligatorios: nombre, apellido, correo electrónico, cédula y edificio.")
-                form_errors = build_required_field_errors(post_data)
+            form_errors = validate_user_form(post_data)
+            if form_errors:
+                messages.error(request, "Corrija los errores indicados en el formulario.")
             else:
-                form_errors = validate_user_form(post_data)
-                if form_errors:
-                    messages.error(request, "Corrija los errores indicados en el formulario.")
-                else:
-                    person = Persona.objects.create(
-                        ci=post_data["cedula"],
-                        first_name=post_data["primerNombre"],
-                        middle_name=post_data["segundoNombre"],
-                        first_last_name=post_data["primerApellido"],
-                        second_last_name=post_data["segundoApellido"],
-                        email=post_data["email"],
+                person = Persona.objects.create(
+                    ci=post_data["cedula"],
+                    first_name=post_data["primerNombre"],
+                    middle_name=post_data["segundoNombre"],
+                    first_last_name=post_data["primerApellido"],
+                    second_last_name=post_data["segundoApellido"],
+                    email=post_data["email"],
+                )
+                generated_password = generate_random_password(10)
+
+                try:
+                    created_user = create_user_with_retry(
+                        post_data["primerNombre"],
+                        post_data["primerApellido"],
+                        generated_password,
+                        person,
                     )
-                    generated_password = generate_random_password(10)
+                except ValueError:
+                    messages.error(request, "No se pudo generar el nombre de usuario. Verifique los datos ingresados.")
+                    return render(request, "users/user_register.html", {"form_errors": form_errors, "edificios": Building.objects.all()})
 
-                    try:
-                        user = create_user_with_retry(
-                            post_data["primerNombre"],
-                            post_data["primerApellido"],
-                            generated_password,
-                            person,
-                        )
-                    except ValueError:
-                        messages.error(request, "No se pudo generar el nombre de usuario. Verifique los datos ingresados.")
+                if post_data.get("id_edificio"):
+                    UserBuilding.objects.create(user=created_user, building_id=post_data["id_edificio"])
 
-                    if "user" in locals() and post_data.get("id_edificio"):
-                        UserBuilding.objects.create(
-                            user=user,
-                            building_id=post_data["id_edificio"],
-                        )
+                try:
+                    activation_link = send_activation_email(
+                        post_data["email"], created_user.id_usuario,
+                        f"{'https' if request.is_secure() else 'http'}://{request.get_host()}",
+                    )
+                    email_sent = True
+                except Exception:
+                    token = signing.dumps({"user_id": created_user.id_usuario, "email": post_data["email"]})
+                    activation_link = f"{'https' if request.is_secure() else 'http'}://{request.get_host()}{reverse('complete_registration')}?token={token}"
 
-                    if "user" in locals():
-                        try:
-                            activation_link = send_activation_email(
-                                post_data["email"], user.id_usuario,
-                                f"{'https' if request.is_secure() else 'http'}://{request.get_host()}",
-                            )
-                            email_sent = True
-                        except Exception:
-                            email_sent = False
-                            from django.core import signing
-                            from django.urls import reverse
-                            token = signing.dumps({"user_id": user.id_usuario, "email": post_data["email"]})
-                            activation_link = f"{'https' if request.is_secure() else 'http'}://{request.get_host()}{reverse('complete_registration')}?token={token}"
+                person_name = person.get_full_name()
+                if email_sent:
+                    messages.success(request, f"{person_name} registrado. Se envió el correo de activación a {post_data['email']}.")
+                else:
+                    messages.warning(request, f"{person_name} registrado. No se pudo enviar el correo; entregue el enlace de activación manualmente: {activation_link}")
 
-                        p_parts = [person.first_name, person.middle_name, person.first_last_name, person.second_last_name]
-                        person_name = " ".join(p for p in p_parts if p)
-                        if email_sent:
-                            messages.success(request, f"{person_name} registrado. Se envió el correo de activación a {post_data['email']}.")
-                        else:
-                            messages.warning(request, f"{person_name} registrado. No se pudo enviar el correo; entregue el enlace de activación manualmente: {activation_link}")
-
-                        return redirect("user_list")
+                return redirect("user_list")
 
     buildings = Building.objects.all()
     context: dict[str, Any] = {
@@ -227,8 +217,7 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
                         building_id=post_data["id_edificio"],
                     )
 
-                p_parts = [person.first_name, person.middle_name, person.first_last_name, person.second_last_name]
-                full_name = " ".join(p for p in p_parts if p) or user.username
+                full_name = person.get_full_name() or user.username
                 messages.success(request, f"{full_name} actualizado correctamente.")
                 return redirect("user_list")
     else:
@@ -245,7 +234,7 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
             "user": data,
             "editing": True,
             "usuario_id": user_id,
-            "persona_id": person.id_persona if person else None,
+            "persona_id": person.id_persona,
             "edificios": buildings,
             "edificio_actual": current_building,
             "form_errors": form_errors,
@@ -258,8 +247,7 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
 def user_delete_view(request: HttpRequest, user_id: int) -> HttpResponse:
     user = get_object_or_404(Usuario, id_usuario=user_id)
     person = user.id_persona
-    p_parts = [person.first_name, person.middle_name, person.first_last_name, person.second_last_name]
-    full_name = " ".join(p for p in p_parts if p) if person else user.username
+    full_name = person.get_full_name() or user.username
     with transaction.atomic():
         History.objects.filter(user=user).delete()
         UserBuilding.objects.filter(user=user).delete()
@@ -279,7 +267,6 @@ def check_cedula_uniqueness_view(request: HttpRequest) -> JsonResponse:
     if not ci:
         return JsonResponse({"exists": False})
 
-    from apps.users.validators import _validate_unique_ci
     error = _validate_unique_ci(ci, exclude_persona_id)
     return JsonResponse({"exists": bool(error), "error": error})
 
@@ -325,7 +312,6 @@ def send_test_email(request: HttpRequest) -> JsonResponse:
     if not email:
         return json_error("Missing field 'email'")
 
-    from apps.sensors.simulation.globals import simulators
     sim = next(iter(simulators.values()), None)
     if not sim:
         return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
@@ -335,7 +321,6 @@ def send_test_email(request: HttpRequest) -> JsonResponse:
     pdf_bytes = None
     pdf_name = "reporte.pdf"
     try:
-        from apps.buildings.views import generate_building_report_bytes
         pdf_bytes, pdf_name = generate_building_report_bytes(sim.edificio_id)
     except Exception as e:
         logger_email.warning("Could not generate building report PDF: %s", e)
@@ -366,7 +351,6 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
 
     edificio_id = data.get("edificio_id")
 
-    from apps.sensors.simulation.globals import simulators
     try:
         eid = int(edificio_id) if edificio_id is not None else None
     except (ValueError, TypeError):
@@ -386,7 +370,6 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
     pdf_bytes = None
     pdf_name = "reporte.pdf"
     try:
-        from apps.buildings.views import generate_building_report_bytes
         pdf_bytes, pdf_name = generate_building_report_bytes(actual_eid)
     except Exception as e:
         logger_email.warning("Could not generate building report PDF: %s", e)
@@ -411,39 +394,11 @@ def send_all_subscribers(request: HttpRequest) -> JsonResponse:
 @login_required
 def user_pdf_view(request: Any) -> HttpResponse:
     try:
-        import datetime as dt
-        from collections import OrderedDict
-        from apps.users.services import build_user_data
-
         query     = request.GET.get("q", "").strip()
         building_id = request.GET.get("edificio", "").strip()
         estado    = request.GET.get("estado", "").strip()
 
-        usuarios = (
-            Usuario.objects.select_related("id_persona")
-            .prefetch_related("building_assignments__building")
-            .exclude(rol__in=ADMIN_ROLES)
-        )
-
-        if building_id:
-            usuarios = usuarios.filter(building_assignments__building_id=building_id)
-
-        if estado == "registrado":
-            usuarios = usuarios.filter(registered=True)
-        elif estado == "por_registrar":
-            usuarios = usuarios.filter(registered=False)
-
-        if query:
-            usuarios = usuarios.filter(
-                Q(id_persona__ci__icontains=query)
-                | Q(id_persona__first_name__icontains=query)
-                | Q(id_persona__middle_name__icontains=query)
-                | Q(id_persona__first_last_name__icontains=query)
-                | Q(id_persona__second_last_name__icontains=query)
-                | Q(id_persona__email__icontains=query)
-                | Q(username__icontains=query)
-                | Q(building_assignments__building__name__icontains=query)
-            ).distinct()
+        usuarios = _filter_users_query(query, building_id, estado, extra_fields=True)
 
         users = [{"rol": u.rol, **build_user_data(u)} for u in usuarios]
 
