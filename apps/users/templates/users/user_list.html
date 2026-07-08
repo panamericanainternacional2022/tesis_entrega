@@ -27,7 +27,11 @@
 
 {% block list_actions %}
 {% url 'user_create' as registro_url %}
-{% include 'core/components/button.html' with url=registro_url class='btn btn-primary' text='Agregar usuario' icon='fa-solid fa-user-plus' %}
+{% if edificios %}
+    {% include 'core/components/button.html' with url=registro_url class='btn btn-primary' text='Agregar usuario' icon='fa-solid fa-user-plus' %}
+{% else %}
+    {% include 'core/components/button.html' with class='btn btn-primary' text='Agregar usuario' icon='fa-solid fa-user-plus' disabled=True %}
+{% endif %}
 <div class="actions-dropdown">
     <button type="button" class="btn btn-icon" aria-label="M&#225;s acciones" {% if not usuarios %}disabled{% endif %}>
         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
