@@ -1,16 +1,16 @@
 from django.contrib import messages
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from apps.core.auth_decorators import login_required, admin_required
-from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
+from apps.buildings.models import Building, MonitoringEquipment
 from apps.buildings.services import (
-    create_equipment_for_building, sync_equipment_for_building,
-    EquipmentConfig,
+    sync_equipment_for_building, EquipmentConfig,
 )
-from apps.buildings.validators import validate_building_form
+from apps.buildings.validators import validate_building_form, validate_unique_rif
 from apps.users.validators import normalize_rif
 from apps.buildings.shared import (
     pop_messages, extract_building_data,
@@ -32,6 +32,16 @@ from apps.core.services.pdf_rendering import (
     render_pdf_header, render_section_divider, render_summary_box,
     render_severity_legend, render_text_progress_bar, render_table_header,
 )
+
+
+def _validate_floors_elevator(floors: str, has_elevator: bool) -> str | None:
+    try:
+        floors_val = int(floors)
+        if has_elevator and floors_val <= 1:
+            return "Un edificio de 1 piso no puede tener elevador."
+    except (ValueError, TypeError):
+        return "La cantidad de pisos debe ser un número entero."
+    return None
 
 
 @login_required
@@ -85,12 +95,9 @@ def register_building_view(request: HttpRequest) -> HttpResponse:
             "cantidadPisos": data.get("floors"),
         })
         if not form_errors:
-            try:
-                floors_val = int(data["floors"])
-                if config.has_elevator and floors_val <= 1:
-                    form_errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
-            except (ValueError, TypeError):
-                form_errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
+            error = _validate_floors_elevator(data.get("floors"), config.has_elevator)
+            if error:
+                form_errors["cantidadPisos"] = error
         if form_errors:
             messages.error(request, "Corrija los errores indicados en el formulario.")
         else:
@@ -99,7 +106,7 @@ def register_building_view(request: HttpRequest) -> HttpResponse:
                     name=data["name"], rif=data["rif"], address=data["address"],
                     floors=int(data["floors"]),
                 )
-                create_equipment_for_building(building, config)
+                sync_equipment_for_building(building, config)
             messages.success(request, "Edificio registrado correctamente.")
             return redirect("building_list")
 
@@ -142,12 +149,9 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
             exclude_building_id=building.id,
         )
         if not form_errors:
-            try:
-                floors_val = int(data["floors"])
-                if config.has_elevator and floors_val <= 1:
-                    form_errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
-            except (ValueError, TypeError):
-                form_errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
+            error = _validate_floors_elevator(data.get("floors"), config.has_elevator)
+            if error:
+                form_errors["cantidadPisos"] = error
         if form_errors:
             messages.error(request, "Corrija los errores indicados en el formulario.")
         else:
@@ -193,10 +197,6 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
     if not rif:
         return JsonResponse({"exists": False})
 
-    from apps.buildings.validators import validate_unique_rif
-    from apps.users.validators import normalize_rif
-    from django.core.exceptions import ValidationError
-
     normalized = normalize_rif(rif)
     try:
         validate_unique_rif(normalized, exclude_building_id)
@@ -209,15 +209,11 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"exists": exists, "error": error})
 
 
-# ── Building PDF Report (moved from reports.views.building_report) ──────────
-
 import datetime as _dt_bld
 import logging as _logging_bld
 from typing import Any
 
 _logger_bld = _logging_bld.getLogger(__name__)
-
-_CRITICAL_LEVELS = {RISK_ALTO, RISK_CRITICO}
 
 _EQUIP_STATUS_STYLE: dict[str, tuple[tuple, tuple]] = {
     "activo":    ((240, 253, 244), (22, 101, 52)),
@@ -312,13 +308,7 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
     filename = "".join(c for c in filename if c.isalnum() or c in "._- ")
 
     pdf_raw = pdf.output()
-    pdf_bytes = (
-        bytes(pdf_raw)
-        if isinstance(pdf_raw, (bytearray, memoryview))
-        else pdf_raw.encode("utf-8")
-        if isinstance(pdf_raw, str)
-        else bytes(pdf_raw)
-    )
+    pdf_bytes = pdf_raw.encode("utf-8") if isinstance(pdf_raw, str) else bytes(pdf_raw)
     return pdf_bytes, filename
 
 
@@ -342,9 +332,9 @@ def building_report_pdf_view(request: Any, edificio_id: int) -> HttpResponse:
         )
 
 
-def _compute_stats(history: list, _STATS_VARS: list) -> dict:
+def _compute_stats(history: list, stats_vars: list) -> dict:
     stats = {}
-    for var in _STATS_VARS:
+    for var in stats_vars:
         vals = [
             r["value"]
             for r in history
@@ -366,6 +356,7 @@ def _get_critical_items(
     sensor_data: dict, thresholds: dict, relevant_vars: set,
     pump_on: bool = True, speed: float = 0.0, door_close_attempts: int = 0
 ) -> list[dict]:
+    _CRITICAL_LEVELS = {RISK_ALTO, RISK_CRITICO}
     items = []
     for var in sorted(relevant_vars):
         if var not in sensor_data:

@@ -8,13 +8,6 @@ class EquipmentConfig:
     has_elevator: bool = False
 
 
-def create_equipment_for_building(
-    building: Building,
-    config: EquipmentConfig,
-) -> None:
-    sync_equipment_for_building(building, config)
-
-
 def sync_equipment_for_building(
     building: Building,
     config: EquipmentConfig,
