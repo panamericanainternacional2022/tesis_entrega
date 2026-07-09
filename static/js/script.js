@@ -168,6 +168,8 @@
         const submitBtn = form.querySelector('button[type=submit]');
         if (!submitBtn) return;
 
+        submitBtn.disabled = true;
+
         const initialValues = {};
         form.querySelectorAll('input[name], select[name]').forEach(el => {
             initialValues[el.name] = el.value;

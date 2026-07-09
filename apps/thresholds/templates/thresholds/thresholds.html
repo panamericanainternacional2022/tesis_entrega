@@ -7,7 +7,7 @@
 {% block config_subtext %}Configura los límites de riesgo para cada sensor. Los cambios aplican en tiempo real al sistema de monitoreo.{% endblock %}
 
 {% block config_toolbar_actions %}
-<button type="button" id="resetAllThresholdsBtn" class="btn btn-secondary">
+<button type="button" id="resetAllThresholdsBtn" class="btn btn-secondary" disabled>
     <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restablecer umbrales
 </button>
 <span id="globalDirtyBadge" class="changes-badge d-none"></span>
@@ -24,7 +24,7 @@
     </div>
     <div id="thresholdsBombaPanel" class="thresh-grid"></div>
     <div class="actions-row mt-3">
-        <button type="button" id="saveThresholdsBombaBtn" class="btn btn-primary">
+        <button type="button" id="saveThresholdsBombaBtn" class="btn btn-primary" disabled>
             <i class="fa-solid fa-check" aria-hidden="true"></i> Guardar umbrales
         </button>
     </div>
@@ -38,7 +38,7 @@
     </div>
     <div id="thresholdsElevadorPanel" class="thresh-grid"></div>
     <div class="actions-row mt-3">
-        <button type="button" id="saveThresholdsElevadorBtn" class="btn btn-primary">
+        <button type="button" id="saveThresholdsElevadorBtn" class="btn btn-primary" disabled>
             <i class="fa-solid fa-check" aria-hidden="true"></i> Guardar umbrales
         </button>
     </div>

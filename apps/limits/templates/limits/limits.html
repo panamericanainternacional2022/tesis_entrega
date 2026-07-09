@@ -7,7 +7,7 @@
 {% block config_subtext %}Configura los límites físicos máximos de operación para cada sensor. Estos valores restringen los umbrales de riesgo permitidos y las validaciones de comandos manuales.{% endblock %}
 
 {% block config_toolbar_actions %}
-<button type="button" id="resetAllLimitsBtn" class="btn btn-secondary">
+<button type="button" id="resetAllLimitsBtn" class="btn btn-secondary" disabled>
     <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restablecer límites
 </button>
 <span id="globalLimitsDirtyBadge" class="changes-badge d-none"></span>
@@ -24,7 +24,7 @@
     </div>
     <div id="limitsBombaPanel" class="thresh-grid"></div>
     <div class="actions-row mt-3">
-        <button type="button" id="saveLimitsBombaBtn" class="btn btn-primary">
+        <button type="button" id="saveLimitsBombaBtn" class="btn btn-primary" disabled>
             <i class="fa-solid fa-check" aria-hidden="true"></i> Guardar límites
         </button>
     </div>
@@ -38,7 +38,7 @@
     </div>
     <div id="limitsElevadorPanel" class="thresh-grid"></div>
     <div class="actions-row mt-3">
-        <button type="button" id="saveLimitsElevadorBtn" class="btn btn-primary">
+        <button type="button" id="saveLimitsElevadorBtn" class="btn btn-primary" disabled>
             <i class="fa-solid fa-check" aria-hidden="true"></i> Guardar límites
         </button>
     </div>
