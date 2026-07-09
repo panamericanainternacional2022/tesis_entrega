@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, Tuple
 
 from django.db import IntegrityError
 
@@ -9,10 +8,8 @@ from apps.sensors.sensor_config import SENSOR_RANGES
 logger = logging.getLogger(__name__)
 
 
-def get_sensor_limits(building_id: int) -> Dict[str, Tuple[float, float]]:
-
-
-    result: Dict[str, Tuple[float, float]] = {k: tuple(v) for k, v in SENSOR_RANGES.items()}
+def get_sensor_limits(building_id: int) -> dict[str, tuple[float, float]]:
+    result: dict[str, tuple[float, float]] = {k: tuple(v) for k, v in SENSOR_RANGES.items()}
     try:
         for row in SensorLimitConfig.objects.filter(building_id=building_id):
             default_min = SENSOR_RANGES.get(row.variable, (0.0, 100.0))[0]
@@ -41,7 +38,7 @@ def update_sensor_limit(variable: str, max_value: float, building_id: int) -> No
         raise LimitPersistenceError(f"Could not persist limit {variable}: {e}")
 
 
-def bulk_update_limits(limits_dict: Dict[str, float], building_id: int) -> None:
+def bulk_update_limits(limits_dict: dict[str, float], building_id: int) -> None:
     errors: list[str] = []
     for var, max_val in limits_dict.items():
         try:

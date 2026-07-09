@@ -284,7 +284,7 @@ logger_email = logging.getLogger(__name__)
 def _build_report_email_body(sim) -> tuple[str, str]:
     timestamp = time_module.strftime("%d/%m/%Y %H:%M:%S")
     edificio = getattr(sim, "nombre", "") or ""
-    subject = f"Reporte de monitoreo: {edificio} \u2014 {timestamp}" if edificio else f"Reporte de monitoreo \u2014 {timestamp}"
+    subject = f"Reporte de monitoreo: {edificio} — {timestamp}" if edificio else f"Reporte de monitoreo — {timestamp}"
     body = build_report_email_html(edificio=edificio)
     return subject, body
 
@@ -295,10 +295,10 @@ def _smtp_error_message(exc: Exception) -> str:
         raw = exc.args[1]
         msg = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
         if code == 550 and "limit" in msg.lower():
-            return "L\u00edmite diario de env\u00edo de Gmail excedido. Intente ma\u00f1ana o reduzca la frecuencia de notificaciones."
+            return "Límite diario de envío de Gmail excedido. Intente mañana o reduzca la frecuencia de notificaciones."
         return f"Error SMTP ({code}): {msg[:200]}"
     if isinstance(exc, smtplib.SMTPAuthenticationError):
-        return "Error de autenticaci\u00f3n SMTP. Verifique las credenciales en el archivo .env."
+        return "Error de autenticación SMTP. Verifique las credenciales en el archivo .env."
     if isinstance(exc, smtplib.SMTPConnectError):
         return "No se pudo conectar al servidor SMTP. Verifique SMTP_SERVER y SMTP_PORT."
     return f"Error al enviar correo: {type(exc).__name__}: {exc}"
@@ -323,7 +323,7 @@ def _send_report_to_recipients(
 ) -> JsonResponse | None:
     sim = simulators.get(edificio_id) if edificio_id else next(iter(simulators.values()), None)
     if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulaci\u00f3n primero.", 503)
+        return json_error("No hay un simulador activo. Inicie la simulación primero.", 503)
 
     actual_eid = sim.edificio_id
     subject, html_body = _build_report_email_body(sim)
@@ -406,7 +406,7 @@ def user_pdf_view(request: Any) -> HttpResponse:
 
         filtros: list[str] = []
         if query:
-            filtros.append(f"B\u00fasqueda: \u00ab{query}\u00bb")
+            filtros.append(f"Búsqueda: «{query}»")
         if estado:
             estado_labels = {
                 "registrado":    "Registrados",
@@ -461,7 +461,7 @@ def user_pdf_view(request: Any) -> HttpResponse:
         )
 
         col_widths  = [28, 32, 32, 70, 28]
-        col_headers = ["C\u00e9dula", "Nombre", "Apellido", "Correo electr\u00f3nico", "Estado"]
+        col_headers = ["Cédula", "Nombre", "Apellido", "Correo electrónico", "Estado"]
         col_aligns  = ["C", "L", "L", "L", "C"]
 
         for group_idx, (building_name, members) in enumerate(groups.items()):
@@ -505,7 +505,7 @@ def user_pdf_view(request: Any) -> HttpResponse:
 
     except ImportError:
         return HttpResponse(
-            "Error: fpdf2 no est\u00e1 instalado. Ejecute: pip install fpdf2",
+            "Error: fpdf2 no está instalado. Ejecute: pip install fpdf2",
             content_type="text/plain",
             status=500,
         )

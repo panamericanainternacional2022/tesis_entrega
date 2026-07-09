@@ -2,7 +2,6 @@ from django.db import models
 
 
 class SensorLimitConfig(models.Model):
-    id = models.AutoField(primary_key=True)
     building = models.ForeignKey(
         "buildings.Building",
         on_delete=models.CASCADE,

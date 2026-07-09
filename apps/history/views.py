@@ -209,7 +209,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
                 f"Edificio: {building_name}",
                 f"Severidad: {severity if severity else 'Todas'}",
                 f"Variable: {variable_filter if variable_filter else 'Todas'}",
-                f"Per\u00edodo: {range_label}",
+                f"Período: {range_label}",
                 (
                     f"Rango personalizado: {date_from} al {date_to}"
                     if date_from and date_to
@@ -257,7 +257,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
     except ImportError:
         return HttpResponse(
-            "Error: fpdf2 no est\u00e1 instalado. Ejecute: pip install fpdf2",
+            "Error: fpdf2 no está instalado. Ejecute: pip install fpdf2",
             content_type="text/plain",
             status=500,
         )
@@ -271,7 +271,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
 
 def _render_building_summary(pdf: Any, groups: dict) -> None:
-    render_section_divider(pdf, "Distribuci\u00f3n de eventos por edificio")
+    render_section_divider(pdf, "Distribución de eventos por edificio")
 
     col_widths = [120, 30, 40]
     col_headers = ["Edificio", "Eventos", "% del total"]
