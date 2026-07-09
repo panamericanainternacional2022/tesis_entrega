@@ -51,16 +51,14 @@ def _send_alert_email(
     value: float,
     risk_level: str,
     recommended_action: str,
-    last_email_time: float,
     sim: Optional['BuildingSimulator'],
-) -> float:
+) -> None:
     from apps.history.services.email_sender import send_email_alert, get_building_emails
-    new_les = last_email_time
     send_email = risk_level in (RISK_ALTO, RISK_CRITICO)
     now = time.time()
     
     if sim is None:
-        return new_les
+        return
         
     if not isinstance(sim.last_email_sent_time_per_var, dict):
         sim.last_email_sent_time_per_var = {}
@@ -69,7 +67,7 @@ def _send_alert_email(
     
     if send_email and now - last_sent > COOLDOWN_SECONDS:
         sim.last_email_sent_time_per_var[variable] = now
-        new_les = now
+        sim.last_email_sent_time = now
         edificio_nombre = getattr(sim, "nombre", "") or ""
         edificio_id = getattr(sim, "edificio_id", None)
         subject = _build_alert_email_subject(variable, risk_level)
@@ -82,14 +80,13 @@ def _send_alert_email(
                 "Sin destinatarios para alerta del edificio %s (variable=%s, nivel=%s)",
                 edificio_id, variable, risk_level,
             )
-            return new_les
+            return
         threading.Thread(
             target=send_email_alert,
             args=(risk_level, subject, body),
             kwargs={"recipients": recipients},
             daemon=True,
         ).start()
-    return new_les
 
 
 def send_alert(
@@ -114,8 +111,7 @@ def send_alert(
 
     combined_action = recommended_action
 
-    new_les = _send_alert_email(variable, value, risk_level, recommended_action, sim.last_email_sent_time, sim)
-    sim.last_email_sent_time = new_les
+    _send_alert_email(variable, value, risk_level, recommended_action, sim)
 
     alert_payload = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),

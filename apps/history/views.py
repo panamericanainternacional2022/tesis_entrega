@@ -106,9 +106,6 @@ def history_view(request: HttpRequest):
     paginator = Paginator(parsed_list, PAGE_SIZE)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    for record in page_obj:
-        parse_history_record_for_display(record)
-
     return render(
         request,
         "history/history.html",
@@ -134,12 +131,12 @@ def history_view(request: HttpRequest):
 def view_unread_count(request: HttpRequest) -> JsonResponse:
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
-        return JsonResponse({"count": 0})
+        return json_ok({"count": 0})
 
     rol = request.session.get("usuario_rol", "US")
     records, _ = _build_history_query(usuario_id, rol)
 
-    return JsonResponse({"count": records.distinct().count()})
+    return json_ok({"count": records.distinct().count()})
 
 
 @login_required

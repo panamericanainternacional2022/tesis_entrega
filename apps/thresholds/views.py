@@ -53,7 +53,7 @@ def view_get_thresholds(request: HttpRequest) -> JsonResponse:
         building_id = 0
     if not building_id:
         return json_error("edificio_id requerido", status=400)
-    return JsonResponse(get_thresholds(building_id))
+    return json_ok(get_thresholds(building_id))
 
 
 def _validate_threshold_config(

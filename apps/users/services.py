@@ -21,7 +21,8 @@ Este enlace es válido durante las próximas 24 horas. Si usted no ha solicitado
 
 def build_user_data(user: Usuario) -> dict[str, Any]:
     person = user.id_persona
-    ue = user.building_assignments.first()
+    assignments = list(user.building_assignments.all())
+    ue = assignments[0] if assignments else None
     building = ue.building if ue else None
     name = user.username
     last_name = ""

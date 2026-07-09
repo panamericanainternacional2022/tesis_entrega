@@ -115,7 +115,7 @@ def simulator_status_view(request) -> JsonResponse:
 
     has_buildings = Building.objects.exists()
     has_simulator = len(simulators) > 0
-    return JsonResponse({"running": has_simulator, "has_edificios": has_buildings})
+    return json_ok({"running": has_simulator, "has_edificios": has_buildings})
 
 
 @login_required

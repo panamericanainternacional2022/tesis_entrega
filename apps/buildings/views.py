@@ -6,6 +6,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from apps.core.auth_decorators import login_required, admin_required
+from apps.core.services.http_response import json_ok
 from apps.buildings.models import Building, MonitoringEquipment
 from apps.buildings.services import (
     sync_equipment_for_building, EquipmentConfig,
@@ -194,7 +195,7 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
     exclude_building_id = int(exclude_id) if exclude_id.isdigit() else None
 
     if not rif:
-        return JsonResponse({"exists": False})
+        return json_ok({"exists": False})
 
     normalized = normalize_rif(rif)
     try:
@@ -205,7 +206,7 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
         exists = True
         error = str(e)
 
-    return JsonResponse({"exists": exists, "error": error})
+    return json_ok({"exists": exists, "error": error})
 
 
 import datetime as _dt_bld

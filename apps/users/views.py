@@ -269,10 +269,10 @@ def check_cedula_uniqueness_view(request: HttpRequest) -> JsonResponse:
     exclude_persona_id = int(exclude_id) if exclude_id.isdigit() else None
 
     if not ci:
-        return JsonResponse({"exists": False})
+        return json_ok({"exists": False})
 
     error = _validate_unique_ci(ci, exclude_persona_id)
-    return JsonResponse({"exists": bool(error), "error": error})
+    return json_ok({"exists": bool(error), "error": error})
 
 
 # ── Email views (moved from events.views) ──────────────────────────────────

@@ -56,7 +56,7 @@ def view_get_sensor_limits(request: HttpRequest) -> JsonResponse:
     limits = get_sensor_limits(building_id)
     limits = {k: v for k, v in limits.items() if k not in LIMITS_EXCLUDE_VARS}
     thresholds = get_thresholds(building_id)
-    return JsonResponse({"limits": limits, "thresholds": thresholds})
+    return json_ok({"limits": limits, "thresholds": thresholds})
 
 
 def _validate_limit_input(
