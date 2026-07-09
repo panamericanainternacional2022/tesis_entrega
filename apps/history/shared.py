@@ -52,7 +52,7 @@ def _build_history_query(
     else:
         records = History.objects.filter(
             Q(user_id=user_id)
-            | Q(monitoring_equipment__building__userbuilding__user_id=user_id)
+            | Q(monitoring_equipment__building__user_assignments__user_id=user_id)
         ).distinct()
 
     if building_id:
