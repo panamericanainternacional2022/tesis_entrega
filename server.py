@@ -55,21 +55,6 @@ for eq in equipos:
 
 logger.info("Simuladores activos: %s", list(simulators.keys()))
 
-import apps.sensors.simulation.globals as _sim_globals
-_first = next(iter(simulators.values()), None)
-if _first:
-    _sim_globals.sensor_data.update(_first.sensor_data)
-    _sim_globals.pump_on = _first.pump_on
-    _sim_globals.elevator_on = _first.elevator_on
-    _sim_globals.equipment_types.clear()
-    _sim_globals.equipment_types.update(_first.equipment_types)
-    _sim_globals.active_alerts.update(_first.active_alerts)
-    _sim_globals.door_close_attempts = _first.door_close_attempts
-    _sim_globals.sim_paused = _first.sim_paused
-    _sim_globals.sim_started = _first.sim_started
-    _sim_globals.sim_speed = _first.sim_speed
-    logger.info("Variables globales legacy sincronizadas con simulador #%s", _first.edificio_id)
-
 _smtp_user = os.environ.get("SMTP_USER", "")
 _smtp_password = os.environ.get("SMTP_PASSWORD", "")
 _smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")

@@ -4,16 +4,17 @@ import logging
 import eventlet
 from django.http import StreamingHttpResponse
 
-from .shared import get_simulator, json_error_response
+from apps.core.services.http_response import json_error
+from .shared import get_simulator
 
 
 logger = logging.getLogger(__name__)
 
 
-def sse_stream(request, building_id: int) -> StreamingHttpResponse | StreamingHttpResponse:
+def sse_stream(request, building_id: int) -> StreamingHttpResponse:
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     def event_stream():
         from apps.sensors.payload import build_live_payload_for_sim

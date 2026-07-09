@@ -8,8 +8,8 @@ from apps.buildings.models import MonitoringEquipment, UserBuilding
 from apps.history.models import History
 from apps.sensors.sensor_config import UNKNOWN_PERSON_NAME, UNKNOWN_EMAIL_LABEL
 
-from .shared import get_simulator, get_first_simulator, json_error_response
-
+from .shared import get_simulator, get_first_simulator
+from apps.core.services.http_response import json_error
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +20,16 @@ def api_status(request) -> JsonResponse:
         try:
             building_id = int(building_id)
         except (ValueError, TypeError):
-            return json_error_response("edificio_id inválido")
+            return json_error("edificio_id inválido")
     else:
         first_sim = get_first_simulator()
         if not first_sim:
-            return json_error_response("No hay simuladores activos", 404)
+            return json_error("No hay simuladores activos", 404)
         building_id = first_sim.edificio_id
 
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     from apps.sensors.payload import build_live_payload_for_sim
     return JsonResponse(build_live_payload_for_sim(sim))
@@ -37,7 +37,6 @@ def api_status(request) -> JsonResponse:
 
 def api_buildings(request) -> JsonResponse:
     data: list[dict[str, Any]] = []
-    from .shared import get_simulator
 
     for equipment in MonitoringEquipment.objects.select_related("building").all():
         if not equipment.building:
@@ -80,7 +79,7 @@ def api_history(request) -> JsonResponse:
     from apps.sensors.sensor_config import API_HISTORY_LIMIT
     qs = History.objects.select_related(
         "monitoring_equipment__building"
-    ).order_by("-fecha")[:API_HISTORY_LIMIT]
+    ).order_by("-date")[:API_HISTORY_LIMIT]
 
     data: list[dict[str, Any]] = []
     for record in qs:

@@ -30,8 +30,7 @@ from apps.core.services.pdf_rendering import (
     render_table_header,
 )
 from apps.history.models import History
-from apps.history.services.alert_service import get_building_emails
-from apps.history.services.email_sender import build_report_email_html, send_email_raw
+from apps.history.services.email_sender import get_building_emails, build_report_email_html, send_email_raw
 from apps.sensors.simulation.globals import simulators
 from apps.users.models import Usuario, Persona
 from apps.users.services import (

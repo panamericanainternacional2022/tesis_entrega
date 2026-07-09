@@ -52,7 +52,7 @@ def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[s
 
 def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     from apps.thresholds.services import get_thresholds
-    from apps.history.services.alert_service import get_alert_log
+    from apps.history.services.history_persistence import get_alert_log
     stats = _compute_stats(ctx.history)
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)

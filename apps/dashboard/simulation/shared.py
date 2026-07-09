@@ -4,10 +4,8 @@ from typing import Any
 
 from django.http import JsonResponse
 
-from apps.core.services.http_response import json_error as _json_error, json_ok as _json_ok
 from apps.sensors.simulation.exceptions import SimulatorError
 from apps.sensors.simulation.models import BuildingSimulator
-
 
 logger = logging.getLogger(__name__)
 
@@ -78,14 +76,6 @@ def _sync_equipment_from_db(sim: BuildingSimulator, building_id: int) -> None:
 def get_first_simulator() -> BuildingSimulator | None:
     from apps.sensors.simulation.globals import simulators
     return next(iter(simulators.values()), None)
-
-
-def json_error_response(message: str, status: int = 400) -> JsonResponse:
-    return _json_error(message, status)
-
-
-def json_success_response(extra: dict[str, Any] | None = None) -> JsonResponse:
-    return _json_ok(extra)
 
 
 def parse_json_body(request) -> dict[str, Any]:

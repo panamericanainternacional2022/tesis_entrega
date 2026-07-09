@@ -19,8 +19,6 @@ def classify_risk(
     load: float = 0.0,
     door_status: str = "closed",
     elevator_state: str = "IDLE",
-    elev_voltage: float = 220.0,
-    elev_current: float = 0.0,
     pos_stuck: bool = False,
     elevator_on: bool = False,
 ) -> tuple[str, str]:

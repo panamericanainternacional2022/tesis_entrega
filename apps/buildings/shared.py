@@ -3,10 +3,6 @@ from django.http import HttpRequest
 from apps.buildings.services import EquipmentConfig
 
 
-def pop_messages(request: HttpRequest) -> list:
-    return request.session.pop("_bld_msg", [])
-
-
 def extract_building_data(request: HttpRequest) -> dict:
     return {
         "name": request.POST.get("nombreEdificio", "").strip(),

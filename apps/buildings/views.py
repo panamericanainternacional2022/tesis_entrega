@@ -13,7 +13,7 @@ from apps.buildings.services import (
 from apps.buildings.validators import validate_building_form, validate_unique_rif
 from apps.users.validators import normalize_rif
 from apps.buildings.shared import (
-    pop_messages, extract_building_data,
+    extract_building_data,
     extract_equipment_config,
 )
 from apps.sensors.sensor_config import (
@@ -62,13 +62,12 @@ def building_list_view(request: HttpRequest) -> HttpResponse:
         )
 
     buildings = buildings.distinct()
-    msgs = pop_messages(request)
     return render(
         request,
         "buildings/building_list.html",
         {
             "buildings": list(buildings),
-            "page_messages": msgs,
+            "page_messages": [],
             "current_equipamiento": equipamiento,
         },
     )

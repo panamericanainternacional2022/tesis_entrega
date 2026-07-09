@@ -5,9 +5,9 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from apps.core.auth_decorators import login_required, admin_required
+from apps.core.services.http_response import json_ok, json_error
 from apps.sensors.simulation.exceptions import SimulatorError
-from .shared import get_simulator, json_error_response, json_success_response, parse_json_body
-
+from .shared import get_simulator, parse_json_body
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def sim_status(request, building_id: int) -> JsonResponse:
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     return JsonResponse({
         "edificio_id": sim.edificio_id,
@@ -38,7 +38,7 @@ def sim_status(request, building_id: int) -> JsonResponse:
 def sim_pause(request, building_id: int) -> JsonResponse:
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     try:
         body = parse_json_body(request)
@@ -53,7 +53,7 @@ def sim_pause(request, building_id: int) -> JsonResponse:
     if not sim.sim_paused and not sim.sim_started:
         sim.sim_started = True
 
-    return json_success_response({"paused": sim.sim_paused, "started": sim.sim_started})
+    return json_ok({"paused": sim.sim_paused, "started": sim.sim_started})
 
 
 @require_http_methods(["POST"])
@@ -64,9 +64,9 @@ def sim_reset(request, building_id: int) -> JsonResponse:
 
     try:
         message = reset_simulator(building_id)
-        return json_success_response({"message": message})
+        return json_ok({"message": message})
     except SimulatorError as e:
-        return json_error_response(e.message, e.status_code)
+        return json_error(e.message, e.status_code)
 
 
 @require_http_methods(["POST"])
@@ -76,20 +76,20 @@ def sim_inject_fault(request, building_id: int) -> JsonResponse:
     try:
         body = parse_json_body(request)
     except SimulatorError as e:
-        return json_error_response(e.message, e.status_code)
+        return json_error(e.message, e.status_code)
 
     device = body.get("device")
     fault_type = body.get("fault_type")
     if not device or not fault_type:
-        return json_error_response("Faltan campos: device, fault_type")
+        return json_error("Faltan campos: device, fault_type")
 
     from apps.sensors.simulation.controls import inject_fault
 
     try:
         message = inject_fault(building_id, device, fault_type)
-        return json_success_response({"message": message})
+        return json_ok({"message": message})
     except SimulatorError as e:
-        return json_error_response(e.message)
+        return json_error(e.message)
 
 
 @require_http_methods(["POST"])
@@ -99,7 +99,7 @@ def sim_clear_fault(request, building_id: int) -> JsonResponse:
     try:
         body = parse_json_body(request)
     except SimulatorError as e:
-        return json_error_response(e.message, e.status_code)
+        return json_error(e.message, e.status_code)
 
     device = body.get("device")
 
@@ -107,9 +107,9 @@ def sim_clear_fault(request, building_id: int) -> JsonResponse:
 
     try:
         message = clear_fault(building_id, device)
-        return json_success_response({"message": message})
+        return json_ok({"message": message})
     except SimulatorError as e:
-        return json_error_response(e.message, e.status_code)
+        return json_error(e.message, e.status_code)
 
 
 @require_http_methods(["POST"])
@@ -118,19 +118,19 @@ def sim_clear_fault(request, building_id: int) -> JsonResponse:
 def sim_set_speed(request, building_id: int) -> JsonResponse:
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     try:
         body = parse_json_body(request)
         speed = float(body.get("speed", 1.0))
         if math.isnan(speed) or math.isinf(speed):
-            return json_error_response("Velocidad inválida (NaN o Infinito)")
+            return json_error("Velocidad inválida (NaN o Infinito)")
     except (SimulatorError, ValueError, TypeError):
-        return json_error_response("JSON inválido o speed no numérico")
+        return json_error("JSON inválido o speed no numérico")
 
     from apps.sensors.simulation.constants import MIN_SIM_SPEED, MAX_SIM_SPEED
     sim.sim_speed = max(MIN_SIM_SPEED, min(MAX_SIM_SPEED, speed))
-    return json_success_response({"speed": sim.sim_speed})
+    return json_ok({"speed": sim.sim_speed})
 
 
 @require_http_methods(["POST"])
@@ -139,7 +139,7 @@ def sim_set_speed(request, building_id: int) -> JsonResponse:
 def sim_toggle_pump(request, building_id: int) -> JsonResponse:
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     try:
         body = parse_json_body(request)
@@ -157,7 +157,7 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
     else:
         sim.manual_pump_override = True
 
-    return json_success_response({"pump_on": sim.pump_on})
+    return json_ok({"pump_on": sim.pump_on})
 
 
 @require_http_methods(["POST"])
@@ -166,7 +166,7 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
 def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
     sim = get_simulator(building_id)
     if sim is None:
-        return json_error_response("No hay simulador activo para este edificio", 404)
+        return json_error("No hay simulador activo para este edificio", 404)
 
     try:
         body = parse_json_body(request)
@@ -183,4 +183,4 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
     else:
         sim.manual_elevator_override = True
 
-    return json_success_response({"elevator_on": sim.elevator_on})
+    return json_ok({"elevator_on": sim.elevator_on})

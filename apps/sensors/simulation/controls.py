@@ -109,7 +109,7 @@ def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> Non
     if not old_faults:
         return
     try:
-        from apps.history.services.alert_service import save_history_record
+        from apps.history.services.history_persistence import save_history_record
         for dev, fault_type in old_faults.items():
             nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
             nombre_dispositivo = _DEVICE_ES.get(dev, dev)

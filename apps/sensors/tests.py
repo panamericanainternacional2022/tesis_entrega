@@ -167,7 +167,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # -----------------------------------------------------------------------
     @patch("apps.history.alerts.engine.threading.Thread")
     def test_email_cooldown_per_variable(self, mock_thread):
-        with patch("apps.history.services.alert_service.get_building_emails") as mock_emails:
+        with patch("apps.history.services.email_sender.get_building_emails") as mock_emails:
             mock_emails.return_value = ["juanp@example.com"]
             self.sim.last_email_sent_time_per_var.clear()
             self.sim.active_alerts.clear()
