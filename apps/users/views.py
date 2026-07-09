@@ -224,7 +224,31 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
                     )
 
                 full_name = person.get_full_name() or user.username
-                messages.success(request, f"{full_name} actualizado correctamente.")
+
+                if not user.registered:
+                    try:
+                        activation_link = send_activation_email(
+                            person.email, user.id_usuario,
+                            f"{'https' if request.is_secure() else 'http'}://{request.get_host()}",
+                        )
+                        messages.success(
+                            request,
+                            f"{full_name} actualizado. Se reenvió el correo de activación a {person.email}.",
+                        )
+                    except Exception:
+                        token = signing.dumps({"user_id": user.id_usuario, "email": person.email})
+                        activation_link = (
+                            f"{'https' if request.is_secure() else 'http'}://{request.get_host()}"
+                            f"{reverse('complete_registration')}?token={token}"
+                        )
+                        messages.warning(
+                            request,
+                            f"{full_name} actualizado. No se pudo enviar el correo; "
+                            f"entregue el enlace de activación manualmente: {activation_link}",
+                        )
+                else:
+                    messages.success(request, f"{full_name} actualizado correctamente.")
+
                 return redirect("user_list")
     else:
         data = build_edit_initial_data(user, person)
