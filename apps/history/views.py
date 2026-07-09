@@ -1,5 +1,4 @@
 import logging
-import datetime as dt
 from typing import Any
 
 from django.shortcuts import render
@@ -159,10 +158,6 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
 def history_pdf_view(request: Any) -> HttpResponse:
     import datetime as dt
     from collections import OrderedDict
-    from apps.dashboard.shared import (
-        filter_date_range, parse_history,
-        filter_severity_python, filter_by_variable,
-    )
 
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:

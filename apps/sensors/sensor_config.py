@@ -146,9 +146,7 @@ _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not
 
 STATS_VARS = PUMP_VARS + _ELEVATOR_NUMERIC
 
-PDF_STATS_VARS = PUMP_VARS + _ELEVATOR_NUMERIC
-
-PDF_BAR_VARS = [v for v in PDF_STATS_VARS if v not in ("speed", "trip_count")]
+PDF_BAR_VARS = [v for v in STATS_VARS if v not in ("speed", "trip_count")]
 
 PDF_BAR_LABELS = {
     "temperature": "Temp. (°C)",

@@ -1,18 +1,9 @@
-import random
 import time
 import logging
 from typing import Optional
 
 from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_INFORMATIVO, SENSOR_RANGES
-from apps.sensors.simulation.constants import (
-    DEFAULT_SENSOR_DATA, FLOOR_COUNT,
-    CLEAR_FAULT_MIN_FLOW, CLEAR_FAULT_MIN_PRESSURE, CLEAR_FAULT_MAX_VIBRATION,
-    CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH, CLEAR_FAULT_MAX_LOAD,
-)
-
-
-def _clamp(value: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, value))
+from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA, FLOOR_COUNT
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
 from apps.sensors.simulation.exceptions import (
@@ -23,6 +14,29 @@ from apps.sensors.simulation.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+_DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
+
+
+def _clear_device_attrs(sim: BuildingSimulator, device: str | None, attr: str, old_faults: dict) -> None:
+    container = getattr(sim, attr, None)
+    if not container or not isinstance(container, dict):
+        return
+    if device == "pump":
+        for v in PUMP_VARS:
+            container.pop(v, None)
+    elif device == "elevator":
+        resolved_fault = old_faults.get("elevator")
+        if resolved_fault:
+            from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
+            for v in _get_fault_telemetry_targets(sim, resolved_fault):
+                container.pop(v, None)
+        else:
+            for v in ELEVATOR_VARS:
+                container.pop(v, None)
+    else:
+        container.clear()
+
 
 def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
     sim = simulators.get(edificio_id)
@@ -41,7 +55,6 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
     sim.sim_faults[device] = fault_type
     sim.fault_injected_at[device] = time.time()
     logger.info("Falla inyectada: edificio=%s, device=%s, tipo=%s", edificio_id, device, fault_type)
-    _DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
     nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
     nombre_dispositivo = _DEVICE_ES.get(device, device)
     return f"Falla '{nombre_falla}' inyectada en {nombre_dispositivo}"
@@ -64,81 +77,10 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
 
     _notify_faults_resolved(edificio_id, old_faults)
 
-    import time as _time
-    PROGRESSIVE_DURATION = 15.0
-
-    if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):
-        if device == "pump":
-            for v in PUMP_VARS:
-                sim.manual_overrides.pop(v, None)
-        elif device == "elevator":
-            resolved_fault = old_faults.get("elevator")
-            if resolved_fault:
-                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
-                targets = _get_fault_telemetry_targets(sim, resolved_fault)
-                for v in targets.keys():
-                    sim.manual_overrides.pop(v, None)
-            else:
-                for v in ELEVATOR_VARS:
-                    sim.manual_overrides.pop(v, None)
-        else:
-            for v in PUMP_VARS:
-                sim.manual_overrides.pop(v, None)
-            resolved_fault = old_faults.get("elevator")
-            if resolved_fault:
-                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
-                targets = _get_fault_telemetry_targets(sim, resolved_fault)
-                for v in targets.keys():
-                    sim.manual_overrides.pop(v, None)
-            else:
-                for v in ELEVATOR_VARS:
-                    sim.manual_overrides.pop(v, None)
-    if hasattr(sim, "manual_targets") and isinstance(sim.manual_targets, dict):
-        if device == "pump":
-            for v in PUMP_VARS:
-                sim.manual_targets.pop(v, None)
-        elif device == "elevator":
-            resolved_fault = old_faults.get("elevator")
-            if resolved_fault:
-                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
-                targets = _get_fault_telemetry_targets(sim, resolved_fault)
-                for v in targets.keys():
-                    sim.manual_targets.pop(v, None)
-            else:
-                for v in ELEVATOR_VARS:
-                    sim.manual_targets.pop(v, None)
-        else:
-            for v in PUMP_VARS:
-                sim.manual_targets.pop(v, None)
-            resolved_fault = old_faults.get("elevator")
-            if resolved_fault:
-                from apps.sensors.simulation.physics.elevator import _get_fault_telemetry_targets
-                targets = _get_fault_telemetry_targets(sim, resolved_fault)
-                for v in targets.keys():
-                    sim.manual_targets.pop(v, None)
-            else:
-                for v in ELEVATOR_VARS:
-                    sim.manual_targets.pop(v, None)
-
-    if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
-        if device == "pump":
-            for v in PUMP_VARS:
-                sim.last_email_sent_time_per_var.pop(v, None)
-        elif device == "elevator":
-            for v in ELEVATOR_VARS:
-                sim.last_email_sent_time_per_var.pop(v, None)
-        else:
-            sim.last_email_sent_time_per_var.clear()
-
-    if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
-        if device == "pump":
-            for v in PUMP_VARS:
-                sim._alert_consecutive.pop(v, None)
-        elif device == "elevator":
-            for v in ELEVATOR_VARS:
-                sim._alert_consecutive.pop(v, None)
-        else:
-            sim._alert_consecutive.clear()
+    for attr in ("manual_overrides", "manual_targets"):
+        _clear_device_attrs(sim, device, attr, old_faults)
+    _clear_device_attrs(sim, device, "last_email_sent_time_per_var", old_faults)
+    _clear_device_attrs(sim, device, "_alert_consecutive", old_faults)
 
     if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, set):
         if device == "pump":
@@ -148,42 +90,17 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         else:
             sim._manual_triggered_faults.clear()
 
-    _DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
+    from apps.sensors.simulation.fault_recovery import apply_pump_recovery, apply_elevator_recovery
+    if device in (None, "pump"):
+        apply_pump_recovery(sim)
+    if device in (None, "elevator"):
+        apply_elevator_recovery(sim)
+
     if device:
         nombre_dispositivo = _DEVICE_ES.get(device, device)
         msg = f"Falla limpiada para {nombre_dispositivo}"
     else:
         msg = "Todas las fallas limpiadas"
-    sd = sim.sensor_data
-    expiration = _time.time() + PROGRESSIVE_DURATION
-    if device in (None, "pump"):
-        sim._pump_start_grace_ticks = 5
-        if sd.get("flow_rate", 0) < CLEAR_FAULT_MIN_FLOW:
-            sim.manual_overrides["flow_rate"] = expiration
-            sim.manual_targets["flow_rate"] = CLEAR_FAULT_MIN_FLOW
-        if sd.get("pressure", 0) < CLEAR_FAULT_MIN_PRESSURE:
-            sim.manual_overrides["pressure"] = expiration
-            sim.manual_targets["pressure"] = CLEAR_FAULT_MIN_PRESSURE
-        if sd.get("vibration", 0) > CLEAR_FAULT_MAX_VIBRATION:
-            sim.manual_overrides["vibration"] = expiration
-            sim.manual_targets["vibration"] = CLEAR_FAULT_MAX_VIBRATION
-        volt = sd.get("voltage", 220)
-        if volt < CLEAR_FAULT_VOLTAGE_LOW or volt > CLEAR_FAULT_VOLTAGE_HIGH:
-            sim.manual_overrides["voltage"] = expiration
-            sim.manual_targets["voltage"] = _clamp(volt, CLEAR_FAULT_VOLTAGE_LOW, CLEAR_FAULT_VOLTAGE_HIGH)
-    if device in (None, "elevator"):
-        from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
-        _clear_elevator_fault_params(sim)
-        sd["motor_stuck"] = False
-        if sd.get("speed", 0) < 0.0:
-            sim.manual_overrides["speed"] = expiration
-            sim.manual_targets["speed"] = 0.0
-        if sd.get("load", 0) > CLEAR_FAULT_MAX_LOAD:
-            sim.manual_overrides["load"] = expiration
-            sim.manual_targets["load"] = CLEAR_FAULT_MAX_LOAD
-        sd["door_status"] = "closed"
-        sim.door_close_attempts = 0
-        sim._elev_state = "IDLE"
     logger.info(msg)
     return msg
 
@@ -193,7 +110,6 @@ def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> Non
         return
     try:
         from apps.history.services.alert_service import save_history_record
-        _DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
         for dev, fault_type in old_faults.items():
             nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
             nombre_dispositivo = _DEVICE_ES.get(dev, dev)

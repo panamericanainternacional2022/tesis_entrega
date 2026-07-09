@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from django.db.models import Q, QuerySet
 
@@ -25,25 +25,18 @@ _RISK_CSS = {
 }
 
 
-def exclude_severity_levels(queryset: QuerySet, levels: Optional[List[str]] = None) -> QuerySet:
-    if not levels:
-        return queryset
-    query = Q()
-    for level in levels:
-        query |= Q(**{"message__risk": level})
-        query |= Q(**{"message__contains": f'"risk": "{level}"'})
-        query |= Q(**{"message__contains": f'"risk":"{level}"'})
-    return queryset.exclude(query)
+def _build_severity_q(severity: str) -> Q:
+    return (
+        Q(**{"message__risk": severity})
+        | Q(**{"message__contains": f'"risk": "{severity}"'})
+        | Q(**{"message__contains": f'"risk":"{severity}"'})
+    )
 
 
 def filter_severity_include(queryset: QuerySet, severity: str) -> QuerySet:
     if not severity:
         return queryset
-    return queryset.filter(
-        Q(**{"message__risk": severity})
-        | Q(**{"message__contains": f'"risk": "{severity}"'})
-        | Q(**{"message__contains": f'"risk":"{severity}"'})
-    )
+    return queryset.filter(_build_severity_q(severity))
 
 
 def _build_history_query(
@@ -52,39 +45,21 @@ def _build_history_query(
     building_id: Optional[str] = None,
 ) -> tuple[QuerySet, str]:
     from apps.core.auth_decorators import is_admin_role
-    from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
+    from apps.buildings.models import Building
 
-    building_name = ""
     if is_admin_role(role):
         records = History.objects.all()
-        if building_id:
-            records = records.filter(monitoring_equipment__building_id=building_id)
-            try:
-                building_name = Building.objects.get(id=building_id).name
-            except Building.DoesNotExist:
-                pass
     else:
-        user_building_ids = list(UserBuilding.objects.filter(
-            user_id=user_id
-        ).values_list("building_id", flat=True))
-        if building_id:
-            if building_id.isdigit() and int(building_id) in user_building_ids:
-                records = History.objects.filter(
-                    monitoring_equipment__building_id=building_id
-                )
-                try:
-                    building_name = Building.objects.get(id=building_id).name
-                except Building.DoesNotExist:
-                    pass
-            else:
-                records = History.objects.none()
-        else:
-            equipment_ids = list(MonitoringEquipment.objects.filter(
-                building_id__in=user_building_ids
-            ).values_list("id", flat=True))
-            records = History.objects.filter(
-                user_id=user_id
-            ) | History.objects.filter(monitoring_equipment_id__in=equipment_ids)
+        records = History.objects.filter(
+            Q(user_id=user_id)
+            | Q(monitoring_equipment__building__userbuilding__user_id=user_id)
+        ).distinct()
+
+    if building_id:
+        records = records.filter(monitoring_equipment__building_id=building_id)
+
+    building_obj = Building.objects.filter(id=building_id).first() if building_id else None
+    building_name = building_obj.name if building_obj else ""
     return records, building_name
 
 
@@ -125,30 +100,22 @@ def _make_parsed(
 
 def parse_history_record_for_display(record: History) -> History:
     raw_msg = record.message
-    parsed_data: Optional[Dict[str, Any]] = None
+
+    if isinstance(raw_msg, str) and raw_msg.strip().startswith("{"):
+        try:
+            raw_msg = json.loads(raw_msg.strip())
+        except (ValueError, KeyError):
+            record.parsed_data = {"parsed": False}
+            return record
 
     if isinstance(raw_msg, dict):
-        raw_value = raw_msg.get("value")
-        parsed_data = _make_parsed(
+        record.parsed_data = _make_parsed(
             risk=raw_msg.get("risk", ""),
             variable=raw_msg.get("variable", ""),
-            value=raw_value,
+            value=raw_msg.get("value"),
             action=raw_msg.get("action", ""),
         )
-    elif isinstance(raw_msg, str) and raw_msg.strip().startswith("{"):
-        try:
-            data = json.loads(raw_msg.strip())
-            raw_value = data.get("value")
-            parsed_data = _make_parsed(
-                risk=data.get("risk", ""),
-                variable=data.get("variable", ""),
-                value=raw_value,
-                action=data.get("action", ""),
-            )
-        except (ValueError, KeyError):
-            parsed_data = None
     else:
-        parsed_data = None
+        record.parsed_data = {"parsed": False}
 
-    record.parsed_data = parsed_data or {"parsed": False}
     return record

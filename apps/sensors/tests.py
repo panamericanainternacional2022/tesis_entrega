@@ -2,7 +2,6 @@ import time
 from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
-from django.utils import timezone
 
 from apps.users.models import Persona, Usuario
 from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
@@ -11,8 +10,7 @@ from apps.sensors.simulation.physics.pump import (
     _update_pump, _TANK_FULL_THRESHOLD, _TANK_LOW_THRESHOLD,
 )
 from apps.sensors.simulation.physics.elevator import _update_elevator
-from apps.sensors.engine import _run_sim_tick, _handle_enum_alert
-from apps.history.models import History
+from apps.sensors.engine import _handle_enum_alert
 from apps.sensors.sensor_config import RISK_CRITICO
 
 

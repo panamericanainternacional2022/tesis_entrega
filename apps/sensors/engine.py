@@ -4,17 +4,21 @@ import logging
 import eventlet
 
 from apps.sensors.sensor_config import (
-    PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, ALERT_VARS,
+    PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS,
     RISK_CRITICO, RISK_ALTO, RISK_NORMAL, BOOLEAN_VARS, ENUM_VARS,
-    ENUM_RISK_VALUES,
+    ENUM_RISK_VALUES, RISK_COLORS,
     SIM_TICK_INTERVAL,
 )
 from apps.sensors.simulation.constants import (
-    MAX_HISTORY_SIZE,
+    MAX_HISTORY_SIZE, MAX_DOOR_CLOSE_ATTEMPTS,
 )
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
 from apps.sensors.simulation.simulation_engine import update_sensor_data
+from apps.core.services.risk_service import classify_risk
+from apps.thresholds.services import get_thresholds
+from apps.history.alerts.engine import send_alert, check_rationing
+from apps.history.services.alert_service import get_professional_action
 
 
 logger = logging.getLogger(__name__)
@@ -48,10 +52,6 @@ ALERT_DEBOUNCE_TICKS: int = 3
 
 
 def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict:
-    from apps.core.services.risk_service import classify_risk
-    from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS
-    from apps.thresholds.services import get_thresholds
-
     thresholds = get_thresholds(sim.edificio_id)
     risk_cache: dict[str, str] = {}
 
@@ -85,8 +85,6 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
             str_val = str(value).lower() if value is not None else ""
             risk_cache[var] = RISK_CRITICO if str_val in risky_values else RISK_NORMAL
             continue
-        from apps.history.alerts.engine import send_alert
-        from apps.history.services.alert_service import get_professional_action
         risk, _ = classify_risk(
             var, value, thresholds,
             pump_on=sim.pump_on,
@@ -106,7 +104,6 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         else:
             sim.active_alerts.pop(var, None)
             sim._alert_consecutive.pop(var, None)
-    from apps.history.alerts.engine import check_rationing
     _skip_rationing = (
         getattr(sim, "_pump_start_grace_ticks", 0) > 0
         or "flow_rate" in getattr(sim, "manual_overrides", {})
@@ -128,8 +125,6 @@ def _handle_motor_stuck_alert(
         consecutive = sim._alert_consecutive.get(var, 0) + 1
         sim._alert_consecutive[var] = consecutive
         if consecutive >= ALERT_DEBOUNCE_TICKS:
-            from apps.history.alerts.engine import send_alert
-            from apps.history.services.alert_service import get_professional_action
             action = get_professional_action(var, RISK_CRITICO, value)
             send_alert(var, value, RISK_CRITICO, action, sim=sim)
     else:
@@ -140,11 +135,6 @@ def _handle_motor_stuck_alert(
 def _handle_enum_alert(
     sim: BuildingSimulator, var: str, value: object,
 ) -> None:
-    from apps.history.alerts.engine import send_alert
-    from apps.history.services.alert_service import get_professional_action
-    from apps.sensors.sensor_config import ENUM_RISK_VALUES, RISK_CRITICO, RISK_ALTO
-    from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
-
     risky_values = ENUM_RISK_VALUES.get(var, set())
     str_val = str(value).lower() if value is not None else ""
     if str_val in risky_values:
@@ -165,9 +155,6 @@ def _handle_enum_alert(
 
 
 def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_cache: dict[str, str] = None) -> None:
-    from apps.core.services.risk_service import classify_risk
-    from apps.thresholds.services import get_thresholds
-
     thresholds = get_thresholds(sim.edificio_id)
 
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -189,7 +176,6 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
             )
         else:
             risk = RISK_CRITICO if value else RISK_NORMAL
-        from apps.sensors.sensor_config import RISK_COLORS
         color = RISK_COLORS.get(risk, {}).get("email", {}).get("text", "#475569")
         sensor_type = "Bomba" if var in PUMP_VARS else "Elevador"
         new_readings.append({

@@ -1,9 +1,7 @@
-import logging
-
+from apps.sensors.sensor_config import RATIONING_THRESHOLD
+from apps.history.services.alert_service import generate_recommendations
 from apps.sensors.services.payload_service import PayloadContext, build_live_payload as _build_live_payload
 from apps.sensors.simulation.models import BuildingSimulator
-
-logger = logging.getLogger(__name__)
 
 
 def build_live_payload() -> dict:
@@ -12,8 +10,6 @@ def build_live_payload() -> dict:
         door_close_attempts, pump_on, elevator_on, equipment_types,
         sim_paused, sim_speed, active_alerts,
     )
-    from apps.sensors.sensor_config import RATIONING_THRESHOLD
-    from apps.history.services.alert_service import generate_recommendations
     ctx = PayloadContext(
         sensor_data=sensor_data,
         history=history,
@@ -35,8 +31,6 @@ def build_live_payload() -> dict:
 
 
 def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
-    from apps.sensors.sensor_config import RATIONING_THRESHOLD
-    from apps.history.services.alert_service import generate_recommendations
     ctx = PayloadContext(
         sensor_data=sim.sensor_data,
         history=sim.history,

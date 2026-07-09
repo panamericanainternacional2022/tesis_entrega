@@ -372,6 +372,30 @@ def build_standard_email_body(
     return "\n".join(lines)
 
 
+def _build_mime_message(
+    html_body: str,
+    plain_body: str,
+    subject: str,
+    from_addr: str,
+    attachment_pdf: Optional[bytes] = None,
+    attachment_name: str = "reporte.pdf",
+):
+    msg = MIMEMultipart("mixed" if attachment_pdf else "alternative")
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText(plain_body or html_body, "plain", "utf-8"))
+    alt.attach(MIMEText(html_body, "html", "utf-8"))
+    msg.attach(alt)
+
+    if attachment_pdf is not None:
+        part = MIMEApplication(attachment_pdf, _subtype="pdf")
+        part.add_header("Content-Disposition", "attachment", filename=attachment_name)
+        msg.attach(part)
+
+    msg["From"] = from_addr
+    msg["Subject"] = subject
+    return msg
+
+
 def send_email_raw(
     to_addrs: List[str],
     subject: str,
@@ -391,22 +415,14 @@ def send_email_raw(
         logger.warning("SMTP not configured. Email '%s' not sent.", subject)
         return
 
-    if attachment_pdf is not None:
-        msg = MIMEMultipart("mixed")
-        alt = MIMEMultipart("alternative")
-        alt.attach(MIMEText(plain_body or html_body, "plain", "utf-8"))
-        alt.attach(MIMEText(html_body, "html", "utf-8"))
-        msg.attach(alt)
-        part = MIMEApplication(attachment_pdf, _subtype="pdf")
-        part.add_header("Content-Disposition", "attachment", filename=attachment_name)
-        msg.attach(part)
-    else:
-        msg = MIMEMultipart("alternative")
-        msg.attach(MIMEText(plain_body or html_body, "plain", "utf-8"))
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
-
-    msg["From"] = smtp_user
-    msg["Subject"] = subject
+    msg = _build_mime_message(
+        html_body=html_body,
+        plain_body=plain_body,
+        subject=subject,
+        from_addr=smtp_user,
+        attachment_pdf=attachment_pdf,
+        attachment_name=attachment_name,
+    )
 
     from apps.sensors.sensor_config import SMTP_TIMEOUT
     _smtp_send(msg, to_addrs, smtp_server, smtp_port, smtp_user, smtp_password, SMTP_TIMEOUT)
@@ -464,20 +480,21 @@ def _send_email_smtp(config: EmailConfig) -> None:
         action_text=action_text,
     )
 
-    msg = MIMEMultipart("mixed")
-    msg["From"] = smtp_user
-    msg["Subject"] = config.subject
-
-    alt_part = MIMEMultipart("alternative")
-    alt_part.attach(MIMEText(config.body, "plain", "utf-8"))
-    alt_part.attach(MIMEText(html_content, "html", "utf-8"))
-    msg.attach(alt_part)
-
+    attachment_bytes = None
+    attachment_filename = "report.pdf"
     if config.attachment:
         config.attachment.pdf_data.seek(0)
-        part = MIMEApplication(config.attachment.pdf_data.read(), _subtype="pdf")
-        part.add_header("Content-Disposition", "attachment", filename=config.attachment.filename)
-        msg.attach(part)
+        attachment_bytes = config.attachment.pdf_data.read()
+        attachment_filename = config.attachment.filename
+
+    msg = _build_mime_message(
+        html_body=html_content,
+        plain_body=config.body,
+        subject=config.subject,
+        from_addr=smtp_user,
+        attachment_pdf=attachment_bytes,
+        attachment_name=attachment_filename,
+    )
 
     from apps.sensors.sensor_config import SMTP_TIMEOUT
     _smtp_send(msg, config.recipients or [], smtp_server, smtp_port, smtp_user, smtp_password, SMTP_TIMEOUT)
