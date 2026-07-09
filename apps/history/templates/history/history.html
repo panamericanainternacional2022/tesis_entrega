@@ -58,7 +58,7 @@
 
                 <div class="divider-v"></div>
 
-                <button id="openFilterPanel" type="button" class="btn btn-primary">
+                <button id="openFilterPanel" type="button" class="btn btn-primary" {% if total_count == 0 %}disabled{% endif %}>
                     <i class="fa-solid fa-sliders" aria-hidden="true"></i> Filtrar
                     {% if severidad or variable_filter or selected_edificio_id %}
                     <span class="filter-dot"></span>
@@ -66,17 +66,17 @@
                 </button>
 
                 <div class="actions-dropdown">
-                    <button type="button" class="btn btn-icon" aria-label="Más acciones">
+                    <button type="button" class="btn btn-icon" aria-label="Más acciones" {% if not records %}disabled{% endif %}>
                         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
                     </button>
                     <div class="dropdown-menu">
-                        <button type="button" id="clearDbHistoryBtn" class="dropdown-item">
+                        <button type="button" id="clearDbHistoryBtn" class="dropdown-item"{% if not records %} disabled{% endif %}>
                             <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Limpiar historial
                         </button>
                         <a id="pdfDownloadBtn"
                            href="{% url 'history_pdf' %}?{{ filter_query_string }}"
                            class="dropdown-item"
-                           title="Descargar PDF con los filtros actuales">
+                           title="Descargar PDF con los filtros actuales"{% if not records %} aria-disabled="true"{% endif %}>
                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar PDF
                         </a>
                     </div>
@@ -143,17 +143,15 @@
         <button type="button" id="closeFilterPanelBtn" class="btn btn-icon" aria-label="Cerrar panel de filtros"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="filter-panel-body">
-        {% if edificios|length > 1 %}
         <div class="filter-panel-section">
             <label class="filter-section-label" for="panel-edificio-filter" style="display:block"><i class="fa-solid fa-building" aria-hidden="true"></i> Edificio</label>
-            <select id="panel-edificio-filter" aria-label="Filtrar por edificio" class="custom-select-init">
+            <select id="panel-edificio-filter" aria-label="Filtrar por edificio" class="custom-select-init" {% if edificios|length <= 1 %}disabled{% endif %}>
                 <option value="">Todos los edificios</option>
                 {% for building in edificios %}
                 <option value="{{ building.id }}" {% if selected_edificio_id == building.id %}selected{% endif %}>{{ building.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        {% endif %}
         <div class="filter-panel-section">
             <label class="filter-section-label" for="panel-severidad" style="display:block"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Severidad</label>
             <select id="panel-severidad" aria-label="Filtrar por severidad" class="custom-select-init">
