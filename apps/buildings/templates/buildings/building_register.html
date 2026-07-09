@@ -106,6 +106,8 @@
                         noBtn.classList.remove('btn-secondary');
                         noBtn.classList.add('btn-primary');
                     }
+                    var floorsInput = document.querySelector('input[name="cantidadPisos"]');
+                    if (floorsInput) floorsInput.dispatchEvent(new Event('input', { bubbles: true }));
                     if (checkFormState) setTimeout(checkFormState, 0);
                 });
             });

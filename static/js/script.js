@@ -2194,7 +2194,12 @@
                 } else if (num > MAX_FLOORS) {
                     mostrarError(input, `La cantidad de pisos no puede exceder ${MAX_FLOORS}.`);
                 } else {
-                    limpiarError(input);
+                    const elevatorInput = input.form?.querySelector('input[name="con_elevador"]');
+                    if (elevatorInput && elevatorInput.value === 'true' && num <= 1) {
+                        mostrarError(input, 'Un edificio de 1 piso no puede tener elevador.');
+                    } else {
+                        limpiarError(input);
+                    }
                 }
             } else {
                 limpiarError(input);
