@@ -98,7 +98,7 @@
                     </button>
                 </div>
                 <div class="form-group flex-1" id="simFaultPumpGroup">
-                    <label class="form-label" for="simFaultPump">Falla</label>
+                    <label class="form-label" for="simFaultPump">Selector de fallas</label>
                     <select id="simFaultPump" class="custom-select-init">
                         <option value="">Ninguna</option>
                         {% for key, name in PUMP_FAULT_OPTIONS %}
@@ -118,7 +118,7 @@
                     </button>
                 </div>
                 <div class="form-group flex-1" id="simFaultElevatorGroup">
-                    <label class="form-label" for="simFaultElevator">Falla</label>
+                    <label class="form-label" for="simFaultElevator">Selector de fallas</label>
                     <select id="simFaultElevator" class="custom-select-init">
                         <option value="">Ninguna</option>
                         {% for key, name in ELEVATOR_FAULT_OPTIONS %}
@@ -257,6 +257,8 @@
             this.currentSpeed = 1.0;
             this._activeElevFault = '';
             this._activePumpFault = '';
+            this._hasElevator = true;
+            this._hasPump = true;
 
             this._cacheDOMElements();
             this._bindEvents();
@@ -504,6 +506,17 @@
             window.updateFaultWarnings();
         };
 
+        SimulationController.prototype._updateEquipmentVisibility = function () {
+            var toggle = function (id, show) {
+                var el = document.getElementById(id);
+                if (el) el.style.display = show ? '' : 'none';
+            };
+            toggle('simTogglePumpGroup', this._hasPump);
+            toggle('simFaultPumpGroup', this._hasPump);
+            toggle('simToggleElevatorGroup', this._hasElevator);
+            toggle('simFaultElevatorGroup', this._hasElevator);
+        };
+
         SimulationController.prototype._updateFaultUI = function () {
             _csVal(document.getElementById('simFaultElevator'), this._activeElevFault);
             _csVal(document.getElementById('simFaultPump'), this._activePumpFault);
@@ -527,6 +540,8 @@
                     self._activePumpFault = (data.faults && data.faults.pump) || '';
                     self._pumpOn = data.pump_on;
                     self._elevOn = data.elevator_on;
+                    self._hasPump = data.has_pump;
+                    self._hasElevator = data.has_elevator;
 
                     if (typeof window.setEquipmentState === 'function') {
                         window.setEquipmentState(data.pump_on, data.elevator_on);
@@ -534,6 +549,7 @@
 
                     self._updatePauseBtn();
                     self._updateSpeedButtons(self.currentSpeed);
+                    self._updateEquipmentVisibility();
                     self._updateControlStates();
 
                     _csVal(document.getElementById('simFaultElevator'), self._activeElevFault);
@@ -561,11 +577,17 @@
                 this._updateFaultUI();
             }
 
+            if (data.equipment_types) {
+                this._hasPump = data.equipment_types.includes('bomba');
+                this._hasElevator = data.equipment_types.includes('elevador');
+            }
+
             if (data.pump_on !== undefined) {
                 this._pumpOn = data.pump_on;
                 this._elevOn = data.elevator_on;
             }
 
+            this._updateEquipmentVisibility();
             this._updatePauseBtn();
             this._updateControlStates();
         };

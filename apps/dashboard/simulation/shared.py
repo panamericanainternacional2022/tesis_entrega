@@ -18,6 +18,7 @@ def get_simulator(building_id: int) -> BuildingSimulator | None:
 
     sim = simulators.get(building_id)
     if sim:
+        _sync_equipment_from_db(sim, building_id)
         return sim
 
     from apps.buildings.models import Building, MonitoringEquipment
@@ -41,6 +42,37 @@ def get_simulator(building_id: int) -> BuildingSimulator | None:
 
     logger.warning("No hay simulador disponible para el ID %s", building_id)
     return None
+
+
+def _sync_equipment_from_db(sim: BuildingSimulator, building_id: int) -> None:
+    from apps.buildings.models import MonitoringEquipment
+    try:
+        db_types = set(
+            MonitoringEquipment.objects
+            .filter(building_id=building_id)
+            .values_list("equipment_type", flat=True)
+        )
+    except Exception as e:
+        logger.debug("Error al leer equipos para edificio %s: %s", building_id, e)
+        return
+
+    if sim.equipment_types == db_types:
+        return
+
+    sim.equipment_types.clear()
+    sim.equipment_types.update(db_types)
+    sim.has_pump = "bomba" in db_types
+    sim.has_elevator = "elevador" in db_types
+
+    if not sim.has_pump:
+        sim.pump_on = False
+    if not sim.has_elevator:
+        sim.elevator_on = False
+
+    logger.info(
+        "Equipos sincronizados para edificio %s: %s (pump=%s, elevator=%s)",
+        building_id, db_types, sim.has_pump, sim.has_elevator,
+    )
 
 
 def get_first_simulator() -> BuildingSimulator | None:
