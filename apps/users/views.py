@@ -486,7 +486,7 @@ def user_pdf_view(request: Any) -> HttpResponse:
         col_headers = ["Cédula", "Nombre", "Apellido", "Correo electrónico", "Estado"]
         col_aligns  = ["C", "L", "L", "L", "C"]
 
-        for group_idx, (building_name, members) in enumerate(groups.items()):
+        for building_name, members in groups.items():
             if pdf.get_y() > 240:
                 pdf.add_page()
 

@@ -201,12 +201,12 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         from apps.sensors.services.payload_service import _fetch_equipment_status
         self.equipment_pump.status = "operativo"
         self.equipment_pump.save()
-        pump_s, elev_s = _fetch_equipment_status(
+        pump_s, _ = _fetch_equipment_status(
             django_connected=True, active_edificio_id=self.building.id,
             sim_faults={}, active_alerts={}
         )
         self.assertEqual(pump_s, "operativo")
-        pump_s, elev_s = _fetch_equipment_status(
+        pump_s, _ = _fetch_equipment_status(
             django_connected=True, active_edificio_id=self.building.id,
             sim_faults={"pump": "dry_run"}, active_alerts={}
         )

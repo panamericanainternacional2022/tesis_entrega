@@ -40,7 +40,6 @@ OVERSPEED_GOVERNOR_TRIGGER: float = 1.25
 OVERSPEED_ACCEL_RATE: float = 0.5       # Acceleration rate when governor failed (m/s²)
 
 # Door obstruction retry interval (seconds)
-DOOR_OBSTRUCTION_RETRY_INTERVAL: float = 3.0
 
 # Motor stall detection
 STUCK_THRESHOLD_TICKS: int = 3          # Consecutive ticks at speed≈0 before alarm

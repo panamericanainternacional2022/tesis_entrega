@@ -178,9 +178,5 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
     except (SimulatorError, Exception):
         sim.elevator_on = not sim.elevator_on
 
-    if sim.elevator_on:
-        sim.manual_elevator_override = False
-    else:
-        sim.manual_elevator_override = True
 
     return json_ok({"elevator_on": sim.elevator_on})

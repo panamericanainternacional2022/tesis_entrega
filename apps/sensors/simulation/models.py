@@ -18,13 +18,11 @@ class BuildingSimulator:
         self.door_close_attempts: int = 0
         self.history: list = []
         self.pending_alerts: deque = deque()
-        self.last_email_sent_time: float = 0.0
         self.last_email_sent_time_per_var: dict = {}
         self.manual_overrides: dict = {}
         self.manual_targets: dict = {}
 
         self.manual_pump_override: bool = False
-        self.manual_elevator_override: bool = False
 
         self.sim_paused: bool = True
         self.sim_started: bool = False
@@ -33,9 +31,7 @@ class BuildingSimulator:
         self.fault_injected_at: dict = {}
 
         self._pump_demand: float = 15.0
-        self._pump_refill_timer: float = 0
         self._pump_failure_timer: float = 0
-        self._pump_failure_active: bool = False
         self._pump_failure_var = None
         self._pump_start_grace_ticks: int = 0
 
@@ -43,7 +39,6 @@ class BuildingSimulator:
         self._elev_timer: float = 0
         self._elev_current_accel: float = 0.0    # Actual acceleration (for S-curve)
         self._elev_stuck_timer: float = 0.0      # Consecutive stall ticks
-        self._elev_prev_spd: float = 0.0         # Speed at start of tick
         if self.has_elevator:
             self.sensor_data["position"] = 0
             self._elev_position_meters = 0.0
@@ -52,7 +47,6 @@ class BuildingSimulator:
             self._elev_target_floor = 0
             self._elev_position_meters = 0.0
         self._elev_direction: int = 1
-        self._elev_at_floor: bool = True
         self._elev_prev_position: float = 0
 
         # Fault physical parameters (mutated by fault handlers, consumed by FSM)

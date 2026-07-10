@@ -142,15 +142,15 @@ def populate():
     UserBuilding.objects.get_or_create(user=u4, building=e2)
 
     print("Creando Equipos de Monitoreo...")
-    eq1_bomba, _ = MonitoringEquipment.objects.get_or_create(
+    MonitoringEquipment.objects.get_or_create(
         building=e1, equipment_type=MonitoringEquipment.TYPE_PUMP,
         defaults={"name": "Bomba de agua"},
     )
-    eq1_elevador, _ = MonitoringEquipment.objects.get_or_create(
+    MonitoringEquipment.objects.get_or_create(
         building=e1, equipment_type=MonitoringEquipment.TYPE_ELEVATOR,
         defaults={"name": "Elevador"},
     )
-    eq2_bomba, _ = MonitoringEquipment.objects.get_or_create(
+    MonitoringEquipment.objects.get_or_create(
         building=e2, equipment_type=MonitoringEquipment.TYPE_PUMP,
         defaults={"name": "Bomba de agua"},
     )

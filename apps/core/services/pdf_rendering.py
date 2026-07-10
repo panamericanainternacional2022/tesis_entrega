@@ -13,7 +13,6 @@ from apps.core.services.pdf_shared import (
 )
 
 ACCENT_COLOR = (37, 99, 235)
-ACCENT_LIGHT = (239, 246, 255)
 
 DIVIDER_COLOR = (200, 205, 212)
 HEADER_BG     = (10, 10, 10)

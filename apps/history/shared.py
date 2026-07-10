@@ -33,10 +33,6 @@ def _build_severity_q(severity: str) -> Q:
     )
 
 
-def filter_severity_include(queryset: QuerySet, severity: str) -> QuerySet:
-    if not severity:
-        return queryset
-    return queryset.filter(_build_severity_q(severity))
 
 
 def _build_history_query(

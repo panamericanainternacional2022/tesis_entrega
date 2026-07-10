@@ -129,7 +129,6 @@ def reset_simulator(edificio_id: int) -> str:
     sim.pump_on = False
     sim.elevator_on = False
     sim.manual_pump_override = False
-    sim.manual_elevator_override = False
     sim.active_alerts.clear()
     sim.door_close_attempts = 0
     sim.history.clear()
@@ -151,7 +150,6 @@ def reset_simulator(edificio_id: int) -> str:
     sim.sim_speed = 1.0
     sim._pump_demand = 15.0
     sim._pump_start_grace_ticks = 5
-    sim._pump_refill_timer = 0
     sim._elev_state = "IDLE"
     sim._elev_timer = 0
     if sim.has_elevator:
@@ -164,7 +162,6 @@ def reset_simulator(edificio_id: int) -> str:
         sim._elev_target_floor = 0
         sim._elev_position_meters = 0.0
     sim._elev_direction = 1
-    sim._elev_at_floor = True
     logger.info("Simulador reiniciado: edificio=%s", edificio_id)
     return "Simulador reiniciado al estado normal"
 

@@ -74,7 +74,6 @@ def _send_alert_email(
         return
 
     sim.last_email_sent_time_per_var[variable] = now
-    sim.last_email_sent_time = now
 
     edificio_nombre = getattr(sim, "nombre", "") or ""
     edificio_id = getattr(sim, "edificio_id", None)

@@ -566,7 +566,6 @@ def _handle_elev_door_closing(
         else:
             sim._elev_timer = 0
             sim._elev_state = "ACCELERATING"
-            sim._elev_at_floor = False
             sim._elev_current_accel = 0
             sd["door_status"] = "closed"
             sd["speed"] = 0.0
@@ -678,14 +677,12 @@ def _handle_elev_decelerating(
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_timer = 0
         sim._elev_state = "DOOR_OPENING"
-        sim._elev_at_floor = True
         sim._elev_current_accel = 0
     elif sim._elev_speed_governor_failed and (pos >= sim.floors * FLOOR_HEIGHT or pos <= 0):
         spd = 0.0
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_timer = 0
         sim._elev_state = "IDLE"
-        sim._elev_at_floor = True
         sim._elev_current_accel = 0
     sd["speed"] = spd
     sd["door_status"] = door
