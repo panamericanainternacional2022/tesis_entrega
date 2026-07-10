@@ -8,9 +8,8 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from apps.sensors.simulation.models import BuildingSimulator
 
-from apps.sensors.sensor_config import RISK_CRITICO, RISK_ALTO, VAR_NAMES, COOLDOWN_SECONDS
+from apps.sensors.sensor_config import RISK_CRITICO, RISK_ALTO, VAR_NAMES, COOLDOWN_SECONDS, RATIONING_THRESHOLD
 from apps.sensors.services.professional_action import get_professional_action
-from apps.sensors.simulation.constants import RATIONING_THRESHOLD
 
 logger = logging.getLogger(__name__)
 

@@ -3,10 +3,12 @@ from typing import Any
 
 from django.http import HttpResponse
 
-from apps.core.services.pdf_shared import (
+from apps.sensors.sensor_config import (
     MAX_PDF_EVENTS,
     RISK_STYLES,
     SEVERITY_DISPLAY_LEVELS,
+)
+from apps.core.services.pdf_shared import (
     _pdf_font,
     draw_row,
     safe_text,
