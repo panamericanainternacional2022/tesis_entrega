@@ -5,7 +5,7 @@ from django.db.models import Q, QuerySet
 
 from apps.sensors.sensor_config import (
     VAR_NAMES, UNITS, VALUE_DISPLAY_ES, FAULT_NAMES_ES,
-    RISK_NORMAL, RISK_CRITICO, RISK_ALTO, RISK_INFORMATIVO,
+    RISK_NORMAL, RISK_CRITICO, RISK_ALTO,
 )
 from apps.history.models import History
 
@@ -14,14 +14,12 @@ _RISK_ICONS = {
     RISK_NORMAL:      "fa-circle-check",
     RISK_CRITICO:     "fa-circle-exclamation",
     RISK_ALTO:        "fa-circle-exclamation",
-    RISK_INFORMATIVO: "fa-circle-info",
 }
 
 _RISK_CSS = {
     RISK_NORMAL:      "risk-normal",
     RISK_CRITICO:     "risk-crit",
     RISK_ALTO:        "risk-high",
-    RISK_INFORMATIVO: "risk-info",
 }
 
 
@@ -51,6 +49,8 @@ def _build_history_query(
             | Q(monitoring_equipment__building__user_assignments__user_id=user_id)
         ).distinct()
 
+    records = records.exclude(message__risk="Informativo")
+
     if building_id:
         records = records.filter(monitoring_equipment__building_id=building_id)
 
@@ -75,8 +75,6 @@ def _make_parsed(
         value_display = VALUE_DISPLAY_ES[variable].get(value_str, raw_str.capitalize())
         if value_str in ("true", "false") and variable in ("motor_stuck",):
             value_display = ""
-    elif variable.startswith("fault_resolved_"):
-        value_display = FAULT_NAMES_ES.get(value_str, raw_str.capitalize())
     elif raw_str:
         value_display = raw_str
     else:
@@ -90,7 +88,7 @@ def _make_parsed(
         "unit": UNITS.get(variable, ""),
         "action": action,
         "risk_icon": _RISK_ICONS.get(risk, "fa-circle-check"),
-        "risk_css": _RISK_CSS.get(risk, "risk-info"),
+        "risk_css": _RISK_CSS.get(risk, "risk-normal"),
     }
 
 
@@ -111,6 +109,10 @@ def parse_history_record_for_display(record: History) -> History:
             value=raw_msg.get("value"),
             action=raw_msg.get("action", ""),
         )
+        if getattr(record, "resolved", False):
+            record.parsed_data["risk"] = "Resuelta"
+            record.parsed_data["risk_icon"] = "fa-circle-check"
+            record.parsed_data["risk_css"] = "risk-resolved"
     else:
         record.parsed_data = {"parsed": False}
 

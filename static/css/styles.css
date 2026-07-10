@@ -1221,8 +1221,8 @@ button {
     color: var(--state-critical);
 }
 
-.risk-info {
-    color: var(--state-info);
+.risk-resolved {
+    color: var(--state-normal);
 }
 
 /* Badges de dirección */
@@ -1308,8 +1308,8 @@ button {
     background: var(--color-accent);
 }
 
-.hist-item.risk-info::before {
-    background: var(--color-accent);
+.hist-item.risk-resolved::before {
+    background: var(--state-normal);
 }
 
 .hist-icon {

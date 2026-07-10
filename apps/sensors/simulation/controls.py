@@ -2,7 +2,7 @@ import time
 import logging
 from typing import Optional
 
-from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_INFORMATIVO
+from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_ALTO, RISK_CRITICO
 from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
@@ -109,16 +109,24 @@ def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> Non
     if not old_faults:
         return
     try:
-        from apps.history.services.history_persistence import save_history_record
-        for dev, fault_type in old_faults.items():
-            nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
-            nombre_dispositivo = _DEVICE_ES.get(dev, dev)
-            action = f"Falla '{nombre_falla}' en {nombre_dispositivo} resuelta. Operación normal restaurada."
-            save_history_record(
-                f"fault_resolved_{dev}", fault_type, RISK_INFORMATIVO, action, edificio_id=edificio_id,
-            )
+        from apps.history.models import History
+
+        device_vars = {
+            "pump": PUMP_VARS,
+            "elevator": ELEVATOR_VARS,
+        }
+        for dev in old_faults:
+            vars_to_match = device_vars.get(dev, [])
+            if not vars_to_match:
+                continue
+            History.objects.filter(
+                monitoring_equipment__building_id=edificio_id,
+                message__variable__in=vars_to_match,
+                message__risk__in=[RISK_ALTO, RISK_CRITICO],
+                resolved=False,
+            ).update(resolved=True)
     except Exception as exc:
-        logger.warning("No se pudo enviar alerta de resolución de falla: %s", exc)
+        logger.warning("No se pudo marcar alertas como resueltas: %s", exc)
 
 
 def reset_simulator(edificio_id: int) -> str:

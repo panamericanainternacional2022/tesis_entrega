@@ -431,6 +431,7 @@
         thresholdsUpdate: '/api/thresholds/update/',
         limitsUpdate: '/api/sensor-limits/update/',
         clearHistory: '/history/clear/',
+        resolveAlert: (id) => `/history/${id}/resolve/`,
         simStatus: (id) => `/api/sim/${id}/status/`,
         simPause: (id) => `/api/sim/${id}/pause/`,
         simReset: (id) => `/api/sim/${id}/reset/`,
@@ -790,7 +791,6 @@
             if (!r) return getCSSVar('--color-ink') || '#0a0a0a';
             if (r.risk === _RISK.critico) return getCSSVar('--state-critical') || '#dc2626';
             if (r.risk === _RISK.alto) return getCSSVar('--state-high') || '#c2410c';
-            if (r.risk === _RISK.informativo) return getCSSVar('--state-info') || '#6b6b6b';
             return getCSSVar('--state-normal') || '#16a34a';
         };
 
@@ -1582,7 +1582,7 @@
         if (!container) return;
         document.getElementById('live-no-history')?.remove();
 
-        const filtered = (alerts || []).filter(a => a.risk !== _RISK.informativo);
+        const filtered = alerts || [];
         if (!filtered.length) {
             unreadHistoryCount = 0;
             setHistoryBadge(0);
@@ -1622,7 +1622,7 @@
         const li = document.createElement('li');
         li.className = 'hist-item';
 
-        const BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'INFORMATIVO': 'sensor-info', 'NORMAL': 'sensor-normal' };
+        const BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal' };
         const badgeClass = BADGE_MAP[data.risk] || 'sensor-info';
         const valueStr = String(data.value);
         const unit = getUnit(data.variable);
@@ -1666,6 +1666,31 @@
                 } catch (_) { await showAlert('No se pudo limpiar el historial.', 'error'); }
             });
         }
+
+        document.getElementById('live-history-list')?.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.btn-icon[data-record-id]');
+            if (!btn) return;
+            const recordId = btn.dataset.recordId;
+            if (!recordId) return;
+            btn.disabled = true;
+            try {
+                const resp = await csrfFetch(API.resolveAlert(recordId), { method: 'POST' });
+                if (resp.ok) {
+                    const li = btn.closest('.hist-item');
+                    if (li) {
+                        li.classList.remove('risk-high', 'risk-crit');
+                        li.classList.add('risk-resolved');
+                        const badge = li.querySelector('.risk-icon');
+                        if (badge) {
+                            badge.classList.remove('risk-high', 'risk-crit');
+                            badge.classList.add('risk-resolved');
+                            badge.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resuelta';
+                        }
+                    }
+                    btn.remove();
+                }
+            } catch (_) { btn.disabled = false; }
+        });
     }
 
     async function fetchInitialData() {

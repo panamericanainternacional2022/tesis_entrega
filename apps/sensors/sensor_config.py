@@ -16,8 +16,6 @@ VAR_NAMES = {
     "door_status":  "Estado de puerta",
     "door_close_attempts": "Intentos de cierre de puerta",
     "rationing":                "Racionamiento",
-    "fault_resolved_pump":      "Falla de bomba resuelta",
-    "fault_resolved_elevator":  "Falla de elevador resuelta",
 }
 
 UNITS = {
@@ -41,22 +39,16 @@ UNITS = {
 }
 
 RISK_NORMAL      = "Normal"
-RISK_INFORMATIVO = "Informativo"
 RISK_ALTO        = "Alto"
 RISK_CRITICO     = "Crítico"
 
-SEVERITY_LEVELS = [RISK_NORMAL, RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO]
+SEVERITY_LEVELS = [RISK_NORMAL, RISK_ALTO, RISK_CRITICO]
 
 RISK_COLORS = {
     RISK_NORMAL: {
         "pdf":     {"bg": (240, 253, 244), "text": (22, 163, 74)},
         "email":   {"bg": "#f0fdf4", "border": "#bbf7d0", "text": "#16a34a"},
         "desc":    "Valores normales de funcionamiento",
-    },
-    RISK_INFORMATIVO: {
-        "pdf":     {"bg": (241, 245, 249), "text": (71, 85, 105)},
-        "email":   {"bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569"},
-        "desc":    "Eventos informativos del sistema",
     },
     RISK_ALTO: {
         "pdf":     {"bg": (255, 247, 237), "text": (217, 119, 6)},
@@ -249,15 +241,9 @@ ACTIONS: dict[str, dict[str, str]] = {
     "rationing": {
         RISK_CRITICO: "Caudal por debajo del mínimo admisible (racionamiento activo). Restringe el consumo general.",
     },
-    "fault_resolved_pump": {
-        RISK_INFORMATIVO: "Falla en la bomba de agua resuelta. Operación normal restaurada.",
-    },
-    "fault_resolved_elevator": {
-        RISK_INFORMATIVO: "Falla en el elevador resuelta. Operación normal restaurada.",
-    },
 }
 
-SYSTEM_VARS = ["rationing", "fault_resolved_pump", "fault_resolved_elevator"]
+SYSTEM_VARS = ["rationing"]
 
 SIM_TICK_INTERVAL = 1
 

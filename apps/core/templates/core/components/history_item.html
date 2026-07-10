@@ -1,5 +1,5 @@
 {% load date_extras %}
-<li class="hist-item{% if record.parsed_data.parsed %} {{ record.parsed_data.risk_css }}{% endif %}">
+<li class="hist-item{% if record.parsed_data.parsed %} {{ record.parsed_data.risk_css }}{% endif %}" data-record-id="{{ record.id }}">
     <div class="hist-body">
         {% if record.parsed_data.parsed %}
             <h3 class="hist-title" style="margin: 0 0 4px; font-size: var(--text-base); font-weight: var(--weight-bold);">{{ record.parsed_data.variable }}{% if record.parsed_data.value %} ({{ record.parsed_data.value }}{% if record.parsed_data.unit %} {{ record.parsed_data.unit }}{% endif %}){% endif %}</h3>
@@ -14,6 +14,13 @@
                 <i class="fa-solid {{ record.parsed_data.risk_icon }}" aria-hidden="true"></i>
                 {{ record.parsed_data.risk }}
             </span>
+            {% if rol == "SA" and not record.resolved %}
+            {% if record.parsed_data.risk == "Alto" or record.parsed_data.risk == "Crítico" %}
+            <button type="button" class="btn btn-icon" data-record-id="{{ record.id }}" title="Marcar como resuelta" aria-label="Marcar como resuelta">
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+            {% endif %}
             {% endif %}
             <span title="{{ record.date|date:'d/m/Y H:i' }}"><i class="fa-solid fa-clock" aria-hidden="true"></i> {{ record.date|naturaltime_es }}</span>
             {% if record.monitoring_equipment.building %}

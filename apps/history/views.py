@@ -6,9 +6,9 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 
-from apps.core.auth_decorators import login_required
+from apps.core.auth_decorators import login_required, is_admin_role
 from apps.core.services.http_request import get_building_id_param
-from apps.core.services.http_response import json_ok
+from apps.core.services.http_response import json_ok, json_error
 from apps.buildings.models import Building
 from apps.history.models import History
 from apps.history.shared import _build_history_query
@@ -143,6 +143,29 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     if usuario_id:
         History.objects.filter(user_id=usuario_id).delete()
     return json_ok({"message": "History cleared successfully"})
+
+
+@login_required
+@require_http_methods(["POST"])
+def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
+    rol = request.session.get("usuario_rol", "US")
+    if not is_admin_role(rol):
+        return json_error("No autorizado", status=403)
+
+    try:
+        record = History.objects.get(pk=record_id)
+    except History.DoesNotExist:
+        return json_error("Registro no encontrado", status=404)
+
+    risk = record.message.get("risk", "") if isinstance(record.message, dict) else ""
+    if risk not in ("Alto", "Crítico"):
+        return json_error("Solo se pueden resolver alertas Alto o Crítico", status=400)
+    if record.resolved:
+        return json_ok({"message": "Ya estaba resuelta"})
+
+    record.resolved = True
+    record.save(update_fields=["resolved"])
+    return json_ok({"message": "Alerta marcada como resuelta"})
 
 
 # ── History PDF Report (moved from reports.views.history) ──────────────────

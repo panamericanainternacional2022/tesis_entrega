@@ -4,6 +4,7 @@ from .views import (
     clear_history_view,
     view_unread_count,
     history_pdf_view,
+    resolve_alert_view,
 )
 
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
         name="clear_history",
     ),
     path("history/api/count/", view_unread_count, name="api_unread_count"),
+    path("history/<int:record_id>/resolve/", resolve_alert_view, name="resolve_alert"),
     path(
         "history/pdf/",
         history_pdf_view,
