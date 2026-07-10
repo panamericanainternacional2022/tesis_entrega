@@ -40,13 +40,10 @@
             <div class="row-center">
 
                 <div class="select-container">
-                    <select id="periodoSelect" name="periodo" aria-label="Período" class="custom-select-init">
-                        <option value="1h"     {% if periodo_seleccionado == '1h'     or not periodo_seleccionado %}selected{% endif %}>Última hora</option>
-                        <option value="12h"    {% if periodo_seleccionado == '12h'    %}selected{% endif %}>Últimas 12 horas</option>
-                        <option value="24h"    {% if periodo_seleccionado == '24h'    %}selected{% endif %}>Último día</option>
-                        <option value="3d"     {% if periodo_seleccionado == '3d'     %}selected{% endif %}>Últimos 3 días</option>
-                        <option value="7d"     {% if periodo_seleccionado == '7d'     %}selected{% endif %}>Últimos 7 días</option>
-                        <option value="custom" {% if periodo_seleccionado == 'custom' %}selected{% endif %}>Personalizado...</option>
+                    <select id="periodoSelect" name="periodo" aria-label="Orden" class="custom-select-init">
+                        <option value="reciente" {% if periodo_seleccionado == 'reciente' or not periodo_seleccionado %}selected{% endif %}>Más reciente</option>
+                        <option value="antiguo"  {% if periodo_seleccionado == 'antiguo'  %}selected{% endif %}>Más antiguo</option>
+                        <option value="custom"   {% if periodo_seleccionado == 'custom'   %}selected{% endif %}>Personalizado</option>
                     </select>
                 </div>
 
@@ -235,7 +232,7 @@
             form.submit();
         }
     });
-    periodoSelect.dataset.prev = (periodoSelect.value === 'custom') ? '1h' : periodoSelect.value;
+    periodoSelect.dataset.prev = (periodoSelect.value === 'custom') ? 'reciente' : periodoSelect.value;
 
     var editCustomDatesBtn = document.getElementById('editCustomDatesBtn');
     if (editCustomDatesBtn) {
@@ -297,7 +294,7 @@
         var stored = "{{ periodo_seleccionado|escapejs }}";
         if (stored === 'custom') {
             periodoSelect.value = 'custom';
-            periodoSelect.dataset.prev = '1h';
+            periodoSelect.dataset.prev = 'reciente';
         }
     })();
 

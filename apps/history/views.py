@@ -44,14 +44,14 @@ def history_view(request: HttpRequest):
             "filter_query_string": "",
             "severidad": "", "variable_filter": "", "all_variables": [],
             "ALL_SEVERITIES": [], "fecha_desde": "", "fecha_hasta": "",
-            "periodo_seleccionado": "1h", "total_count": 0,
+            "periodo_seleccionado": "reciente", "total_count": 0,
         })
 
     rol = request.session.get("usuario_rol", "US")
     building_id_raw = get_building_id_param(request, "building", "edificio")
     severity = request.GET.get("severidad", "").strip()
     variable_filter = request.GET.get("variable", "").strip()
-    period = request.GET.get("periodo", "1h").strip()
+    period = request.GET.get("periodo", "reciente").strip()
     date_from = request.GET.get("fecha_desde", "").strip()
     date_to = request.GET.get("fecha_hasta", "").strip()
 
@@ -73,14 +73,15 @@ def history_view(request: HttpRequest):
     # Total global sin filtrar por fecha/severidad/variable (para el badge)
     total_count = records.distinct().count()
 
-    records = filter_date_range(records, period, date_from, date_to)
+    if period == "custom":
+        records = filter_date_range(records, period, date_from, date_to)
 
     records = (
         records
         .select_related("user", "monitoring_equipment__building")
         .distinct()
-        .order_by("-date")
     )
+    records = records.order_by("date" if period == "antiguo" else "-date")
 
     parsed_list = parse_history(records)
 
@@ -161,20 +162,21 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
     severity       = request.GET.get("severidad", "").strip()
     variable_filter = request.GET.get("variable", "").strip()
-    period         = request.GET.get("periodo", "1h").strip()
+    period         = request.GET.get("periodo", "reciente").strip()
     date_from      = request.GET.get("fecha_desde", "").strip()
     date_to        = request.GET.get("fecha_hasta", "").strip()
 
     records, building_name = _build_history_query(usuario_id, rol, building_id_raw)
 
-    records = filter_date_range(records, period, date_from, date_to)
+    if period == "custom":
+        records = filter_date_range(records, period, date_from, date_to)
 
     records = (
         records
         .select_related("user", "monitoring_equipment__building")
         .distinct()
-        .order_by("-date")
     )
+    records = records.order_by("date" if period == "antiguo" else "-date")
     parsed_list = parse_history(records)
 
     parsed_list = filter_severity_python(parsed_list, severity)

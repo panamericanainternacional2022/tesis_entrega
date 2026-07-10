@@ -5,10 +5,6 @@ from django.utils import timezone as tz
 
 from apps.buildings.models import UserBuilding
 from apps.sensors.sensor_config import SEVERITY_LEVELS
-from apps.core.date_utils import PERIOD_DELTA_MAP
-
-
-DELTA_MAP = PERIOD_DELTA_MAP
 
 
 def build_monitoring_config(building_id: int) -> dict:
@@ -49,10 +45,6 @@ def build_monitoring_config(building_id: int) -> dict:
 
 
 def filter_date_range(queryset: QuerySet, period: str, date_from: str, date_to: str) -> QuerySet:
-    now = tz.now()
-    if period in DELTA_MAP:
-        delta = DELTA_MAP[period]
-        return queryset.filter(date__gte=now - delta)
     if period == "custom":
         if date_from:
             try:

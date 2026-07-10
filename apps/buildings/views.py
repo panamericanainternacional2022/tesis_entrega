@@ -604,7 +604,7 @@ def _render_history_section(
     usuario_rol: str = "US",
 ) -> None:
     from apps.history.shared import _build_history_query
-    from apps.dashboard.shared import filter_date_range, parse_history
+    from apps.dashboard.shared import parse_history
 
     if pdf.get_y() > 230:
         pdf.add_page()
@@ -618,8 +618,6 @@ def _render_history_section(
             monitoring_equipment__building_id=edificio_id,
         )
 
-    records = filter_date_range(records, "24h", "", "")
-
     records = (
         records
         .select_related("monitoring_equipment__building")
@@ -630,7 +628,7 @@ def _render_history_section(
     total = records.count()
     _pdf_font(pdf, "", 10)
     pdf.set_text_color(26, 26, 26)
-    pdf.cell(0, 7, safe_text(f"Últimas 24 horas: {total} registro(s)"), ln=1)
+    pdf.cell(0, 7, safe_text(f"Historial completo: {total} registro(s)"), ln=1)
     pdf.ln(3)
 
     parsed = parse_history(records)
