@@ -6,6 +6,7 @@ from apps.sensors.sensor_config import (
     BOOLEAN_VARS, ENUM_VARS, ENUM_RISK_VALUES,
     SENSOR_RANGES,
 )
+from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
 
 
 def classify_risk(
@@ -25,21 +26,24 @@ def classify_risk(
     if variable in BOOLEAN_VARS:
         return (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
 
-    # Reglas Contextuales del Elevador
+    # Reglas Contextuales del Elevador — door_status
     if variable == "door_status":
-        is_open = str(value).lower() in {"open", "opening", "closing"}
+        str_val = str(value).lower() if value is not None else ""
         is_moving = speed > 0.05
         is_at_floor_zone = abs(position - round(position)) < 0.05
-        
-        if is_open:
+
+        if str_val == "closing":
+            if door_close_attempts >= 2:
+                return RISK_CRITICO, "red"
+            return RISK_ALTO, "orange"
+
+        if str_val in {"open", "opening"}:
             if is_moving or not is_at_floor_zone:
                 return RISK_CRITICO, "red"
-            if str(value).lower() == "closing":
-                if door_close_attempts >= 2:
-                    return RISK_CRITICO, "red"
-                return RISK_ALTO, "orange"
-            if door_close_attempts >= 2:
-                return RISK_ALTO, "orange"
+            if door_close_attempts >= MAX_DOOR_CLOSE_ATTEMPTS:
+                return RISK_CRITICO, "red"
+            return RISK_NORMAL, "green"
+
         return RISK_NORMAL, "green"
 
     if variable == "load":

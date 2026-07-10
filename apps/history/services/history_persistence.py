@@ -11,6 +11,7 @@ def _find_equipment(variable: str, edificio_id: Optional[int]) -> Any:
     from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS
     from apps.buildings.models import MonitoringEquipment
     from apps.users.models import Usuario
+    from apps.core.auth_decorators import ADMIN_ROLES
 
     tipo = None
     if variable in PUMP_VARS or variable == "rationing":
@@ -18,24 +19,14 @@ def _find_equipment(variable: str, edificio_id: Optional[int]) -> Any:
     elif variable in ELEVATOR_VARS:
         tipo = MonitoringEquipment.TYPE_ELEVATOR
 
-    eid = edificio_id
-    if eid is None:
-        from apps.sensors.simulation.globals import simulators
-        eid = next(iter(simulators.keys()), None)
+    equipo = (
+        MonitoringEquipment.objects.filter(building_id=edificio_id, equipment_type=tipo).first()
+        if tipo and edificio_id else None
+    ) or (
+        MonitoringEquipment.objects.filter(building_id=edificio_id).first()
+        if edificio_id else None
+    )
 
-    equipo = None
-    if tipo and eid:
-        equipo = MonitoringEquipment.objects.filter(
-            building_id=eid, equipment_type=tipo
-        ).first()
-
-    if not equipo and eid:
-        equipo = MonitoringEquipment.objects.filter(building_id=eid).first()
-
-    if not equipo:
-        equipo = MonitoringEquipment.objects.first() if MonitoringEquipment.objects.exists() else None
-
-    from apps.core.auth_decorators import ADMIN_ROLES
     usuario = Usuario.objects.filter(rol__in=ADMIN_ROLES).first() or Usuario.objects.first()
     return equipo, usuario
 

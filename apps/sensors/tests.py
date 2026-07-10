@@ -10,8 +10,9 @@ from apps.sensors.simulation.physics.pump import (
     _update_pump, _TANK_FULL_THRESHOLD, _TANK_LOW_THRESHOLD,
 )
 from apps.sensors.simulation.physics.elevator import _update_elevator
-from apps.sensors.engine import _handle_enum_alert
-from apps.sensors.sensor_config import RISK_CRITICO
+from apps.core.services.risk_service import classify_risk
+from apps.sensors.sensor_config import RISK_CRITICO, RISK_NORMAL, RISK_ALTO
+from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
 
 
 # ---------------------------------------------------------------------------
@@ -141,26 +142,39 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         self.assertEqual(self.sim.sensor_data["speed"],       0.0)
 
     # -----------------------------------------------------------------------
-    # 7. Door status alert logic
+    # 7. Door status risk classification
     # -----------------------------------------------------------------------
     def test_door_status_alert_logic(self):
         """Open door while stationary → Normal; while moving or repeated fails → Critical."""
-        self.sim._elev_state = "DOORS_OPEN"
-        self.sim.sensor_data["door_status"] = "open"
-        self.sim.sensor_data["speed"] = 0.0
-        self.sim.door_close_attempts = 0
-        _handle_enum_alert(self.sim, "door_status", "open")
-        self.assertNotIn("door_status", self.sim.active_alerts)
+        risk, _ = classify_risk(
+            "door_status", "open", {},
+            speed=0.0, door_close_attempts=0, position=0.0,
+        )
+        self.assertEqual(risk, RISK_NORMAL)
 
-        self.sim.sensor_data["speed"] = 1.0
-        _handle_enum_alert(self.sim, "door_status", "open")
-        self.assertIn("door_status", self.sim.active_alerts)
-        self.assertEqual(self.sim.active_alerts["door_status"], RISK_CRITICO)
+        risk, _ = classify_risk(
+            "door_status", "open", {},
+            speed=1.0, door_close_attempts=0, position=0.0,
+        )
+        self.assertEqual(risk, RISK_CRITICO)
 
-        self.sim.sensor_data["speed"] = 0.0
-        self.sim.door_close_attempts = 5
-        _handle_enum_alert(self.sim, "door_status", "open")
-        self.assertIn("door_status", self.sim.active_alerts)
+        risk, _ = classify_risk(
+            "door_status", "open", {},
+            speed=0.0, door_close_attempts=MAX_DOOR_CLOSE_ATTEMPTS, position=0.0,
+        )
+        self.assertEqual(risk, RISK_CRITICO)
+
+        risk, _ = classify_risk(
+            "door_status", "closing", {},
+            speed=0.0, door_close_attempts=1, position=0.0,
+        )
+        self.assertEqual(risk, RISK_ALTO)
+
+        risk, _ = classify_risk(
+            "door_status", "closing", {},
+            speed=0.0, door_close_attempts=2, position=0.0,
+        )
+        self.assertEqual(risk, RISK_CRITICO)
 
     # -----------------------------------------------------------------------
     # 8. Email cooldown per variable
