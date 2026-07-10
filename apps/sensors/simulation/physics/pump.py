@@ -134,9 +134,7 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
     # Special-case energy overrides for faults where hydraulic-only
     # computation does not reflect real motor load.
-    if fault_type == "blocked_discharge":
-        temp_sd["pump_energy"] = clamp(12.0, _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH)
-    elif fault_type == "overheat":
+    if fault_type == "overheat":
         temp_sd["pump_energy"] = clamp(temp_sd["pump_energy"] * 1.5, _PUMP_ENERGY_LOW, _PUMP_ENERGY_HIGH)
 
     for k in PUMP_VARS:
@@ -147,22 +145,24 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _apply_dry_run(sd: dict, dt: float) -> None:
-    """Dry run: pump running but tank is empty → cavitates, overheats, no flow."""
+    """Dry run: pump running but tank is empty → cavitates, overheats, no flow.
+    Motor spins freely drawing ~1.5A with no hydraulic load."""
     sd["flow_rate"]  = clamp(sd["flow_rate"]  - 5.0 * dt, 0, 0.5)
     sd["pressure"]   = clamp(sd["pressure"]   - 2.0 * dt, 0, 0.5)
     sd["temperature"] = clamp(sd["temperature"] + 1.5 * dt, 0, 130)
     sd["vibration"]  = clamp(sd["vibration"]  + 0.5 * dt, 0, 15)
-    # During dry-run, tank drains because there is no mains supply to refill
+    sd["current"]    = clamp(sd["current"]    - 2.0 * dt, 1.0, 70)
     sd["tank_level"] = clamp(sd["tank_level"] - 15.0 * dt, 0, 10)
 
 
 def _apply_blocked_discharge(sd: dict, dt: float) -> None:
-    """Blocked discharge: water backs up → high pressure, low flow."""
+    """Blocked discharge: water backs up → high pressure, low flow.
+    Centrifugal pumps consume minimum power at zero flow."""
     sd["flow_rate"]   = clamp(sd["flow_rate"]   - 5.0 * dt, 0, 0.5)
     sd["pressure"]    = clamp(sd["pressure"]    + 1.5 * dt, 0, 12)
     sd["vibration"]   = clamp(sd["vibration"]   + 0.8 * dt, 0, 15)
     sd["temperature"] = clamp(sd["temperature"] + 0.8 * dt, 0, 130)
-    # Tank still fills (pump is running, just discharge blocked)
+    sd["current"]     = clamp(sd["current"]     - 3.0 * dt, 0.5, 70)
     sd["tank_level"]  = clamp(sd["tank_level"]  + 0.1 * dt, 0, 100)
 
 
@@ -171,7 +171,8 @@ def _apply_pipe_burst(sd: dict, dt: float) -> None:
     sd["flow_rate"]  = clamp(sd["flow_rate"]  + 3.0 * dt, 0, 60)
     sd["pressure"]   = clamp(sd["pressure"]   - 0.8 * dt, 0, 2)
     sd["vibration"]  = clamp(sd["vibration"]  + 0.6 * dt, 0, 15)
-    # Tank drains fast due to the burst
+    sd["current"]    = clamp(sd["current"]    + 8.0 * dt, 0, 70)
+    sd["temperature"] = clamp(sd["temperature"] + 1.0 * dt, 0, 130)
     sd["tank_level"] = clamp(sd["tank_level"] - 5.0 * dt, 0, 100)
 
 
@@ -183,24 +184,31 @@ def _apply_cavitation(sd: dict, dt: float) -> None:
 
 
 def _apply_overheat(sd: dict, dt: float) -> None:
+    """Overheat: temperature rises linearly, vibration increases due to
+    bearing wear.  Q, P, I stay normal — the pump keeps pushing water
+    while thermally destroying itself."""
     sd["temperature"] = clamp(sd["temperature"] + 2.0 * dt, 0, 130)
     sd["vibration"]   = clamp(sd["vibration"]   + 0.3 * dt, 0, 15)
-    sd["current"]     = clamp(sd["current"]     + 3.0 * dt, 0, 70)
 
 
 def _apply_power_surge(sd: dict, dt: float) -> None:
-    sd["voltage"] = clamp(sd["voltage"] - 15 * dt, 180, 260)
-    sd["current"] = clamp(sd["current"] + 10 * dt, 0, 70)
-    sd["temperature"] = clamp(sd["temperature"] + 1.5 * dt, 0, 130)
-    sd["vibration"] = clamp(sd["vibration"] + 0.8 * dt, 0, 15)
+    """Power surge / motor locked rotor: motor seizes, flow stops, current spikes."""
+    sd["flow_rate"]   = clamp(sd["flow_rate"]   - 10.0 * dt, 0, 0.5)
+    sd["pressure"]    = clamp(sd["pressure"]    - 5.0 * dt, 0, 0.5)
+    sd["voltage"]     = clamp(sd["voltage"]     - 15.0 * dt, 180, 260)
+    sd["current"]     = clamp(sd["current"]     + 12.0 * dt, 0, 70)
+    sd["temperature"] = clamp(sd["temperature"] + 3.0 * dt, 0, 130)
+    sd["vibration"]   = clamp(sd["vibration"]   + 1.5 * dt, 0, 15)
 
 
 def _apply_power_outage(sd: dict, dt: float) -> None:
+    """Power outage: voltage/current drop instantly, flow/pressure/vibration
+    ramp down smoothly over ~1-2 seconds due to water and motor inertia."""
     sd["voltage"]     = 0.0
     sd["current"]     = 0.0
-    sd["flow_rate"]   = 0.0
-    sd["pressure"]    = 0.0
-    sd["vibration"]   = 0.0
+    sd["flow_rate"]   = clamp(sd["flow_rate"]   - 20.0 * dt, 0, 60)
+    sd["pressure"]    = clamp(sd["pressure"]    - 4.0 * dt, 0, 12)
+    sd["vibration"]   = clamp(sd["vibration"]   - 5.0 * dt, 0, 15)
     sd["temperature"] = clamp(sd["temperature"] - 0.5 * dt, T_AMBIENT, _TEMP_HIGH)
 
 

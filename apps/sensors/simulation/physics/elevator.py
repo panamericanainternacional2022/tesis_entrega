@@ -157,7 +157,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         "motor_stuck": {
             "motor_stuck": True,
             "speed": 0.0,
-            "energy": _ENERGY_HIGH * 0.75,
+            "energy": _ENERGY_HIGH,
             "door_status": "closed",
             "elevator_state": "STUCK",
         },
@@ -165,12 +165,12 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "door_status": "closing",
             "speed": 0.0,
             "energy": _ENERGY_HIGH * 0.1,
-            "door_close_attempts": 5,
+            "door_close_attempts": 3,
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
             "speed": _SPEED_HIGH * 0.75,
-            "energy": _ENERGY_HIGH * 0.6,
+            "energy": _ENERGY_LOW * 0.1,
             "door_status": "closed",
             "elevator_state": "MOVING",
         },
@@ -183,9 +183,9 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         },
         "pos_sensor_fail": {
             "position": getattr(sim, "_elev_pos_stuck_value", FLOOR_HEIGHT * 1.25),
-            "speed": 0.0,
+            "speed": CRUISING_SPEED,
             "door_status": "closed",
-            "elevator_state": "IDLE",
+            "elevator_state": "MOVING",
         },
     }
     if fault == "commercial_power_outage":

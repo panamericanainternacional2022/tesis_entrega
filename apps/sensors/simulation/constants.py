@@ -6,7 +6,7 @@ LOG_SIM: bool = True
 SIMULTANEOUS_FAIL_PROB: float = 0.3
 DOOR_CLOSE_SUCCESS_PROB: float = 0.25
 DOOR_OPEN_PROB: float = 0.4
-MAX_DOOR_CLOSE_ATTEMPTS: int = 5
+MAX_DOOR_CLOSE_ATTEMPTS: int = 3
 FAULT_AUTO_CLEAR_SECONDS: int = 120
 RANDOM_FAULT_PROB: float = 0.0
 
@@ -59,7 +59,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "pressure": 0.0,
     "temperature": 25.0,
     "vibration": 0.0,
-    "tank_level": 75.0,
+    "tank_level": 80.0,
     "position": 0,
     "speed": 0.0,
     "load": 0,
