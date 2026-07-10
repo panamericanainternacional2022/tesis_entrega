@@ -88,27 +88,9 @@ EMAIL_FALLBACK_COLORS: dict[str, str] = {
     "bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569",
 }
 
-RISK_NAMES_ES = {
-    RISK_CRITICO:      "crítica",
-    RISK_ALTO:         "alta",
-    RISK_INFORMATIVO:  "informativa",
-    RISK_NORMAL:       "normal",
-}
-
-DEVICE_NAMES_ES = {
-    "pump":       "bomba de agua",
-    "elevator":   "elevador",
-    "motor":      "motor",
-    "fan":        "ventilador",
-    "compressor": "compresor",
-    "generator":  "generador",
-    "boiler":     "caldera",
-    "chiller":    "enfriadora",
-}
-
 NO_RISK_VARS = []
 
-LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position", "door_close_attempts"]
+LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position", "door_close_attempts", "door_status", "motor_stuck"]
 
 ZERO_IS_CRITICAL_VARS = {"flow_rate", "pressure"}
 
@@ -145,21 +127,6 @@ ELEVATOR_VARS = [
 _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not in BOOLEAN_VARS and v not in ENUM_VARS]
 
 STATS_VARS = PUMP_VARS + _ELEVATOR_NUMERIC
-
-PDF_BAR_VARS = [v for v in STATS_VARS if v not in ("speed", "trip_count")]
-
-PDF_BAR_LABELS = {
-    "temperature": "Temp. (°C)",
-    "pressure":    "Presión (bar)",
-    "flow_rate":   "Caudal (l/s)",
-    "vibration":   "Vibración (mm/s)",
-    "tank_level":  "Tanque (%)",
-    "load":        "Carga (kg)",
-    "energy":      "Energía (kW)",
-    "pump_energy": "Energía (kW)",
-    "voltage":     "Voltaje (V)",
-    "current":     "Corriente (A)",
-}
 
 VALUE_DISPLAY_ES = {
     "door_status": {
@@ -292,10 +259,7 @@ ACTIONS: dict[str, dict[str, str]] = {
 
 SYSTEM_VARS = ["rationing", "fault_resolved_pump", "fault_resolved_elevator"]
 
-ALERT_VARS = list(set(PUMP_VARS + ELEVATOR_VARS + SYSTEM_VARS))
-
 SIM_TICK_INTERVAL = 1
-MAX_CONSECUTIVE_FAILURES = 5
 
 COOLDOWN_SECONDS: int = 1800
 MAX_PDF_EVENTS: int = 200

@@ -1,7 +1,7 @@
 import random
 from collections import deque
 
-from apps.sensors.simulation.constants import FLOOR_COUNT, DEFAULT_SENSOR_DATA
+from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA
 
 
 class BuildingSimulator:

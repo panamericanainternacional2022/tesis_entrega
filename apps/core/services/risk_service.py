@@ -42,6 +42,8 @@ def classify_risk(
                 return RISK_CRITICO, "red"
             if door_close_attempts >= MAX_DOOR_CLOSE_ATTEMPTS:
                 return RISK_CRITICO, "red"
+            if door_close_attempts >= 2:
+                return RISK_ALTO, "orange"
             return RISK_NORMAL, "green"
 
         return RISK_NORMAL, "green"

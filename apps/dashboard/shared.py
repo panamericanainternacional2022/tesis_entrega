@@ -3,12 +3,11 @@ import datetime as dt
 from django.db.models import Q, QuerySet
 from django.utils import timezone as tz
 
-from apps.buildings.models import UserBuilding, MonitoringEquipment
+from apps.buildings.models import UserBuilding
 from apps.sensors.sensor_config import SEVERITY_LEVELS
 from apps.core.date_utils import PERIOD_DELTA_MAP
 
 
-ALL_SEVERITIES = SEVERITY_LEVELS
 DELTA_MAP = PERIOD_DELTA_MAP
 
 
@@ -47,20 +46,6 @@ def build_monitoring_config(building_id: int) -> dict:
             "unknown": RISK_UNKNOWN,
         },
     }
-
-
-def get_equipment_sensors(equipment: MonitoringEquipment) -> list[dict]:
-    from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, VAR_NAMES, UNITS
-    variable_list = PUMP_VARS if equipment.equipment_type == MonitoringEquipment.TYPE_PUMP else ELEVATOR_VARS
-    return [
-        {"nombre": VAR_NAMES.get(v, v), "unidad": UNITS.get(v, "")}
-        for v in variable_list
-    ]
-
-
-def filter_severity(queryset: QuerySet, severity: str) -> QuerySet:
-    from apps.history.shared import filter_severity_include
-    return filter_severity_include(queryset, severity)
 
 
 def filter_date_range(queryset: QuerySet, period: str, date_from: str, date_to: str) -> QuerySet:

@@ -17,8 +17,6 @@ from apps.core.date_utils import PERIOD_DELTA_MAP, PERIOD_LABEL_MAP
 
 logger = logging.getLogger(__name__)
 
-ALL_SEVERITY_LEVELS: list[str] = SEVERITY_LEVELS
-
 FONT_SEARCH_PATHS: list[str] = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/dejavu/DejaVuSans.ttf",

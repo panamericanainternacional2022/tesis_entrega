@@ -11,7 +11,6 @@ from apps.sensors.simulation.constants import (
     POWER_OUTAGE_BRAKE_TIME, POWER_OUTAGE_BATTERY_WAIT,
     BATTERY_RESCUE_SPEED,
     OVERSPEED_GOVERNOR_TRIGGER, OVERSPEED_ACCEL_RATE,
-    DOOR_OBSTRUCTION_RETRY_INTERVAL,
     MAX_STEPS_PER_SECOND,
 )
 from apps.sensors.simulation.models import BuildingSimulator

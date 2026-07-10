@@ -532,13 +532,6 @@
         return null;
     }
 
-    function getRiskBadge(risk) {
-        if (risk === _RISK.critico) return 'badge-crit';
-        if (risk === _RISK.alto) return 'badge-high';
-        if (risk === _RISK.normal) return 'badge-normal';
-        return 'badge-info';
-    }
-
     function getRiskClass(varName, value) {
         if (varName === 'flow_rate' || varName === 'pressure') {
             if (!currentPumpOn) {
@@ -638,21 +631,6 @@
     // =============================================================================
     // 6. RENDERIZADO DE UI: Tarjetas, Gráficos, Estados
     // =============================================================================
-
-    function renderCard(variable, value, risk, badgeClass) {
-        const name = getVariableName(variable);
-        const displayValue = translateSensorValue(variable, value)
-            ?? `${formatNumeric(value, variable)} ${getUnit(variable)}`;
-        const isNoRisk = _NO_RISK_VARS.includes(variable);
-        const badgeHtml = isNoRisk ? '' : `<span class="badge ${badgeClass}">${risk}</span>`;
-        return `
-            <div class="sensor-card">
-                <div class="sensor-card-name">${name}</div>
-                <div class="sensor-card-value">${displayValue}</div>
-                <div class="sensor-card-footer">${badgeHtml}</div>
-            </div>
-        `;
-    }
 
     function updateCards(data) {
         const bombaContainer = document.getElementById('bombaCards');
@@ -1546,16 +1524,6 @@
     // =============================================================================
     // 10. CONTROLES MANUALES DE ADMIN
     // =============================================================================
-
-    function buildThresholdHint(varName) {
-        const cfg = currentThresholds[varName];
-        if (!cfg) return '';
-        const u = getUnit(varName) ? ` ${getUnit(varName)}` : '';
-        if (cfg.direction === 'range') return `Rango válido: ${cfg.low}${u} &ndash; ${cfg.high}${u}`;
-        const { low, medium: med, high } = cfg;
-        if (cfg.direction === 'higher') return `Medio > ${low}${u} &middot; Alto > ${med}${u} &middot; Crítico > ${high}${u}`;
-        return `Medio < ${low}${u} &middot; Alto < ${med}${u} &middot; Crítico < ${high}${u}`;
-    }
 
     const setSimMessage = (msg, type) =>
         showToast(msg, type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');

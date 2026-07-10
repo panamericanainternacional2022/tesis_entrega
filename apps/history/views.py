@@ -12,9 +12,7 @@ from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_ok
 from apps.buildings.models import Building
 from apps.history.models import History
-from apps.history.shared import (
-    parse_history_record_for_display, _build_history_query,
-)
+from apps.history.shared import _build_history_query
 from apps.sensors.sensor_config import PAGE_SIZE
 from apps.dashboard.shared import (
     filter_date_range, build_query_string,
