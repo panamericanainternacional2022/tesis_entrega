@@ -4,7 +4,6 @@ from django.http import StreamingHttpResponse
 from unittest.mock import patch, MagicMock
 
 from apps.users.models import Persona, Usuario
-from apps.buildings.models import Building, MonitoringEquipment
 
 
 class MonitorViewTests(TestCase):

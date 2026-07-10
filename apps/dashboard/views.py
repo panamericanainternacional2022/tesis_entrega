@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, JsonResponse, HttpRequest
 
 from apps.core.auth_decorators import login_required, admin_required, is_admin_role
@@ -9,7 +9,7 @@ from apps.buildings.models import Building, MonitoringEquipment
 from .shared import build_monitoring_config, get_user_building_ids
 from apps.sensors.sensor_config import (
     RISK_CRITICO, RISK_ALTO, RISK_INFORMATIVO, RISK_NORMAL,
-    PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, PAGE_SIZE,
+    PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES,
 )
 
 

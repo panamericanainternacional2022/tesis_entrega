@@ -2,7 +2,7 @@ from typing import Any
 import logging
 from dataclasses import dataclass
 
-from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, VAR_NAMES, BOOLEAN_VARS, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
+from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, VAR_NAMES, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 
 logger = logging.getLogger(__name__)

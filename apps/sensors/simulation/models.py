@@ -1,4 +1,3 @@
-import random
 from collections import deque
 
 from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA

@@ -5,7 +5,7 @@ import eventlet
 
 from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS,
-    RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
+    RISK_CRITICO, RISK_ALTO, RISK_COLORS,
     SIM_TICK_INTERVAL,
 )
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE

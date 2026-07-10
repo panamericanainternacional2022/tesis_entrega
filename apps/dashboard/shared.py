@@ -1,6 +1,6 @@
 import datetime as dt
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone as tz
 
 from apps.buildings.models import UserBuilding
@@ -94,7 +94,6 @@ def extract_variables(parsed_list: list) -> list[str]:
 
 
 def extract_severities(parsed_list: list) -> list[str]:
-    from apps.sensors.sensor_config import SEVERITY_LEVELS
     present = {
         n.parsed_data["risk"]
         for n in parsed_list

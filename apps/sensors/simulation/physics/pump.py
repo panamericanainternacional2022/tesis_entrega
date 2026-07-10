@@ -1,5 +1,4 @@
 import random
-import time
 
 from apps.sensors.sensor_config import SENSOR_RANGES, PUMP_VARS
 from apps.sensors.simulation.constants import (

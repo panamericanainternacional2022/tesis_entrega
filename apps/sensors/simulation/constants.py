@@ -1,4 +1,4 @@
-from apps.sensors.sensor_config import RATIONING_THRESHOLD, SENSOR_RANGES as _SR
+from apps.sensors.sensor_config import SENSOR_RANGES as _SR
 MAX_HISTORY_SIZE: int = 500
 LOG_SIM: bool = True
 SIMULTANEOUS_FAIL_PROB: float = 0.3

@@ -5,7 +5,6 @@ from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
-from urllib.parse import urlencode
 
 from apps.core.auth_decorators import login_required
 from apps.core.services.http_request import get_building_id_param
@@ -59,7 +58,6 @@ def history_view(request: HttpRequest):
     filter_params = {}
     if building_id_raw and building_id_raw.isdigit():
         filter_params["edificio"] = building_id_raw
-    filter_query_string = urlencode(filter_params)
 
     records, _ = _build_history_query(usuario_id, rol, building_id_raw)
 

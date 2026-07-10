@@ -1,4 +1,3 @@
-from typing import Optional
 
 
 def get_building_id_param(request, *param_names: str) -> str:

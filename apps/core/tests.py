@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from apps.core.auth_decorators import is_admin_role, login_required, ADMIN_ROLES
 from apps.core.services.risk_service import classify_risk
-from apps.sensors.sensor_config import RISK_NORMAL, RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO, RISK_UNKNOWN
+from apps.sensors.sensor_config import RISK_NORMAL, RISK_ALTO, RISK_CRITICO, RISK_UNKNOWN
 
 
 class IsAdminRoleTests(TestCase):

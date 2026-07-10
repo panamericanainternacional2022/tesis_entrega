@@ -2,7 +2,6 @@ import json
 import logging
 from typing import Any
 
-from django.http import JsonResponse
 
 from apps.sensors.simulation.exceptions import SimulatorError
 from apps.sensors.simulation.models import BuildingSimulator

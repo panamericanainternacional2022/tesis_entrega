@@ -1,3 +1,7 @@
+import datetime as _dt_bld
+import logging as _logging_bld
+from typing import Any
+
 from django.contrib import messages
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -208,10 +212,6 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
 
     return json_ok({"exists": exists, "error": error})
 
-
-import datetime as _dt_bld
-import logging as _logging_bld
-from typing import Any
 
 _logger_bld = _logging_bld.getLogger(__name__)
 

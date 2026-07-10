@@ -1,9 +1,9 @@
 import random
 import time
 
-from apps.sensors.sensor_config import SENSOR_RANGES, ELEVATOR_VARS, BOOLEAN_VARS, ENUM_VARS, RISK_CRITICO
+from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS, RISK_CRITICO
 from apps.sensors.simulation.constants import (
-    T_AMBIENT, FLOOR_HEIGHT,
+    FLOOR_HEIGHT,
     CRUISING_SPEED, ACCELERATION, PASSENGER_WAIT_TICKS,
     JERK, G, CABIN_EMPTY_MASS, COUNTERWEIGHT_MASS, MOTOR_EFFICIENCY,
     DOOR_OPEN_TIME, DOOR_CLOSE_TIME, RATED_LOAD,
@@ -518,8 +518,6 @@ def _handle_elev_door_closing(
     spd: float, pos: float, load: float, door: str,
     target: float, direction: int,
 ) -> None:
-    spd = 0.0
-    door = "closing"
 
     # Overload detection (physical door motor can't overcome cabin sag)
     total_load = _effective_load(sim, load)

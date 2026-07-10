@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 import eventlet
 eventlet.monkey_patch()
 import eventlet.wsgi

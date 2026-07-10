@@ -1,19 +1,9 @@
-import datetime as dt
 import logging
 import os
 from typing import Any
 
-from django.db.models import Q, QuerySet
-from django.utils import timezone
 
-from apps.history.models import History
-from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
-from apps.sensors.sensor_config import (
-    RISK_INFORMATIVO, RISK_ALTO, RISK_CRITICO,
-    SEVERITY_LEVELS, MAX_PDF_EVENTS,
-    SEVERITY_DISPLAY_LEVELS, RISK_STYLES,
-)
-from apps.core.date_utils import PERIOD_DELTA_MAP, PERIOD_LABEL_MAP
+from apps.core.date_utils import PERIOD_LABEL_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +64,7 @@ def safe_text(txt: Any) -> str:
             'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
             'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
             'ñ': 'n', 'Ñ': 'N', 'ü': 'u', 'Ü': 'U',
-            'í': 'i', 'ï': 'i', 'ö': 'o', 'ä': 'a',
+            'ï': 'i', 'ö': 'o', 'ä': 'a',
         }
         for c, r in accents.items():
             t_str = t_str.replace(c, r)

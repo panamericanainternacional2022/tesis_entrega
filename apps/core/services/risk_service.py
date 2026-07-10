@@ -145,7 +145,7 @@ def classify_risk(
         low, high = cfg["low"], cfg["high"]
         return (RISK_NORMAL, "green") if low <= value <= high else (RISK_ALTO, "orange")
     else:
-        low, med, high = cfg["low"], cfg["medium"], cfg["high"]
+        low, _, high = cfg["low"], cfg["medium"], cfg["high"]
         if d == "higher":
             if value <= low:
                 return RISK_NORMAL, "green"
