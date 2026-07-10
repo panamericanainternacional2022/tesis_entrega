@@ -1011,8 +1011,8 @@
         const hasEquipment = updateEquipmentVisibility(data.equipment_types);
         if (IS_ADMIN) updateAdminControlsByEquipment(data.equipment_types);
         if (data.current && hasEquipment) updateSummaryValues(data);
-        if (data.stats || data.recommendations) {
-            updateStatsAndRecs(data.stats, data.recommendations, data.door_close_attempts);
+        if (data.stats) {
+            updateStats(data.stats);
         }
 
         const isHistoryPage = !!document.getElementById('live-history-list');
@@ -1031,7 +1031,7 @@
 
 
     // =============================================================================
-    // 8. ESTADÍSTICAS Y RECOMENDACIONES
+    // 8. ESTADÍSTICAS
     // =============================================================================
 
     function renderStatsTable(entries, containerId, firstColLabel) {
@@ -1053,70 +1053,10 @@
             </div>`;
     }
 
-    function updateStatsAndRecs(stats, recs, attempts) {
+    function updateStats(stats) {
         const entries = stats && Object.keys(stats).length ? Object.entries(stats) : [];
         renderStatsTable(entries.filter(([k]) => _BOMBA_VARS.includes(k)), 'statsBombaPanel', 'Estadísticas de la bomba');
         renderStatsTable(entries.filter(([k]) => _ELEVADOR_VARS.includes(k)), 'statsElevadorPanel', 'Estadísticas del elevador');
-
-        const recsContent = document.getElementById('recommendationsContent');
-        if (!recsContent) return;
-
-        // OK — único mensaje de "normales"
-        if (recs?.length === 1 && recs[0].includes('normales')) {
-            recsContent.innerHTML =
-                '<div class="status-banner">' +
-                '<i class="fa-solid fa-circle-check"></i><span>' + recs[0] + '</span>' +
-                '</div>';
-            return;
-        }
-
-        if (!recs?.length) return;
-
-        // Clasificar por severidad
-        var critical = [], warnings = [];
-        recs.forEach(function (rec) {
-            var isCrit = rec.toLowerCase().includes('crític') ||
-                rec.toLowerCase().includes('urgente') ||
-                rec.toLowerCase().includes('atascado');
-            (isCrit ? critical : warnings).push(rec);
-        });
-
-        function buildCard(rec, isCrit) {
-            var bgColor = isCrit ? 'var(--state-critical-bg)' : 'var(--state-high-bg)';
-            var borderColor = isCrit ? 'var(--state-critical)' : 'var(--state-high)';
-            var icon = isCrit ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-triangle-exclamation';
-            var doorNote = (rec.includes('puertas') && typeof attempts === 'number' && attempts > 0)
-                ? ' (' + attempts + ' intentos fallidos)' : '';
-            return '<div class="status-banner" style="background:' + bgColor + ';color:' + borderColor + ';">' +
-                '<i class="' + icon + '"></i><span>' + rec + doorNote + '</span>' +
-                '</div>';
-        }
-
-        var html = '';
-
-        if (critical.length) {
-            html += '<div class="rec-group">' +
-                '<div class="rec-group-header">' +
-
-                '<span>Críticas</span>' +
-                '<span class="rec-badge" style="background:var(--state-critical);color:white;">' + critical.length + '</span>' +
-                '</div>';
-            critical.forEach(function (rec) { html += buildCard(rec, true); });
-            html += '</div>';
-        }
-
-        if (warnings.length) {
-            html += '<div class="rec-group">' +
-                '<div class="rec-group-header">' +
-
-                '<span>Advertencias</span>' +
-                '<span class="rec-badge" style="background:var(--state-high);color:white;">' + warnings.length + '</span>' +
-                '</div>';
-            warnings.forEach(function (rec) { html += buildCard(rec, false); });
-            html += '</div>';
-        }
-
-        recsContent.innerHTML = html;
     }
 
 

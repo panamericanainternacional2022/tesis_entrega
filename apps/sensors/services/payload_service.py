@@ -1,16 +1,11 @@
 from typing import Any
 import logging
 from dataclasses import dataclass
-from typing import Callable
 
 from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, VAR_NAMES, BOOLEAN_VARS, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 
 logger = logging.getLogger(__name__)
-
-
-def _noop_recommendations(sensor_data: dict, stats: dict, *args, **kwargs) -> list:
-    return []
 
 
 @dataclass
@@ -25,7 +20,6 @@ class PayloadContext:
     sim_paused: bool
     sim_speed: float
     sim_started: bool = False
-    generate_recommendations_fn: Callable = _noop_recommendations
     active_edificio_id: int = None
     django_connected: bool = False
     sim_faults: dict = None
@@ -62,11 +56,6 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         pump_on=ctx.pump_on, speed=speed,
         door_close_attempts=ctx.door_close_attempts,
     )
-    recommendations = ctx.generate_recommendations_fn(
-        ctx.sensor_data, stats,
-        door_close_attempts=ctx.door_close_attempts,
-        pump_on=ctx.pump_on
-    )
     pump_status, elevator_status = _fetch_equipment_status(
         ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts
     )
@@ -77,7 +66,6 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "thresholds": thresholds,
         "alert_log": get_alert_log(ctx.active_edificio_id, API_HISTORY_LIMIT),
         "stats": stats,
-        "recommendations": recommendations,
         "rationing": ctx.sensor_data.get("flow_rate", 0) < ctx.rationing_threshold,
         "door_close_attempts": ctx.door_close_attempts,
         "pump_on": ctx.pump_on,

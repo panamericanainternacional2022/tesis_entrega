@@ -18,7 +18,7 @@ from apps.sensors.simulation.simulation_engine import update_sensor_data
 from apps.core.services.risk_service import classify_risk
 from apps.thresholds.services import get_thresholds
 from apps.history.alerts.engine import send_alert, check_rationing
-from apps.history.services.recommendation_engine import get_professional_action
+from apps.sensors.services.professional_action import get_professional_action
 
 
 logger = logging.getLogger(__name__)

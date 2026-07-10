@@ -203,57 +203,7 @@ DEFAULT_THRESHOLDS = {
     "door_close_attempts": {"direction": "higher", "low": 0, "medium": 1, "high": 3},
 }
 
-RECOMMENDATION_THRESHOLDS = {
-    "temperature": {"max_warn": 70,  "max_crit": 85},
-    "flow_rate":   {"min_warn": 8.0, "min_crit": 5.0},
-    "pressure":    {"min_warn": 2.0, "max_warn": 8.0},
-    "vibration":   {"max_warn": 7},
-    "tank_level":  {"min_warn": 30,  "min_crit": 20},
-    "load":        {"max_warn": 800},
-    "voltage":     {"range_warn": (200, 240)},
-    "current":     {"max_warn": 45},
-    "position":    {"range_warn": (0.0, 20.0)},
-    "trip_count":  {"max_warn": 10000, "max_crit": 30000},
-    "speed":       {"max_warn": 2.5, "max_crit": 4.0},
-    "energy":      {"max_warn": 8.0, "max_crit": 15.0},
-    "pump_energy": {"max_warn": 8.0, "max_crit": 15.0},
-    "elev_temperature": {"max_warn": 70, "max_crit": 85},
-    "elev_vibration":   {"max_warn": 7},
-    "elev_voltage":     {"range_warn": (200, 240)},
-    "elev_current":     {"max_warn": 50},
-}
-
-RECOMMENDATION_WARN_MSGS: dict[str, str] = {
-    "temperature": "Temperatura elevada. Monitorear.",
-    "flow_rate": "Caudal óptimo bajo. Verificar filtros.",
-    "pressure": "Presión fuera de rango. Riesgo de fuga o bloqueo.",
-    "vibration": "Vibración anormal. Verificar alineación.",
-    "tank_level": "Nivel de tanque bajo.",
-    "load": "Sobrecarga de elevador. Reducir carga.",
-    "current": "Sobrecarga eléctrica.",
-    "position": "Posición de elevador fuera del rango seguro.",
-    "trip_count": "Conteo de viajes del elevador elevado. Se sugiere inspección preventiva.",
-    "speed": "Velocidad de elevador fuera del rango normal.",
-    "energy": "Consumo eléctrico de elevador elevado.",
-    "pump_energy": "Consumo eléctrico de bomba elevado.",
-}
-
-RECOMMENDATION_CRIT_MSGS: dict[str, str] = {
-    "temperature": "Temperatura del motor muy alta. Verificar sistema de enfriamiento.",
-    "flow_rate": "Caudal bajo. Verificar bomba.",
-    "tank_level": "Nivel de tanque crítico. Relleno urgente.",
-    "trip_count": "Conteo de viajes crítico. Mantenimiento obligatorio inmediato.",
-    "speed": "Velocidad crítica del elevador. Frenado de emergencia sugerido.",
-    "energy": "Consumo eléctrico de elevador crítico.",
-    "pump_energy": "Consumo eléctrico de bomba crítico.",
-}
-
-RECOMMENDATION_RANGE_MSG: str = "Inestabilidad eléctrica. Verificar suministro eléctrico."
-
-RECOMMENDATION_MOTOR_STUCK_MSG: str = "Motor atascado. Mantenimiento urgente requerido."
-RECOMMENDATION_DOOR_MSG_TEMPLATE: str = "Verificar puertas: {} intentos de cierre fallidos."
-RECOMMENDATION_OK_MSG: str = "Todos los parámetros normales. Operación estable."
-RECOMMENDATION_FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."
+FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."
 
 ACTIONS: dict[str, dict[str, str]] = {
     "flow_rate": {

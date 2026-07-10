@@ -300,7 +300,6 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
     usuario_id = request.session.get("usuario_id") if request else None
     usuario_rol = request.session.get("usuario_rol", "US") if request else "US"
     _render_history_section(pdf, edificio_id, usuario_id, usuario_rol)
-    _render_recommendations_section(pdf, sensor_data, pump_on=pump_on)
     _render_thresholds(pdf, thresholds, relevant_vars, VAR_NAMES, UNITS)
     _render_limits_section(pdf, edificio_id, relevant_vars, VAR_NAMES, UNITS)
 
@@ -674,24 +673,6 @@ def _render_history_section(
         row_idx += 1
 
     pdf.ln(6)
-
-
-def _render_recommendations_section(pdf: Any, sensor_data: dict, pump_on: bool = True) -> None:
-    from apps.history.services.recommendation_engine import generate_recommendations
-    if pdf.get_y() > 240:
-        pdf.add_page()
-
-    render_section_divider(pdf, "Diagnóstico y recomendaciones")
-
-    recs = generate_recommendations(sensor_data, pump_on=pump_on)
-
-    _pdf_font(pdf, "", 10)
-    pdf.set_text_color(26, 26, 26)
-    for i, rec in enumerate(recs, 1):
-        pdf.multi_cell(0, 6, safe_text(f"{i}.  {rec}"), new_x="LEFT", new_y="NEXT")
-        pdf.ln(2)
-
-    pdf.ln(4)
 
 
 def _render_stats_table(

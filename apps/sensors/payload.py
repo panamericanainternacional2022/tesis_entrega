@@ -1,5 +1,4 @@
 from apps.sensors.sensor_config import RATIONING_THRESHOLD
-from apps.history.services.recommendation_engine import generate_recommendations
 from apps.sensors.services.payload_service import PayloadContext, build_live_payload as _build_live_payload
 from apps.sensors.simulation.models import BuildingSimulator
 
@@ -16,7 +15,6 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
         sim_paused=sim.sim_paused,
         sim_speed=sim.sim_speed,
         sim_started=sim.sim_started,
-        generate_recommendations_fn=generate_recommendations,
         active_edificio_id=sim.edificio_id,
         django_connected=True,
         sim_faults=sim.sim_faults,
