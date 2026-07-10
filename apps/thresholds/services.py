@@ -11,11 +11,6 @@ logger = logging.getLogger(__name__)
 def get_thresholds(building_id: int) -> dict:
     result = {k: dict(v) for k, v in DEFAULT_THRESHOLDS.items()}
 
-    from apps.buildings.models import Building
-    building = Building.objects.filter(id=building_id).first()
-    if building and building.floors > 0 and "position" in result:
-        result["position"]["high"] = float(building.floors)
-
     for row in ThresholdConfig.objects.filter(
         building_id=building_id
     ).values("variable", "direction", "low", "medium", "high"):
@@ -25,6 +20,12 @@ def get_thresholds(building_id: int) -> dict:
             "medium": row["medium"],
             "high": row["high"],
         }
+
+    from apps.buildings.models import Building
+    building = Building.objects.filter(id=building_id).first()
+    if building and building.floors > 0 and "position" in result:
+        result["position"]["high"] = float(building.floors)
+
     return result
 
 

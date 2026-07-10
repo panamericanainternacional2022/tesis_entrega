@@ -1111,8 +1111,9 @@
     }
 
     function renderThresholdsPanel(th) {
-        const bombaVars = _BOMBA_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k));
-        const elevadorVars = _ELEVADOR_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k));
+        const _THRESHOLDS_HIDDEN_VARS = ['position'];
+        const bombaVars = _BOMBA_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
+        const elevadorVars = _ELEVADOR_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
         const otherVars = Object.keys(th).filter(k =>
             !_NO_RISK_VARS.includes(k) && !_BOMBA_VARS.includes(k) && !_ELEVADOR_VARS.includes(k)
         );
@@ -1716,7 +1717,9 @@
             try {
                 const resp = await fetch(API.thresholds(EDIFICIO_ID));
                 if (!resp.ok) throw new Error(resp.statusText);
-                currentThresholds = await resp.json();
+                const raw = await resp.json();
+                delete raw.status;
+                currentThresholds = raw;
                 hideAllStates();
                 renderThresholdsPanel(currentThresholds);
             } catch (_) { showState('stateOffline'); }
