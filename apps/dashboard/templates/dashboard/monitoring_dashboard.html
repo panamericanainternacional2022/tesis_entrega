@@ -394,12 +394,7 @@
         SimulationController.prototype._resetSim = function () {
             var self = this;
             window.showConfirm(
-                'Se restablecerán o eliminarán los siguientes parámetros:\n\n' +
-                '• Estado de equipos (se apagarán)\n' +
-                '• Velocidad personalizada (vuelve a 1.0x)\n' +
-                '• Historial de gráficas (se borrará)\n' +
-                '• Datos de sensores (valores por defecto)\n' +
-                '• Fallas activas (se desactivarán)'
+                '¿Estás seguro de que deseas reiniciar el simulador?'
             ).then(function (confirmed) {
                 if (!confirmed || !BID) return;
                 window.csrfFetch(URLS.reset, { method: 'POST', body: '{}' })
