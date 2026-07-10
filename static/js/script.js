@@ -1668,7 +1668,7 @@
         }
 
         document.getElementById('live-history-list')?.addEventListener('click', async (e) => {
-            const btn = e.target.closest('.btn-icon[data-record-id]');
+            const btn = e.target.closest('.hist-resolve-btn');
             if (!btn) return;
             const recordId = btn.dataset.recordId;
             if (!recordId) return;

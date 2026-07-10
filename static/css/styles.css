@@ -1284,6 +1284,12 @@ button {
     background: var(--color-bg);
 }
 
+.hist-item.risk-high:hover,
+.hist-item.risk-crit:hover,
+.hist-item.risk-resolved:hover {
+    background: var(--color-bg);
+}
+
 .hist-item::before {
     content: '';
     position: absolute;
@@ -1297,19 +1303,37 @@ button {
 }
 
 .hist-item.risk-normal::before {
-    background: var(--color-accent);
+    background: var(--state-normal);
 }
 
 .hist-item.risk-high::before {
-    background: var(--color-accent);
+    background: var(--state-high);
 }
 
 .hist-item.risk-crit::before {
-    background: var(--color-accent);
+    background: var(--state-critical);
 }
 
 .hist-item.risk-resolved::before {
     background: var(--state-normal);
+}
+
+.hist-item.risk-high {
+    background: transparent;
+}
+
+.hist-item.risk-crit {
+    background: transparent;
+}
+
+.hist-item.risk-resolved {
+    background: transparent;
+}
+
+.hist-resolve-btn {
+    margin-left: auto;
+    align-self: center;
+    flex-shrink: 0;
 }
 
 .hist-icon {

@@ -14,13 +14,6 @@
                 <i class="fa-solid {{ record.parsed_data.risk_icon }}" aria-hidden="true"></i>
                 {{ record.parsed_data.risk }}
             </span>
-            {% if rol == "SA" and not record.resolved %}
-            {% if record.parsed_data.risk == "Alto" or record.parsed_data.risk == "Crítico" %}
-            <button type="button" class="btn btn-icon" data-record-id="{{ record.id }}" title="Marcar como resuelta" aria-label="Marcar como resuelta">
-                <i class="fa-solid fa-check" aria-hidden="true"></i>
-            </button>
-            {% endif %}
-            {% endif %}
             {% endif %}
             <span title="{{ record.date|date:'d/m/Y H:i' }}"><i class="fa-solid fa-clock" aria-hidden="true"></i> {{ record.date|naturaltime_es }}</span>
             {% if record.monitoring_equipment.building %}
@@ -28,4 +21,11 @@
             {% endif %}
         </div>
     </div>
+    {% if record.parsed_data.parsed and rol == "SA" and not record.resolved %}
+    {% if record.parsed_data.risk == "Alto" or record.parsed_data.risk == "Crítico" %}
+    <button type="button" class="btn btn-icon hist-resolve-btn" data-record-id="{{ record.id }}" title="Marcar como resuelta" aria-label="Marcar como resuelta">
+        <i class="fa-solid fa-check" aria-hidden="true"></i>
+    </button>
+    {% endif %}
+    {% endif %}
 </li>

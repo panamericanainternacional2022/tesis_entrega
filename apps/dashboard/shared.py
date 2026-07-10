@@ -90,7 +90,10 @@ def extract_severities(parsed_list: list) -> list[str]:
         for n in parsed_list
         if n.parsed_data.get("parsed") and n.parsed_data.get("risk")
     }
-    return [s for s in SEVERITY_LEVELS if s in present]
+    result = [s for s in SEVERITY_LEVELS if s in present]
+    if "Resuelta" in present:
+        result.append("Resuelta")
+    return result
 
 
 def filter_severity_python(parsed_list: list, severity: str) -> list:
