@@ -1591,7 +1591,31 @@
         }
         unreadHistoryCount = filtered.length;
         setHistoryBadge(unreadHistoryCount);
-        container.innerHTML = filtered.map(alert => `
+        container.innerHTML = filtered.map(alert => {
+            if (alert.fault_type) {
+                const faultName = alert.fault_name || alert.fault_type;
+                const varsHtml = (alert.variables_detail || []).map(v => {
+                    const name = v.display_name || v.variable;
+                    const val = v.value != null ? ` ${v.value}${v.unit ? ' ' + v.unit : ''}` : '';
+                    const risk = v.risk ? ` <span style="font-size:11px;color:var(--color-text-secondary);">(${safeText(v.risk)})</span>` : '';
+                    return `<li style="padding:2px 0;font-size:12px;"><strong>${safeText(name)}</strong>${val}${risk}</li>`;
+                }).join('');
+                return `
+                    <div class="hist-item">
+                        <div class="hist-icon"><i class="fa-solid fa-triangle-exclamation" style="color:var(--color-warning,#d97706);"></i></div>
+                        <div class="hist-body">
+                            <p><strong>${safeText(faultName)}</strong> — ${safeText(alert.message)}</p>
+                            <ul style="list-style:none;padding:4px 0 0 12px;margin:0;border-left:2px solid var(--color-accent,#2563eb);">
+                                ${varsHtml}
+                            </ul>
+                            <div class="hist-meta">
+                                <span><i class="fa-solid fa-clock"></i> ${new Date(alert.timestamp).toLocaleString()}</span>
+                                <span><strong>Riesgo:</strong> ${safeText(alert.risk)}</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+            return `
             <div class="hist-item">
                 <div class="hist-icon"><i class="fa-solid fa-bell"></i></div>
                 <div class="hist-body">
@@ -1602,7 +1626,8 @@
                         <span><strong>Riesgo:</strong> ${safeText(alert.risk)}</span>
                     </div>
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
 
     function _parseTimestamp(ts) {
@@ -1624,26 +1649,53 @@
 
         const BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal' };
         const badgeClass = BADGE_MAP[data.risk] || 'sensor-normal';
-        const valueStr = String(data.value);
-        const unit = getUnit(data.variable);
-        const SKIP_VALUES = new Set(['true', 'True', 'false', 'False', 'undefined', 'null']);
-        const showValueBox = !SKIP_VALUES.has(valueStr) && valueStr.trim() !== '';
-        const valueHtml = showValueBox
-            ? `<span class="code-badge">${formatNumeric(data.value, data.variable)}${unit ? ' ' + unit : ''}</span>`
-            : '';
 
-        li.innerHTML = `
-            <div class="hist-body">
-                <div class="flex-wrap mb-1">
-                    <span class="sensor-badge ${badgeClass}">${safeText(data.risk)}</span>
-                    ${valueHtml}
-                    <span class="value-bold">${safeText(getVariableName(data.variable))}</span>
-                </div>
-                <p class="hist-meta-text">${safeText(data.message)}</p>
-                <div class="hist-meta" style="margin-top:8px;">
-                    <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
-                </div>
-            </div>`;
+        if (data.fault_type) {
+            const faultName = data.fault_name || data.fault_type;
+            const varsList = (data.variables || []).map(v => {
+                const varName = typeof v === 'string' ? v : (v.display_name || v.variable);
+                const varValue = typeof v === 'string' ? '' : (v.value != null ? ` ${v.value}${v.unit ? ' ' + v.unit : ''}` : '');
+                const varRisk = typeof v === 'string' ? '' : v.risk;
+                const varBadge = varRisk ? ` <span class="sensor-badge ${(BADGE_MAP[varRisk] || '').replace('sensor-', 'sensor-')}">${safeText(varRisk)}</span>` : '';
+                return `<li style="padding:2px 0;font-size:12px;"><strong>${safeText(varName)}</strong>${varValue}${varBadge}</li>`;
+            }).join('');
+
+            li.innerHTML = `
+                <div class="hist-body">
+                    <div class="flex-wrap mb-1">
+                        <span class="sensor-badge ${badgeClass}">${safeText(data.risk)}</span>
+                        <span class="value-bold"><i class="fa-solid fa-triangle-exclamation" style="color:var(--color-warning,#d97706);margin-right:4px;"></i>${safeText(faultName)}</span>
+                    </div>
+                    <p class="hist-meta-text">${safeText(data.message)}</p>
+                    <ul style="list-style:none;padding:4px 0 0 12px;margin:0;border-left:2px solid var(--color-accent,#2563eb);">
+                        ${varsList}
+                    </ul>
+                    <div class="hist-meta" style="margin-top:8px;">
+                        <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
+                    </div>
+                </div>`;
+        } else {
+            const valueStr = String(data.value);
+            const unit = getUnit(data.variable);
+            const SKIP_VALUES = new Set(['true', 'True', 'false', 'False', 'undefined', 'null']);
+            const showValueBox = !SKIP_VALUES.has(valueStr) && valueStr.trim() !== '';
+            const valueHtml = showValueBox
+                ? `<span class="code-badge">${formatNumeric(data.value, data.variable)}${unit ? ' ' + unit : ''}</span>`
+                : '';
+
+            li.innerHTML = `
+                <div class="hist-body">
+                    <div class="flex-wrap mb-1">
+                        <span class="sensor-badge ${badgeClass}">${safeText(data.risk)}</span>
+                        ${valueHtml}
+                        <span class="value-bold">${safeText(getVariableName(data.variable))}</span>
+                    </div>
+                    <p class="hist-meta-text">${safeText(data.message)}</p>
+                    <div class="hist-meta" style="margin-top:8px;">
+                        <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
+                    </div>
+                </div>`;
+        }
 
         ul.prepend(li);
         unreadHistoryCount++;

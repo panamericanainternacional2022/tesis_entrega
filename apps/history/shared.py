@@ -101,12 +101,36 @@ def parse_history_record_for_display(record: History) -> History:
             return record
 
     if isinstance(raw_msg, dict):
-        record.parsed_data = _make_parsed(
-            risk=raw_msg.get("risk", ""),
-            variable=raw_msg.get("variable", ""),
-            value=raw_msg.get("value"),
-            action=raw_msg.get("action", ""),
-        )
+        fault_type = getattr(record, "fault_type", None) or raw_msg.get("fault_name")
+        if fault_type and raw_msg.get("variables_detail"):
+            fault_name = FAULT_NAMES_ES.get(fault_type, fault_type)
+            var_details = raw_msg.get("variables_detail", [])
+            var_names = [v.get("display_name", v.get("variable", "")) for v in var_details]
+            variables_display = ", ".join(var_names) if var_names else ""
+            value_display = f"{len(var_details)} sensores afectados"
+
+            record.parsed_data = {
+                "parsed": True,
+                "risk": raw_msg.get("risk", ""),
+                "variable": fault_name,
+                "value": value_display,
+                "unit": "",
+                "action": raw_msg.get("action", ""),
+                "risk_icon": _RISK_ICONS.get(raw_msg.get("risk", ""), "fa-circle-check"),
+                "risk_css": _RISK_CSS.get(raw_msg.get("risk", ""), "risk-normal"),
+                "is_compound": True,
+                "fault_type": fault_type,
+                "fault_name": fault_name,
+                "variables_detail": var_details,
+                "variables_display": variables_display,
+            }
+        else:
+            record.parsed_data = _make_parsed(
+                risk=raw_msg.get("risk", ""),
+                variable=raw_msg.get("variable", ""),
+                value=raw_msg.get("value"),
+                action=raw_msg.get("action", ""),
+            )
         if getattr(record, "resolved", False):
             record.parsed_data["risk"] = "Resuelta"
             record.parsed_data["risk_icon"] = "fa-circle-check"

@@ -13,6 +13,8 @@ class History(models.Model):
     date = models.DateTimeField(db_column="fecha", db_index=True)
     message = models.JSONField(default=dict, blank=True, db_column="mensaje")
     resolved = models.BooleanField(default=False, db_column="resuelto")
+    fault_type = models.CharField(max_length=50, null=True, blank=True, db_column="tipo_falla")
+    affected_variables = models.JSONField(default=list, blank=True, db_column="variables_afectadas")
 
     class Meta:
         db_table = "historial"

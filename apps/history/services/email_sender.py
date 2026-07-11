@@ -592,3 +592,122 @@ def send_email_alert(
         _send_email_smtp(config)
     except Exception as e:
         logger.error("Error sending email: %s", e)
+
+
+def build_compound_alert_email_html(
+    fault_name: str,
+    risk_level: str,
+    affected_vars: dict,
+    action: str = "",
+    building_name: str = "",
+) -> str:
+    colors = _get_email_colors(risk_level)
+
+    banner = f"""
+          <tr>
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: {risk_level}</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Falla detectada: {fault_name}</h1>
+            </td>
+          </tr>"""
+
+    num_vars = len(affected_vars)
+    contexto = (
+        f"Se ha detectado una <strong style='color: {_TEXT_PRIMARY};'>{fault_name}</strong> "
+        f"que afecta <strong style='color: {_TEXT_PRIMARY};'>{num_vars} sensor(es)</strong>. "
+        f"A continuación se detallan las lecturas de cada parámetro comprometido."
+    )
+    inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{contexto}</p>'
+
+    if building_name:
+        inner += f'<p style="margin: 0 0 16px 0; font-size: 13px; color: {_TEXT_SECONDARY};"><strong style="color: {_TEXT_PRIMARY};">Edificio:</strong> {building_name}</p>'
+
+    var_rows = ""
+    for var_name, info in affected_vars.items():
+        display_name = info.get("display_name", var_name)
+        value = info.get("value", "N/A")
+        unit = info.get("unit", "")
+        var_risk = info.get("risk", risk_level)
+        var_colors = _get_email_colors(var_risk)
+        value_str = f"{value} {unit}".strip()
+        var_rows += f"""
+          <tr>
+            <td style="padding: 10px 12px; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 13px; font-weight: 700; color: {_TEXT_PRIMARY};">{display_name}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 13px; color: {_TEXT_PRIMARY}; text-align: right;">{value_str}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 12px; font-weight: 700; color: {var_colors['text']}; text-align: right;">{var_risk}</td>
+          </tr>"""
+
+    inner += f"""
+        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border-top: 2px solid {_INK}; margin-bottom: 24px;">
+          <tr style="background-color: {_BG};">
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">Parámetro</td>
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Lectura</td>
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Severidad</td>
+          </tr>
+          {var_rows}
+        </table>"""
+
+    if action:
+        inner += _build_action_box(action, colors)
+
+    timestamp = time.strftime("%d/%m/%Y %H:%M:%S")
+    inner += f'<p style="margin: 16px 0 0 0; font-size: 11px; color: {_TEXT_MUTED};">Fecha y hora del evento: {timestamp}</p>'
+
+    body_row = f"""
+          <tr>
+            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
+              {inner}
+            </td>
+          </tr>"""
+
+    return _build_email_shell(banner + body_row)
+
+
+def build_compound_resolution_email_html(
+    fault_name: str,
+    affected_vars: list,
+    building_name: str = "",
+) -> str:
+    from apps.sensors.sensor_config import RISK_RESUELTA
+    import datetime as _dt
+
+    colors = _get_email_colors(RISK_RESUELTA)
+    now_str = _dt.datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    banner = f"""
+          <tr>
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: Resuelta</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">{_RESOLUTION_H1}</h1>
+            </td>
+          </tr>"""
+
+    contexto = (
+        f"La falla <strong style='color: {_TEXT_PRIMARY};'>{fault_name}</strong> "
+        f"ha sido marcada como resuelta. Los siguientes parámetros fueron restaurados:"
+    )
+    inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{contexto}</p>'
+
+    if building_name:
+        inner += f'<p style="margin: 0 0 16px 0; font-size: 13px; color: {_TEXT_SECONDARY};"><strong style="color: {_TEXT_PRIMARY};">Edificio:</strong> {building_name}</p>'
+
+    details = {
+        "Fecha y hora": now_str,
+        "Edificio": building_name or "N/A",
+        "Falla resuelta": fault_name,
+        "Parámetros restaurados": str(len(affected_vars)),
+        "Estado": "Resuelta",
+    }
+    inner += _build_details_table(details)
+
+    inner += f'<p style="margin: 16px 0 0 0; font-size: 13px; color: {_TEXT_SECONDARY};"><strong style="color: {_TEXT_PRIMARY};">Variables restauradas:</strong> {", ".join(affected_vars)}</p>'
+
+    body_row = f"""
+          <tr>
+            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
+              {inner}
+            </td>
+          </tr>"""
+
+    return _build_email_shell(banner + body_row)

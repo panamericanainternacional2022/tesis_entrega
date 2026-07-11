@@ -304,5 +304,21 @@ FAULT_NAMES_ES = {
 PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "overheat", "power_surge", "power_outage")
 ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "pos_sensor_fail", "commercial_power_outage")
 
+FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
+    "dry_run":               ["flow_rate", "pressure", "temperature", "vibration", "tank_level", "current"],
+    "blocked_discharge":     ["flow_rate", "pressure", "vibration", "temperature", "current"],
+    "pipe_burst":            ["flow_rate", "pressure", "vibration", "temperature", "current", "tank_level"],
+    "cavitation":            ["flow_rate", "vibration", "pressure", "temperature"],
+    "overheat":              ["temperature", "vibration"],
+    "power_surge":           ["flow_rate", "pressure", "voltage", "current", "temperature", "vibration"],
+    "power_outage":          ["voltage", "current", "flow_rate", "pressure", "vibration", "temperature"],
+    "motor_stuck":           ["motor_stuck", "speed", "energy", "door_status"],
+    "door_blocked":          ["door_status", "speed", "energy", "door_close_attempts"],
+    "overspeed":             ["speed", "energy", "door_status"],
+    "overload":              ["load", "door_status", "speed", "energy", "door_close_attempts"],
+    "pos_sensor_fail":       ["position", "speed", "door_status"],
+    "commercial_power_outage": ["energy", "speed", "door_status"],
+}
+
 UNKNOWN_PERSON_NAME: str = "Sin nombre"
 UNKNOWN_EMAIL_LABEL: str = "Sin correo"

@@ -1,5 +1,6 @@
 import time
 import logging
+import threading
 from typing import Optional
 
 from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_ALTO, RISK_CRITICO
@@ -77,10 +78,22 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
 
     _notify_faults_resolved(edificio_id, old_faults)
 
+    keys_to_remove = [k for k in sim.active_alerts if k.startswith("fault:")]
+    for k in keys_to_remove:
+        sim.active_alerts.pop(k, None)
+
     for attr in ("manual_overrides", "manual_targets"):
         _clear_device_attrs(sim, device, attr, old_faults)
     _clear_device_attrs(sim, device, "last_email_sent_time_per_var", old_faults)
     _clear_device_attrs(sim, device, "_alert_consecutive", old_faults)
+
+    for old_dev, old_fault in old_faults.items():
+        fault_name = FAULT_NAMES_ES.get(old_fault, old_fault)
+        fault_email_key = f"fault:{fault_name}"
+        sim.last_email_sent_time_per_var.pop(fault_email_key, None)
+        fault_alert_key = f"fault:{old_fault}"
+        sim.active_alerts.pop(fault_alert_key, None)
+        sim._alert_consecutive.pop(fault_alert_key, None)
 
     if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, set):
         if device == "pump":
@@ -111,22 +124,54 @@ def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> Non
     try:
         from apps.history.models import History
 
-        device_vars = {
-            "pump": PUMP_VARS,
-            "elevator": ELEVATOR_VARS,
-        }
-        for dev in old_faults:
-            vars_to_match = device_vars.get(dev, [])
-            if not vars_to_match:
-                continue
+        for dev, fault_type in old_faults.items():
             History.objects.filter(
                 monitoring_equipment__building_id=edificio_id,
-                message__variable__in=vars_to_match,
-                message__risk__in=[RISK_ALTO, RISK_CRITICO],
+                fault_type=fault_type,
                 resolved=False,
             ).update(resolved=True)
+
+            History.objects.filter(
+                monitoring_equipment__building_id=edificio_id,
+                message__variable=fault_type,
+                message__risk__in=[RISK_ALTO, RISK_CRITICO],
+                resolved=False,
+                fault_type__isnull=True,
+            ).update(resolved=True)
+
+            _send_compound_resolution_email(edificio_id, fault_type)
     except Exception as exc:
         logger.warning("No se pudo marcar alertas como resueltas: %s", exc)
+
+
+def _send_compound_resolution_email(edificio_id: int, fault_type: str) -> None:
+    from apps.history.services.email_sender import (
+        send_email_raw,
+        get_building_emails,
+        build_compound_resolution_email_html,
+    )
+    from apps.sensors.sensor_config import FAULT_NAMES_ES, FAULT_AFFECTED_VARIABLES
+
+    try:
+        fault_name = FAULT_NAMES_ES.get(fault_type, fault_type)
+        affected_vars = FAULT_AFFECTED_VARIABLES.get(fault_type, [])
+        recipients = get_building_emails(edificio_id)
+        if not recipients:
+            return
+
+        from apps.buildings.models import Building
+        building = Building.objects.filter(id=edificio_id).first()
+        building_name = building.name if building else ""
+
+        subject = f"Alerta resuelta: {fault_name}"
+        html = build_compound_resolution_email_html(
+            fault_name=fault_name,
+            affected_vars=affected_vars,
+            building_name=building_name,
+        )
+        send_email_raw(to_addrs=recipients, subject=subject, html_body=html)
+    except Exception:
+        logger.exception("Error enviando correo de resolución compuesta para falla %s", fault_type)
 
 
 def reset_simulator(edificio_id: int) -> str:
@@ -138,6 +183,9 @@ def reset_simulator(edificio_id: int) -> str:
     sim.elevator_on = False
     sim.manual_pump_override = False
     sim.active_alerts.clear()
+    fault_keys = [k for k in sim.active_alerts if k.startswith("fault:")]
+    for k in fault_keys:
+        sim.active_alerts.pop(k, None)
     sim.door_close_attempts = 0
     sim.history.clear()
     sim.pending_alerts.clear()

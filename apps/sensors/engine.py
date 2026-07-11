@@ -5,8 +5,8 @@ import eventlet
 
 from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS,
-    RISK_CRITICO, RISK_ALTO, RISK_COLORS,
-    SIM_TICK_INTERVAL,
+    RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
+    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
 )
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 from apps.sensors.simulation.models import BuildingSimulator
@@ -70,6 +70,8 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
     risk_cache: dict[str, str] = {}
     _ensure_debounce_counter(sim)
 
+    has_active_fault = bool(sim.sim_faults)
+
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
             continue
@@ -91,13 +93,53 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         if risk in (RISK_ALTO, RISK_CRITICO):
             consecutive = sim._alert_consecutive.get(var, 0) + 1
             sim._alert_consecutive[var] = consecutive
-            if consecutive >= ALERT_DEBOUNCE_TICKS:
+            if consecutive >= ALERT_DEBOUNCE_TICKS and not has_active_fault:
                 action = get_professional_action(var, risk, value)
                 send_alert(var, value, risk, action, sim=sim)
         else:
             _clear_alert(sim, var)
 
+    if has_active_fault:
+        _send_compound_alerts_for_faults(sim, risk_cache)
+
     return risk_cache
+
+
+def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[str, str]) -> None:
+    """Envía UNA sola alerta por cada falla activa con todas las variables afectadas."""
+    for device, fault_type in sim.sim_faults.items():
+        affected_vars_defs = FAULT_AFFECTED_VARIABLES.get(fault_type, [])
+
+        alert_vars: dict[str, dict] = {}
+        worst_risk = RISK_NORMAL
+        for var in affected_vars_defs:
+            if var in risk_cache and risk_cache[var] in (RISK_ALTO, RISK_CRITICO):
+                alert_vars[var] = {
+                    "value": sim.sensor_data.get(var, 0),
+                    "risk": risk_cache[var],
+                }
+                if risk_cache[var] == RISK_CRITICO:
+                    worst_risk = RISK_CRITICO
+                elif worst_risk != RISK_CRITICO and risk_cache[var] == RISK_ALTO:
+                    worst_risk = RISK_ALTO
+
+        if not alert_vars:
+            continue
+
+        fault_key = f"fault:{fault_type}"
+        if sim.active_alerts.get(fault_key) == worst_risk:
+            continue
+
+        _ensure_debounce_counter(sim)
+        consecutive = sim._alert_consecutive.get(fault_key, 0) + 1
+        sim._alert_consecutive[fault_key] = consecutive
+        if consecutive < ALERT_DEBOUNCE_TICKS:
+            continue
+
+        sim.active_alerts[fault_key] = worst_risk
+
+        from apps.history.alerts.engine import send_compound_alert
+        send_compound_alert(fault_type, alert_vars, worst_risk, sim)
 
 
 def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_cache: dict[str, str] = None) -> None:
