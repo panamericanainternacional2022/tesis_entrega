@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from apps.core.auth_decorators import is_admin_role, login_required, ADMIN_ROLES
 from apps.core.services.risk_service import classify_risk
-from apps.sensors.sensor_config import RISK_NORMAL, RISK_ALTO, RISK_CRITICO, RISK_UNKNOWN
+from apps.sensors.sensor_config import RISK_NORMAL, RISK_ALTO, RISK_CRITICO
 
 
 class IsAdminRoleTests(TestCase):
@@ -106,11 +106,6 @@ class ClassifyRiskTests(TestCase):
         risk, color = classify_risk("door_status", "open", speed=0.0, door_close_attempts=2)
         self.assertEqual(risk, RISK_ALTO)
         self.assertEqual(color, "orange")
-
-    def test_unknown_variable_returns_desconocido(self):
-        risk, color = classify_risk("nonexistent_var", 50)
-        self.assertEqual(risk, RISK_UNKNOWN)
-        self.assertEqual(color, "gray")
 
     def test_range_direction(self):
         thresholds = {

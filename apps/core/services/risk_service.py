@@ -2,7 +2,7 @@ from typing import Optional
 
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
-    NO_RISK_VARS, RISK_UNKNOWN, ZERO_IS_CRITICAL_VARS,
+    NO_RISK_VARS, ZERO_IS_CRITICAL_VARS,
     BOOLEAN_VARS, ENUM_VARS, ENUM_RISK_VALUES,
     SENSOR_RANGES,
 )
@@ -137,7 +137,7 @@ def classify_risk(
         return RISK_CRITICO, "red"
 
     if thresholds is None or variable not in thresholds:
-        return RISK_UNKNOWN, "gray"
+        return RISK_NORMAL, "green"
 
     cfg = thresholds[variable]
     d = cfg["direction"]

@@ -10,7 +10,7 @@ from apps.sensors.sensor_config import SEVERITY_LEVELS
 def build_monitoring_config(building_id: int) -> dict:
     from apps.sensors.sensor_config import (
         NO_RISK_VARS, LIMITS_EXCLUDE_VARS, PUMP_VARS, ELEVATOR_VARS, VAR_NAMES, UNITS,
-        RISK_NORMAL, RISK_ALTO, RISK_CRITICO, RISK_UNKNOWN,
+        RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
         VALUE_DISPLAY_ES, BOOLEAN_VARS, ENUM_VARS, ENUM_RISK_VALUES,
     )
     from apps.limits.services import get_sensor_limits
@@ -38,7 +38,6 @@ def build_monitoring_config(building_id: int) -> dict:
             "normal": RISK_NORMAL,
             "alto": RISK_ALTO,
             "critico": RISK_CRITICO,
-            "unknown": RISK_UNKNOWN,
         },
     }
 

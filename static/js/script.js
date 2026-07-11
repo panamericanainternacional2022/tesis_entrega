@@ -576,7 +576,7 @@
         }
 
         const cfg = currentThresholds[varName];
-        if (!cfg) return { badge: 'badge-info', label: _RISK.unknown };
+        if (!cfg) return { badge: 'badge-normal', label: _RISK.normal };
 
         let risk = _RISK.normal, cls = 'normal';
         if (cfg.direction === 'range') {
@@ -1623,7 +1623,7 @@
         li.className = 'hist-item';
 
         const BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal' };
-        const badgeClass = BADGE_MAP[data.risk] || 'sensor-info';
+        const badgeClass = BADGE_MAP[data.risk] || 'sensor-normal';
         const valueStr = String(data.value);
         const unit = getUnit(data.variable);
         const SKIP_VALUES = new Set(['true', 'True', 'false', 'False', 'undefined', 'null']);

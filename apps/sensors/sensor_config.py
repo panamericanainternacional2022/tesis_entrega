@@ -285,8 +285,6 @@ SENSOR_RANGES = {
     "door_close_attempts": (0, 5),
 }
 
-RISK_UNKNOWN = "Desconocido"
-
 FAULT_NAMES_ES = {
     "dry_run":             "Sequía",
     "blocked_discharge":   "Descarga bloqueada",

@@ -36,6 +36,8 @@ _SURFACE         = "#ffffff"   # --color-surface
 _TEXT_PRIMARY    = "#0a0a0a"   # --color-text-primary
 _TEXT_SECONDARY  = "#5e5e5e"   # --color-text-secondary
 _TEXT_MUTED      = "#9e9e9e"   # --color-text-placeholder
+_ACCENT_BG       = "#eff6ff"   # fondo azul claro para emails informativos
+_BORDER_LIGHT    = "#f3f4f6"   # borde suave para tablas de detalles
 # ────────────────────────────────────────────────────────────────────────────────
 
 
@@ -219,8 +221,8 @@ def _build_details_table(details: Dict[str, str]) -> str:
 
     rows = "".join(f"""
           <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; font-weight: 700; width: 38%; color: {_TEXT_PRIMARY}; vertical-align: top; letter-spacing: 0.01em;">{k}</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; color: {_TEXT_PRIMARY}; vertical-align: top;">{v}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 12px; font-weight: 700; width: 38%; color: {_TEXT_PRIMARY}; vertical-align: top; letter-spacing: 0.01em;">{k}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 13px; color: {_TEXT_PRIMARY}; vertical-align: top;">{v}</td>
           </tr>""" for k, v in details.items())
     return f"""
         <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
@@ -281,9 +283,9 @@ def build_activation_email_html(link: str) -> str:
     inner_html = f"""
           <!-- Banner de cabecera -->
           <tr>
-            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: #eff6ff; border-left: 5px solid {_ACCENT};">
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {_ACCENT_BG}; border-left: 5px solid {_ACCENT};">
               <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Acceso al sistema</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Activaci&oacute;n de su cuenta</h1>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Activación de su cuenta</h1>
             </td>
           </tr>
 
@@ -291,26 +293,26 @@ def build_activation_email_html(link: str) -> str:
           <tr>
             <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               <p style="margin: 0 0 16px 0;">Estimado/a usuario/a:</p>
-              <p style="margin: 0 0 16px 0;">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contrase&ntilde;a.</p>
-              <p style="margin: 0 0 24px 0;">Para ello, haga clic en el bot&oacute;n que figura a continuaci&oacute;n:</p>
+              <p style="margin: 0 0 16px 0;">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
+              <p style="margin: 0 0 24px 0;">Para ello, haga clic en el botón que figura a continuación:</p>
 
-              <!-- Bot&oacute;n CTA: estilo brutal (borde negro + sombra plana) -->
+              <!-- Botón CTA: estilo brutal (borde negro + sombra plana) -->
               <div style="margin: 0 0 28px 0; text-align: left;">
                 <a href="{link}" target="_blank"
-                   style="background-color: {_ACCENT}; color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 3px 3px 0 {_INK};">
+                   style="background-color: {_ACCENT}; color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 4px 4px 0 {_INK};">
                   Completar registro
                 </a>
               </div>
 
-              <!-- Caja de informaci&oacute;n de seguridad -->
-              <div style="padding: 16px 20px; background-color: #eff6ff; border: 2px solid {_INK}; border-left: 5px solid {_ACCENT}; border-radius: 0; margin-bottom: 24px;">
-                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 8px; text-transform: uppercase;">Informaci&oacute;n de seguridad</span>
-                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">&#x2022; Este enlace es v&aacute;lido durante las pr&oacute;ximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
-                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">&#x2022; Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
+              <!-- Caja de información de seguridad -->
+              <div style="padding: 16px 20px; background-color: {_ACCENT_BG}; border: 2px solid {_INK}; border-left: 5px solid {_ACCENT}; border-radius: 0; margin-bottom: 24px;">
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 8px; text-transform: uppercase;">Información de seguridad</span>
+                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Este enlace es válido durante las próximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
+                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
               </div>
 
               <!-- Enlace de respaldo -->
-              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el bot&oacute;n no funciona correctamente, copie y pegue la siguiente direcci&oacute;n en su navegador:<br>
+              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el botón no funciona correctamente, copie y pegue la siguiente dirección en su navegador:<br>
               <a href="{link}" style="color: {_ACCENT}; text-decoration: underline; word-break: break-all;">{link}</a></p>
             </td>
           </tr>"""
@@ -384,7 +386,7 @@ def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
     inner_html = f"""
           <!-- Banner de cabecera (reporte de estado) -->
           <tr>
-            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: #eff6ff; border-left: 5px solid {_ACCENT};">
+            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {_ACCENT_BG}; border-left: 5px solid {_ACCENT};">
               <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Reporte de monitoreo</span>
               <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Estado actual del sistema de infraestructura</h1>
             </td>
