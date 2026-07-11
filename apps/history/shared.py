@@ -49,8 +49,6 @@ def _build_history_query(
             | Q(monitoring_equipment__building__user_assignments__user_id=user_id)
         ).distinct()
 
-    records = records.exclude(message__risk="Informativo")
-
     if building_id:
         records = records.filter(monitoring_equipment__building_id=building_id)
 
