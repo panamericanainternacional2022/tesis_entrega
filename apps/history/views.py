@@ -1,4 +1,5 @@
 import logging
+import threading
 from typing import Any
 
 from django.shortcuts import render
@@ -30,6 +31,7 @@ from apps.core.services.pdf_rendering import (
     render_stats_summary,
     render_table_header,
 )
+from apps.sensors.sensor_config import HISTORY_SEVERITY_DISPLAY_LEVELS
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +147,40 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     return json_ok({"message": "History cleared successfully"})
 
 
+def _send_resolution_email(record: History, original_risk: str) -> None:
+    from apps.history.services.email_sender import (
+        send_email_raw,
+        get_building_emails,
+        build_resolution_email_html,
+    )
+    try:
+        building_id = (
+            record.monitoring_equipment.building_id
+            if record.monitoring_equipment else None
+        )
+        building_name = (
+            record.monitoring_equipment.building.name
+            if record.monitoring_equipment and record.monitoring_equipment.building
+            else ""
+        )
+        recipients = get_building_emails(building_id)
+        if not recipients:
+            return
+
+        msg = record.message if isinstance(record.message, dict) else {}
+        variable = msg.get("variable", "")
+        value = msg.get("value", "")
+        action = msg.get("action", "")
+
+        subject = f"Alerta resuelta: {variable}"
+        html = build_resolution_email_html(
+            variable, value, original_risk, building_name, action,
+        )
+        send_email_raw(to_addrs=recipients, subject=subject, html_body=html)
+    except Exception:
+        logger.exception("Error enviando correo de resolución")
+
+
 @login_required
 @require_http_methods(["POST"])
 def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
@@ -165,6 +201,9 @@ def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
 
     record.resolved = True
     record.save(update_fields=["resolved"])
+
+    threading.Thread(target=_send_resolution_email, args=(record, risk), daemon=True).start()
+
     return json_ok({"message": "Alerta marcada como resuelta"})
 
 
@@ -233,9 +272,9 @@ def history_pdf_view(request: Any) -> HttpResponse:
         )
 
         if parsed_list:
-            render_stats_summary(pdf, parsed_list)
+            render_stats_summary(pdf, parsed_list, severity_levels=HISTORY_SEVERITY_DISPLAY_LEVELS)
 
-        render_severity_legend(pdf)
+        render_severity_legend(pdf, severity_levels=HISTORY_SEVERITY_DISPLAY_LEVELS)
 
         groups: OrderedDict[str, list[Any]] = OrderedDict()
         for n in parsed_list:

@@ -39,8 +39,10 @@ UNITS = {
 RISK_NORMAL      = "Normal"
 RISK_ALTO        = "Alto"
 RISK_CRITICO     = "Crítico"
+RISK_RESUELTA    = "Resuelta"
 
 SEVERITY_LEVELS = [RISK_NORMAL, RISK_ALTO, RISK_CRITICO]
+HISTORY_SEVERITY_LEVELS = [RISK_RESUELTA, RISK_ALTO, RISK_CRITICO]
 
 RISK_COLORS = {
     RISK_NORMAL: {
@@ -58,11 +60,23 @@ RISK_COLORS = {
         "email":   {"bg": "#fef2f2", "border": "#fecaca", "text": "#b91c1c"},
         "desc":    "Estado de peligro, acción inmediata",
     },
+    RISK_RESUELTA: {
+        "pdf":     {"bg": (240, 253, 244), "text": (22, 163, 74)},
+        "email":   {"bg": "#f0fdf4", "border": "#bbf7d0", "text": "#16a34a"},
+        "desc":    "Alerta resuelta",
+    },
 }
 
 SEVERITY_DISPLAY_LEVELS = [
     (risk, v["pdf"]["bg"], v["pdf"]["text"], v["desc"])
     for risk, v in RISK_COLORS.items()
+    if risk != RISK_RESUELTA
+]
+
+HISTORY_SEVERITY_DISPLAY_LEVELS = [
+    (risk, v["pdf"]["bg"], v["pdf"]["text"], v["desc"])
+    for risk, v in RISK_COLORS.items()
+    if risk in HISTORY_SEVERITY_LEVELS
 ]
 
 RISK_STYLES: dict[str, tuple[tuple[int, int, int], tuple[int, int, int]]] = {

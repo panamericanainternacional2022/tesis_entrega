@@ -192,7 +192,9 @@ def render_text_progress_bar(
     pdf.ln(3)
 
 
-def render_severity_legend(pdf: Any) -> None:
+def render_severity_legend(pdf: Any, severity_levels=None) -> None:
+    if severity_levels is None:
+        severity_levels = SEVERITY_DISPLAY_LEVELS
 
     render_section_divider(pdf, "Leyenda de severidades")
     _pdf_font(pdf, "", 10)
@@ -203,7 +205,7 @@ def render_severity_legend(pdf: Any) -> None:
     w_lbl   = 36
     w_desc  = 154
 
-    for lbl, fill, text_c, desc in SEVERITY_DISPLAY_LEVELS:
+    for lbl, fill, text_c, desc in severity_levels:
         x0 = pdf.get_x()
         y0 = pdf.get_y()
 
@@ -228,10 +230,11 @@ def render_severity_legend(pdf: Any) -> None:
 
 
 
-def render_stats_summary(pdf: Any, parsed_list: list) -> None:
+def render_stats_summary(pdf: Any, parsed_list: list, severity_levels=None) -> None:
+    if severity_levels is None:
+        severity_levels = SEVERITY_DISPLAY_LEVELS
 
-    from apps.sensors.sensor_config import SEVERITY_LEVELS
-    stats: dict[str, int] = {k: 0 for k in SEVERITY_LEVELS}
+    stats: dict[str, int] = {s[0]: 0 for s in severity_levels}
     for n in parsed_list:
         risk = n.parsed_data.get("risk", "")
         if risk in stats:
@@ -246,7 +249,7 @@ def render_stats_summary(pdf: Any, parsed_list: list) -> None:
             "fill": fill,
             "text": text_c,
         }
-        for lbl, fill, text_c, _desc in SEVERITY_DISPLAY_LEVELS
+        for lbl, fill, text_c, _desc in severity_levels
     ]
     render_summary_box(pdf, items)
 
