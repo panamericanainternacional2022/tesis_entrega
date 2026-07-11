@@ -8,8 +8,7 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from apps.sensors.simulation.models import BuildingSimulator
 
-from apps.sensors.sensor_config import RISK_CRITICO, RISK_ALTO, VAR_NAMES, COOLDOWN_SECONDS, RATIONING_THRESHOLD
-from apps.sensors.services.professional_action import get_professional_action
+from apps.sensors.sensor_config import RISK_CRITICO, RISK_ALTO, VAR_NAMES, COOLDOWN_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -136,12 +135,3 @@ def send_alert(
     from apps.history.services.history_persistence import save_history_record
     eid = sim.edificio_id if sim else None
     save_history_record(variable, value, risk_level, recommended_action, edificio_id=eid)
-
-
-def check_rationing(flow_rate: float, sim: Optional['BuildingSimulator'] = None) -> None:
-    if flow_rate >= RATIONING_THRESHOLD:
-        return
-    if sim is not None and sim.active_alerts.get("flow_rate") in (RISK_ALTO, RISK_CRITICO):
-        return
-    action = get_professional_action("rationing", RISK_CRITICO, flow_rate)
-    send_alert("rationing", flow_rate, RISK_CRITICO, action, sim=sim)

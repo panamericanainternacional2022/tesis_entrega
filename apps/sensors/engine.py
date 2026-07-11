@@ -4,7 +4,7 @@ import logging
 import eventlet
 
 from apps.sensors.sensor_config import (
-    PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS,
+    PUMP_VARS, ELEVATOR_VARS,
     RISK_CRITICO, RISK_ALTO, RISK_COLORS,
     SIM_TICK_INTERVAL,
 )
@@ -14,7 +14,7 @@ from apps.sensors.simulation.globals import simulators
 from apps.sensors.simulation.simulation_engine import update_sensor_data
 from apps.core.services.risk_service import classify_risk
 from apps.thresholds.services import get_thresholds
-from apps.history.alerts.engine import send_alert, check_rationing
+from apps.history.alerts.engine import send_alert
 from apps.sensors.services.professional_action import get_professional_action
 
 
@@ -97,18 +97,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         else:
             _clear_alert(sim, var)
 
-    _check_rationing(sim)
     return risk_cache
-
-
-def _check_rationing(sim: BuildingSimulator) -> None:
-    if getattr(sim, "_pump_start_grace_ticks", 0) > 0:
-        sim.active_alerts.pop("rationing", None)
-        return
-    if "flow_rate" in getattr(sim, "manual_overrides", {}):
-        sim.active_alerts.pop("rationing", None)
-        return
-    check_rationing(sim.sensor_data["flow_rate"], sim=sim)
 
 
 def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_cache: dict[str, str] = None) -> None:
@@ -116,9 +105,8 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
 
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     new_readings = []
-    all_tracked_vars = set(alert_vars) | set(SYSTEM_VARS)
     for var, value in sim.sensor_data.items():
-        if var not in all_tracked_vars:
+        if var not in alert_vars:
             continue
         if risk_cache and var in risk_cache:
             risk = risk_cache[var]

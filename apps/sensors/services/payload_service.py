@@ -2,7 +2,7 @@ from typing import Any
 import logging
 from dataclasses import dataclass
 
-from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, SYSTEM_VARS, VAR_NAMES, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
+from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, VAR_NAMES, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,6 @@ class PayloadContext:
     pump_on: bool
     elevator_on: bool
     equipment_types: set
-    rationing_threshold: float
     sim_paused: bool
     sim_speed: float
     sim_started: bool = False
@@ -66,7 +65,6 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "thresholds": thresholds,
         "alert_log": get_alert_log(ctx.active_edificio_id, API_HISTORY_LIMIT),
         "stats": stats,
-        "rationing": ctx.sensor_data.get("flow_rate", 0) < ctx.rationing_threshold,
         "door_close_attempts": ctx.door_close_attempts,
         "pump_on": ctx.pump_on,
         "elevator_on": ctx.elevator_on,
@@ -86,7 +84,6 @@ def _build_relevant_vars(equipment_types: set) -> set[str]:
         relevant_vars.update(PUMP_VARS)
     if "elevador" in equipment_types:
         relevant_vars.update(ELEVATOR_VARS)
-    relevant_vars.update(SYSTEM_VARS)
     return relevant_vars
 
 

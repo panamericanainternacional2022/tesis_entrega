@@ -14,7 +14,7 @@ def _find_equipment(variable: str, edificio_id: Optional[int]) -> Any:
     from apps.core.auth_decorators import ADMIN_ROLES
 
     tipo = None
-    if variable in PUMP_VARS or variable == "rationing":
+    if variable in PUMP_VARS:
         tipo = MonitoringEquipment.TYPE_PUMP
     elif variable in ELEVATOR_VARS:
         tipo = MonitoringEquipment.TYPE_ELEVATOR

@@ -15,7 +15,6 @@ VAR_NAMES = {
     "position":     "Posición",
     "door_status":  "Estado de puerta",
     "door_close_attempts": "Intentos de cierre de puerta",
-    "rationing":                "Racionamiento",
 }
 
 UNITS = {
@@ -34,7 +33,6 @@ UNITS = {
     "position":     "piso",
     "door_status":  "",
     "motor_stuck":  "",
-    "rationing":    "l/s",
     "door_close_attempts": "",
 }
 
@@ -238,12 +236,7 @@ ACTIONS: dict[str, dict[str, str]] = {
         RISK_ALTO: "Fallo de cierre de puerta. Verifica mecanismo de enclavamiento.",
         RISK_CRITICO: "Puerta sin respuesta. Detén operación e inspeccione el sistema de puerta.",
     },
-    "rationing": {
-        RISK_CRITICO: "Caudal por debajo del mínimo admisible (racionamiento activo). Restringe el consumo general.",
-    },
 }
-
-SYSTEM_VARS = ["rationing"]
 
 SIM_TICK_INTERVAL = 1
 
@@ -253,8 +246,6 @@ PAGE_SIZE: int = 15
 SMTP_TIMEOUT: int = 15
 API_HISTORY_LIMIT: int = 50
 PAYLOAD_HISTORY_SLICE: int = 200
-
-RATIONING_THRESHOLD = 8.0
 
 SENSOR_RANGES = {
     "flow_rate":   (0, 60),

@@ -24,7 +24,7 @@ from apps.buildings.shared import (
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
     SEVERITY_LEVELS, SEVERITY_DISPLAY_LEVELS, RISK_STYLES,
-    PUMP_VARS, ELEVATOR_VARS, RATIONING_THRESHOLD, SENSOR_RANGES,
+    PUMP_VARS, ELEVATOR_VARS,
     VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES,
 )
 from apps.history.models import History
@@ -35,7 +35,7 @@ from apps.core.services.pdf_shared import _pdf_font, draw_row, safe_text
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,
     render_pdf_header, render_section_divider, render_summary_box,
-    render_severity_legend, render_text_progress_bar, render_table_header,
+    render_severity_legend, render_table_header,
 )
 
 
@@ -292,7 +292,6 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
         pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, ACTIONS, VALUE_DISPLAY_ES,
         pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
     )
-    _render_rationing_section(pdf, sensor_data)
 
     if stats:
         _render_stats_table(pdf, stats, relevant_vars, VAR_NAMES, UNITS)
@@ -555,46 +554,6 @@ def _render_current_readings(
             row_idx += 1
 
         pdf.ln(4)
-
-
-def _render_rationing_section(pdf: Any, sensor_data: dict) -> None:
-    if pdf.get_y() > 250:
-        pdf.add_page()
-
-    render_section_divider(pdf, "Estado general de racionamiento")
-
-    flow = sensor_data.get("flow_rate")
-    if flow is None:
-        _pdf_font(pdf, "", 10)
-        pdf.set_text_color(95, 95, 95)
-        pdf.cell(0, 7, safe_text("Sin datos de caudal disponibles."), ln=1)
-        pdf.ln(4)
-        return
-
-    _flow_max = SENSOR_RANGES.get("flow_rate", (0, 60))[1]
-    render_text_progress_bar(
-        pdf,
-        label=f"Caudal actual contra su límite actual ({RATIONING_THRESHOLD} l/s)",
-        value=flow,
-        max_value=_flow_max,
-        threshold=RATIONING_THRESHOLD,
-        unit="l/s",
-    )
-
-    in_rationing = flow < RATIONING_THRESHOLD
-    if in_rationing:
-        pdf.set_fill_color(254, 242, 242)
-        pdf.set_text_color(220, 38, 38)
-        label = "El racionamiento está activo, el caudal está por debajo del umbral de racionamiento."
-    else:
-        pdf.set_fill_color(240, 253, 244)
-        pdf.set_text_color(22, 101, 52)
-        label = "El caudal se encuentra dentro del rango aceptable."
-
-    _pdf_font(pdf, "B", 10)
-    pdf.set_draw_color(10, 10, 10)
-    pdf.cell(0, 8, f"  {safe_text(label)}", 1, 1, "L", True)
-    pdf.ln(4)
 
 
 def _render_history_section(
