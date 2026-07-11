@@ -168,9 +168,12 @@ def _send_resolution_email(record: History, original_risk: str) -> None:
             return
 
         msg = record.message if isinstance(record.message, dict) else {}
-        variable = msg.get("variable", "")
+        raw_variable = msg.get("variable", "")
         value = msg.get("value", "")
         action = msg.get("action", "")
+
+        from apps.sensors.sensor_config import VAR_NAMES
+        variable = VAR_NAMES.get(raw_variable, raw_variable)
 
         subject = f"Alerta resuelta: {variable}"
         html = build_resolution_email_html(

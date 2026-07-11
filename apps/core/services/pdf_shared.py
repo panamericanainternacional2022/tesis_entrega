@@ -20,11 +20,10 @@ _FONT_CACHE: dict[str, str] = {}
 
 
 def _get_period_label(period: str, date_from_raw: str, date_to_raw: str) -> str:
+    if period == "custom":
+        return f"Personalizado: {date_from_raw or '?'} al {date_to_raw or '?'}"
     if period in PERIOD_LABEL_MAP:
-        label = PERIOD_LABEL_MAP[period]
-        if period == "custom":
-            label = f"Personalizado: {date_from_raw or '?'} al {date_to_raw or '?'}"
-        return label
+        return PERIOD_LABEL_MAP[period]
     return period
 
 

@@ -34,7 +34,7 @@ _INK             = "#0a0a0a"   # --color-ink (bordes brutales)
 _BG              = "#f5f5f5"   # --color-bg
 _SURFACE         = "#ffffff"   # --color-surface
 _TEXT_PRIMARY    = "#0a0a0a"   # --color-text-primary
-_TEXT_SECONDARY  = "#5e5e5e"   # --color-text-secondary
+_TEXT_SECONDARY  = "#5f5f5f"   # --color-text-secondary (= PDF gray 95,95,95)
 _TEXT_MUTED      = "#9e9e9e"   # --color-text-placeholder
 _ACCENT_BG       = "#eff6ff"   # fondo azul claro para emails informativos
 _BORDER_LIGHT    = "#f3f4f6"   # borde suave para tablas de detalles
@@ -292,21 +292,21 @@ def build_activation_email_html(link: str) -> str:
           <!-- Cuerpo -->
           <tr>
             <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
-              <p style="margin: 0 0 16px 0;">Estimado/a usuario/a:</p>
-              <p style="margin: 0 0 16px 0;">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
-              <p style="margin: 0 0 24px 0;">Para ello, haga clic en el botón que figura a continuación:</p>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Estimado/a usuario/a:</p>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Para ello, haga clic en el botón que figura a continuación:</p>
 
               <!-- Botón CTA: estilo brutal (borde negro + sombra plana) -->
               <div style="margin: 0 0 28px 0; text-align: left;">
                 <a href="{link}" target="_blank"
-                   style="background-color: {_ACCENT}; color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 4px 4px 0 {_INK};">
+                   style="background-color: {_ACCENT}; color: {_SURFACE}; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 4px 4px 0px {_INK};">
                   Completar registro
                 </a>
               </div>
 
               <!-- Caja de información de seguridad -->
               <div style="padding: 16px 20px; background-color: {_ACCENT_BG}; border: 2px solid {_INK}; border-left: 5px solid {_ACCENT}; border-radius: 0; margin-bottom: 24px;">
-                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 8px; text-transform: uppercase;">Información de seguridad</span>
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Información de seguridad</span>
                 <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Este enlace es válido durante las próximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
                 <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
               </div>
@@ -395,7 +395,7 @@ def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
           <!-- Cuerpo -->
           <tr>
             <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
-              <p style="margin: 0 0 20px 0;">{ctx}</p>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{ctx}</p>
               <p style="margin: 0; font-size: 13px; color: {_TEXT_MUTED};">El informe PDF se encuentra adjunto al presente correo.</p>
             </td>
           </tr>"""
