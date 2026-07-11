@@ -32,7 +32,7 @@ def _build_alert_email_body(
     unit = get_unit(variable)
     detalles = {
         "Fecha y hora":    timestamp,
-        "Edificio":        edificio_nombre or "Sistema INES",
+        "Edificio":        edificio_nombre or "INES — Sistema inteligente en monitoreo",
         "Parámetro":       var_display,
         "Lectura":         f"{value} {unit}".strip(),
         "Nivel de riesgo": risk_level,

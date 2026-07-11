@@ -1402,7 +1402,7 @@ button {
     background: var(--color-surface);
 }
 
-.no-history > i {
+.no-history>i {
     font-size: var(--text-2xl);
     color: var(--color-ink);
 }

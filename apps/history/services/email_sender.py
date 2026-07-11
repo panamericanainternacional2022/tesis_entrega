@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 _BRAND_NAME      = "INES"
-_BRAND_SUBTITLE  = "Sistema inteligente de automatización"
+_BRAND_SUBTITLE  = "Sistema inteligente en monitoreo"
 _ALERT_H1        = "Anomalía detectada en la infraestructura"
 _ALERT_TAG_LABEL = "Severidad"
 _ACTION_LABEL    = "Medida correctiva recomendada"
 _DETAILS_LABEL   = "Detalles del evento"
 _FOOTER_TEXT     = (
-    "Este mensaje ha sido generado automáticamente por el Sistema de Monitoreo INES.<br>"
+    "Este mensaje ha sido generado automáticamente por INES — Sistema inteligente en monitoreo.<br>"
     "Por favor, no responda a este correo."
 )
 _CONTEXT_DEFAULT = (
@@ -293,7 +293,7 @@ def build_activation_email_html(link: str) -> str:
           <tr>
             <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Estimado/a usuario/a:</p>
-              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">Sistema de Monitoreo INES</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">INES — Sistema inteligente en monitoreo</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
               <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Para ello, haga clic en el botón que figura a continuación:</p>
 
               <!-- Botón CTA: estilo brutal (borde negro + sombra plana) -->

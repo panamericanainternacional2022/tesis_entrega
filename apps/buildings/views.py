@@ -217,10 +217,9 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
 _logger_bld = _logging_bld.getLogger(__name__)
 
 _EQUIP_STATUS_STYLE: dict[str, tuple[tuple, tuple]] = {
-    "activo":    RISK_STYLES.get(RISK_NORMAL, ((240, 253, 244), (22, 163, 74))),
-    "inactivo":  ((249, 250, 251), (55, 65, 81)),
-    "fallo":     RISK_STYLES.get(RISK_CRITICO, ((254, 242, 242), (185, 28, 28))),
-    "pausado":   RISK_STYLES.get(RISK_ALTO, ((255, 247, 237), (217, 119, 6))),
+    "operativo":    RISK_STYLES.get(RISK_NORMAL, ((240, 253, 244), (22, 163, 74))),
+    "falla":        RISK_STYLES.get(RISK_CRITICO, ((254, 242, 242), (185, 28, 28))),
+    "mantenimiento": RISK_STYLES.get(RISK_ALTO, ((255, 247, 237), (217, 119, 6))),
 }
 _EQUIP_TYPE_ES: dict[str, str] = {
     "bomba":    "Bomba de agua",
@@ -724,7 +723,7 @@ def _render_limits_section(
     render_section_divider(pdf, "Límites físicos de operación")
 
     col_widths = [80, 36, 36, 38]
-    col_headers = ["Variable", "Mínimo", "Máximo", "Unidad"]
+    col_headers = ["Variable", "Mín. fijo", "Máximo", "Unidad"]
     col_aligns  = ["L", "C", "C", "C"]
 
     render_table_header(pdf, col_widths, col_aligns, col_headers)

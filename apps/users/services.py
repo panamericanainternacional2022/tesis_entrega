@@ -11,7 +11,7 @@ from apps.users.models import Usuario
 
 _ACTIVATION_EMAIL_PLAIN = """Estimado/a usuario/a:
 
-Su cuenta ha sido registrada en el Sistema de Monitoreo INES. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña a través del siguiente enlace:
+Su cuenta ha sido registrada en INES — Sistema inteligente en monitoreo. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña a través del siguiente enlace:
 
 {link}
 
@@ -85,7 +85,7 @@ def send_activation_email(email: str, user_id: int, base_url: str) -> str:
     try:
         send_email_raw(
             to_addrs=[email],
-            subject="Activación de cuenta en el Sistema INES",
+            subject="Activación de cuenta en INES",
             html_body=html_body,
             plain_body=plain_body,
         )

@@ -37,7 +37,7 @@ def render_logo(pdf: Any) -> None:
     pdf.set_x(17)
     _pdf_font(pdf, "", 10)
     pdf.set_text_color(95, 95, 95)
-    pdf.cell(0, 8, safe_text("Sistema inteligente de automatización"), ln=1, align="L")
+    pdf.cell(0, 8, safe_text("Sistema inteligente en monitoreo"), ln=1, align="L")
     pdf.ln(2)
 
     pdf.set_draw_color(*DIVIDER_COLOR)
@@ -311,7 +311,7 @@ def _create_report_pdf(title: str) -> Any:
             _pdf_font(self, "I", 9)
             self.set_text_color(95, 95, 95)
             footer_text = safe_text(
-                f"INES * Sistema inteligente de automatización"
+                f"INES * Sistema inteligente en monitoreo"
                 f"  * Página {self.page_no()} / {{nb}}"
             )
             self.cell(0, 10, footer_text, 0, 0, "C")
