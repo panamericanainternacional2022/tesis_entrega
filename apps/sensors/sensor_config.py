@@ -92,6 +92,13 @@ EMAIL_FALLBACK_COLORS: dict[str, str] = {
     "bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569",
 }
 
+USER_STATS_COLORS = {
+    "total":      {"fill": (235, 241, 249), "text": (30, 58, 95)},
+    "registrados": {"fill": (240, 253, 244), "text": (22, 163, 74)},
+    "pendientes": {"fill": (255, 247, 237), "text": (217, 119, 6)},
+    "edificios":  {"fill": (249, 250, 251), "text": (55, 65, 81)},
+}
+
 NO_RISK_VARS = []
 
 LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position", "door_close_attempts", "door_status", "motor_stuck"]

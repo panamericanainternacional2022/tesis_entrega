@@ -24,6 +24,7 @@ from apps.buildings.shared import (
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
     SEVERITY_LEVELS, SEVERITY_DISPLAY_LEVELS, RISK_STYLES,
+    HISTORY_SEVERITY_DISPLAY_LEVELS,
     PUMP_VARS, ELEVATOR_VARS,
     VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES,
 )
@@ -216,10 +217,10 @@ def check_rif_uniqueness_view(request: HttpRequest) -> JsonResponse:
 _logger_bld = _logging_bld.getLogger(__name__)
 
 _EQUIP_STATUS_STYLE: dict[str, tuple[tuple, tuple]] = {
-    "activo":    ((240, 253, 244), (22, 101, 52)),
-    "inactivo":  ((245, 245, 245), (107, 107, 107)),
-    "fallo":     ((254, 242, 242), (220, 38, 38)),
-    "pausado":   ((255, 247, 237), (194, 65, 12)),
+    "activo":    RISK_STYLES.get(RISK_NORMAL, ((240, 253, 244), (22, 163, 74))),
+    "inactivo":  ((249, 250, 251), (55, 65, 81)),
+    "fallo":     RISK_STYLES.get(RISK_CRITICO, ((254, 242, 242), (185, 28, 28))),
+    "pausado":   RISK_STYLES.get(RISK_ALTO, ((255, 247, 237), (217, 119, 6))),
 }
 _EQUIP_TYPE_ES: dict[str, str] = {
     "bomba":    "Bomba de agua",
@@ -275,7 +276,7 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
     )
 
     _render_executive_summary(
-        pdf, sensor_data, thresholds, relevant_vars, pump_status, elevator_status, equip_types,
+        pdf, sensor_data, thresholds, relevant_vars,
         pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
     )
     _render_equipment_summary(pdf, equipment)
@@ -286,10 +287,10 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
         pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
     )
     if critical_items:
-        _render_critical_section(pdf, critical_items, VAR_NAMES, UNITS, ACTIONS, VALUE_DISPLAY_ES)
+        _render_critical_section(pdf, critical_items, VAR_NAMES, UNITS, VALUE_DISPLAY_ES)
 
     _render_current_readings(
-        pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, ACTIONS, VALUE_DISPLAY_ES,
+        pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, VALUE_DISPLAY_ES,
         pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
     )
 
@@ -383,8 +384,7 @@ def _format_value(var: str, value, units: dict, value_display_map: dict = None) 
 
 def _render_executive_summary(
     pdf: Any, sensor_data: dict, thresholds: dict,
-    relevant_vars: set, pump_status, elevator_status,
-    equip_types: set, pump_on: bool = True, speed: float = 0.0,
+    relevant_vars: set, pump_on: bool = True, speed: float = 0.0,
     door_close_attempts: int = 0
 ) -> None:
 
@@ -410,16 +410,6 @@ def _render_executive_summary(
         for risk, fill, text_c, _desc in SEVERITY_DISPLAY_LEVELS
     ]
     render_summary_box(pdf, items)
-
-    _pdf_font(pdf, "", 10)
-    pdf.set_text_color(26, 26, 26)
-    if "bomba" in equip_types:
-        status_str = pump_status.capitalize() if pump_status else "Desconocido"
-        pdf.cell(0, 6, safe_text(f"Bomba de agua: {status_str}"), ln=1)
-    if "elevador" in equip_types:
-        status_str = elevator_status.capitalize() if elevator_status else "Desconocido"
-        pdf.cell(0, 6, safe_text(f"Elevador: {status_str}"), ln=1)
-    pdf.ln(4)
 
 
 def _render_equipment_summary(
@@ -459,17 +449,17 @@ def _render_equipment_summary(
 
 def _render_critical_section(
     pdf: Any, critical_items: list[dict],
-    _VAR_NAMES: dict, _UNITS: dict, _ACTIONS: dict,
+    _VAR_NAMES: dict, _UNITS: dict,
     _VALUE_DISPLAY_ES: dict = None,
 ) -> None:
-    if pdf.get_y() > 240:
+    if pdf.get_y() > 230:
         pdf.add_page()
 
     render_section_divider(pdf, f"Sensores en estado {RISK_CRITICO} / {RISK_ALTO}")
 
-    col_widths = [48, 26, 28, 88]
-    col_headers = ["Variable", "Valor", "Severidad", "Acción recomendada"]
-    col_aligns = ["L", "C", "C", "L"]
+    col_widths = [72, 50, 68]
+    col_headers = ["Variable", "Valor", "Severidad"]
+    col_aligns = ["L", "C", "C"]
 
     render_table_header(pdf, col_widths, col_aligns, col_headers)
 
@@ -481,24 +471,23 @@ def _render_critical_section(
         risk = item["risk"]
         val_str = _format_value(var, val, _UNITS, _VALUE_DISPLAY_ES)
         var_name = _VAR_NAMES.get(var, var)
-        action = _ACTIONS.get(var, {}).get(risk, "")
         fill_c, text_c = RISK_STYLES.get(risk, ((255, 255, 255), (26, 26, 26)))
 
         draw_row(
             pdf, col_widths, col_aligns,
-            [var_name, val_str, risk, action[:60]],
-            [None, None, fill_c, None],
-            [None, None, text_c, None],
+            [var_name, val_str, risk],
+            [None, None, fill_c],
+            [None, None, text_c],
             row_index=idx,
         )
 
-    pdf.ln(6)
+    pdf.ln(4)
 
 
 def _render_current_readings(
     pdf: Any, sensor_data: dict, thresholds: dict,
     relevant_vars: set, equip_types: set,
-    _VAR_NAMES: dict, _UNITS: dict, _ACTIONS: dict,
+    _VAR_NAMES: dict, _UNITS: dict,
     _VALUE_DISPLAY_ES: dict = None,
     pump_on: bool = True, speed: float = 0.0, door_close_attempts: int = 0
 ) -> None:
@@ -507,9 +496,9 @@ def _render_current_readings(
 
     render_section_divider(pdf, "Lecturas actuales de sensores")
 
-    col_widths = [48, 26, 28, 88]
-    col_headers = ["Variable", "Valor", "Severidad", "Acción recomendada"]
-    col_aligns = ["L", "C", "C", "L"]
+    col_widths = [72, 50, 68]
+    col_headers = ["Variable", "Valor", "Severidad"]
+    col_aligns = ["L", "C", "C"]
 
     sections = []
     if "bomba" in equip_types:
@@ -518,7 +507,7 @@ def _render_current_readings(
         sections.append(("Elevador y Motor", [v for v in ELEVATOR_VARS if v in relevant_vars]))
 
     for section_name, vars_list in sections:
-        if pdf.get_y() > 240:
+        if pdf.get_y() > 230:
             pdf.add_page()
 
         _pdf_font(pdf, "B", 10)
@@ -541,14 +530,13 @@ def _render_current_readings(
             )
             val_str = _format_value(var, val, _UNITS, _VALUE_DISPLAY_ES)
             var_name = _VAR_NAMES.get(var, var)
-            action = _ACTIONS.get(var, {}).get(risk, "")[:55]
             fill_c, text_c = RISK_STYLES.get(risk, ((255, 255, 255), (26, 26, 26)))
 
             draw_row(
                 pdf, col_widths, col_aligns,
-                [var_name, val_str, risk, action],
-                [None, None, fill_c, None],
-                [None, None, text_c, None],
+                [var_name, val_str, risk],
+                [None, None, fill_c],
+                [None, None, text_c],
                 row_index=row_idx,
             )
             row_idx += 1
@@ -602,8 +590,8 @@ def _render_history_section(
 
     if not counts:
         pdf.set_text_color(95, 95, 95)
-        _pdf_font(pdf, "", 10)
-        pdf.cell(0, 7, safe_text("No se registraron eventos en las últimas 24 horas."), ln=1)
+        _pdf_font(pdf, "I", 10)
+        pdf.cell(0, 9, safe_text("No se registraron eventos en las últimas 24 horas."), ln=1)
         pdf.ln(4)
         return
 
@@ -616,7 +604,7 @@ def _render_history_section(
     _pdf_font(pdf, "", 9)
     pdf.set_draw_color(10, 10, 10)
     row_idx = 0
-    for risk_lvl, fill, text_c, _desc in SEVERITY_DISPLAY_LEVELS:
+    for risk_lvl, fill, text_c, _desc in HISTORY_SEVERITY_DISPLAY_LEVELS:
         cnt = counts.get(risk_lvl, 0)
         if cnt == 0:
             continue
@@ -629,7 +617,7 @@ def _render_history_section(
         )
         row_idx += 1
 
-    pdf.ln(6)
+    pdf.ln(4)
 
 
 def _render_stats_table(
@@ -666,7 +654,7 @@ def _render_stats_table(
             row_index=idx,
         )
 
-    pdf.ln(6)
+    pdf.ln(4)
 
 
 def _render_thresholds(

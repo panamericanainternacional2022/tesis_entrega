@@ -292,7 +292,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
         if parsed_list:
             for group_name, group_events in groups.items():
-                if pdf.get_y() > 240:
+                if pdf.get_y() > 230:
                     pdf.add_page()
 
                 render_section_divider(pdf, f"{group_name} ({len(group_events)} evento(s))")
@@ -346,4 +346,4 @@ def _render_building_summary(pdf: Any, groups: dict) -> None:
             row_index=idx,
         )
 
-    pdf.ln(6)
+    pdf.ln(4)

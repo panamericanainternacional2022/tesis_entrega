@@ -5,6 +5,7 @@ from django.http import HttpResponse
 
 from apps.sensors.sensor_config import (
     MAX_PDF_EVENTS,
+    RISK_COLORS,
     RISK_STYLES,
     SEVERITY_DISPLAY_LEVELS,
 )
@@ -68,7 +69,7 @@ def render_pdf_header(
 
 def render_section_divider(pdf: Any, title: str) -> None:
 
-    if pdf.get_y() > 250:
+    if pdf.get_y() > 230:
         pdf.add_page()
     pdf.ln(2)
     _pdf_font(pdf, "B", 13)
@@ -100,7 +101,7 @@ def render_summary_box(pdf: Any, items: list) -> None:
     pdf.set_draw_color(*HEADER_BG)
 
     for i, item in enumerate(items):
-        fill = item.get("fill", (240, 244, 248))
+        fill = item.get("fill", (249, 250, 251))
         pdf.set_fill_color(*fill)
         x = start_x + i * cell_w
         pdf.rect(x, start_y, cell_w, box_h, "DF")
@@ -140,12 +141,12 @@ def render_text_progress_bar(
     pct = ratio * 100
 
     if threshold is not None and value < threshold:
-        bar_fill = (254, 242, 242)
-        bar_text = (220, 38, 38)
+        bar_fill = RISK_COLORS["Crítico"]["pdf"]["bg"]
+        bar_text = RISK_COLORS["Crítico"]["pdf"]["text"]
         estado = "⚠ Por debajo del umbral"
     else:
-        bar_fill = (240, 253, 244)
-        bar_text = (22, 101, 52)
+        bar_fill = RISK_COLORS["Normal"]["pdf"]["bg"]
+        bar_text = RISK_COLORS["Normal"]["pdf"]["text"]
         estado = "✓ Dentro del rango"
 
     if pdf.get_y() + 28 > 270:
@@ -171,7 +172,7 @@ def render_text_progress_bar(
     pdf.set_fill_color(229, 231, 235)
     pdf.rect(bar_x, bar_y, bar_w, bar_h, "F")
 
-    fill_color = (22, 101, 52) if (threshold is None or value >= threshold) else (220, 38, 38)
+    fill_color = RISK_COLORS["Normal"]["pdf"]["text"] if (threshold is None or value >= threshold) else RISK_COLORS["Crítico"]["pdf"]["text"]
     pdf.set_fill_color(*fill_color)
     pdf.rect(bar_x, bar_y, bar_w * ratio, bar_h, "F")
 
@@ -185,6 +186,7 @@ def render_text_progress_bar(
     pdf.cell(0, 8, info_text, 0, 0, "L")
 
     pdf.set_xy(start_x, start_y + 16)
+    pdf.set_line_width(0.6)
 
     _pdf_font(pdf, "", 10)
     pdf.set_text_color(95, 95, 95)
@@ -256,9 +258,9 @@ def render_stats_summary(pdf: Any, parsed_list: list, severity_levels=None) -> N
 
 def get_column_config() -> tuple[list, list, list]:
     return (
-        [28, 22, 18, 30, 18, 74],
-        ["Fecha y hora", "Equipo", "Severidad", "Variable", "Valor", "Acción recomendada"],
-        ["L", "L", "C", "L", "C", "L"],
+        [48, 36, 28, 50, 28],
+        ["Fecha y hora", "Equipo", "Severidad", "Variable", "Valor"],
+        ["L", "L", "C", "L", "C"],
     )
 
 
@@ -371,12 +373,11 @@ def render_event_rows(
         if value_str and value_str.lower() not in ("true", "false", "none", ""):
             unit = notif.parsed_data.get("unit", "")
             value_str = f"{value_str} {unit}".strip()
-        action_str = notif.parsed_data.get("action", "")
         equip_str = _get_equipment_name(notif)
 
-        row_data = [date_str, equip_str, risk, variable_str, value_str, action_str]
-        cell_fills = [None, None, fill_c, None, None, None]
-        cell_colors = [None, None, text_c, None, None, None]
+        row_data = [date_str, equip_str, risk, variable_str, value_str]
+        cell_fills = [None, None, fill_c, None, None]
+        cell_colors = [None, None, text_c, None, None]
 
         draw_row(
             pdf, column_widths, column_aligns,

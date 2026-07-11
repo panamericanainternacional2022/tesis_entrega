@@ -72,7 +72,7 @@ def safe_text(txt: Any) -> str:
     return t_str
 
 
-_ZEBRA_FILL: tuple[int, int, int] = (248, 249, 250)
+_ZEBRA_FILL: tuple[int, int, int] = (249, 250, 251)
 
 _CELL_PAD_H: float = 2.5
 _CELL_PAD_V: float = 1.2

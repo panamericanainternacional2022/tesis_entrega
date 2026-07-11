@@ -30,6 +30,7 @@ from apps.core.services.pdf_rendering import (
     render_table_header,
 )
 from apps.history.services.email_sender import get_building_emails, build_report_email_html, send_email_raw
+from apps.sensors.sensor_config import USER_STATS_COLORS
 from apps.sensors.simulation.globals import simulators
 from apps.users.models import Usuario, Persona
 from apps.users.services import (
@@ -458,36 +459,41 @@ def user_pdf_view(request: Any) -> HttpResponse:
                 {
                     "label": "Total de usuarios",
                     "value": len(users),
-                    "fill":  (235, 241, 249),
-                    "text":  (30, 58, 95),
+                    "fill":  USER_STATS_COLORS["total"]["fill"],
+                    "text":  USER_STATS_COLORS["total"]["text"],
                 },
                 {
                     "label": "Registrados",
                     "value": total_registrados,
-                    "fill":  (240, 253, 244),
-                    "text":  (22, 101, 52),
+                    "fill":  USER_STATS_COLORS["registrados"]["fill"],
+                    "text":  USER_STATS_COLORS["registrados"]["text"],
                 },
                 {
                     "label": "Pendientes",
                     "value": total_pendientes,
-                    "fill":  (255, 251, 235),
-                    "text":  (146, 64, 14),
+                    "fill":  USER_STATS_COLORS["pendientes"]["fill"],
+                    "text":  USER_STATS_COLORS["pendientes"]["text"],
                 },
                 {
                     "label": "Edificios",
                     "value": len(groups),
-                    "fill":  (249, 250, 251),
-                    "text":  (55, 65, 81),
+                    "fill":  USER_STATS_COLORS["edificios"]["fill"],
+                    "text":  USER_STATS_COLORS["edificios"]["text"],
                 },
             ],
         )
+
+        if not groups:
+            _pdf_font(pdf, "I", 10)
+            pdf.set_text_color(95, 95, 95)
+            pdf.cell(0, 9, safe_text("No se encontraron usuarios con los filtros aplicados."), ln=1)
 
         col_widths  = [28, 32, 32, 70, 28]
         col_headers = ["Cédula", "Nombre", "Apellido", "Correo electrónico", "Estado"]
         col_aligns  = ["C", "L", "L", "L", "C"]
 
         for building_name, members in groups.items():
-            if pdf.get_y() > 240:
+            if pdf.get_y() > 230:
                 pdf.add_page()
 
             render_section_divider(pdf, f"{building_name} ({len(members)} usuario(s))")
@@ -499,11 +505,11 @@ def user_pdf_view(request: Any) -> HttpResponse:
                 estado_str = "Registrado" if b["registered"] else "Pendiente"
 
                 if b["registered"]:
-                    est_fill = (240, 253, 244)
-                    est_text = (22, 101, 52)
+                    est_fill = USER_STATS_COLORS["registrados"]["fill"]
+                    est_text = USER_STATS_COLORS["registrados"]["text"]
                 else:
-                    est_fill = (255, 251, 235)
-                    est_text = (146, 64, 14)
+                    est_fill = USER_STATS_COLORS["pendientes"]["fill"]
+                    est_text = USER_STATS_COLORS["pendientes"]["text"]
 
                 draw_row(
                     pdf,
