@@ -36,12 +36,10 @@ def sim_status(request, building_id: int) -> JsonResponse:
 @login_required
 @admin_required
 def sim_pause(request, building_id: int) -> JsonResponse:
-    import time as _time
     sim = get_simulator(building_id)
     if sim is None:
         return json_error("No hay simulador activo para este edificio", 404)
 
-    was_paused = sim.sim_paused
     try:
         body = parse_json_body(request)
         paused = body.get("paused")
@@ -51,18 +49,6 @@ def sim_pause(request, building_id: int) -> JsonResponse:
             sim.sim_paused = not sim.sim_paused
     except (SimulatorError, Exception):
         sim.sim_paused = not sim.sim_paused
-
-    # ── FIX-2 (BRECHA-4): Track cumulative paused time so fault timers
-    # are not consumed while the simulator is paused. ──────────────────
-    now = _time.time()
-    if not was_paused and sim.sim_paused:
-        # Simulator just paused — record the moment
-        sim._pause_start_time = now
-    elif was_paused and not sim.sim_paused:
-        # Simulator just resumed — accumulate the paused duration
-        if sim._pause_start_time > 0:
-            sim._total_paused_seconds += now - sim._pause_start_time
-            sim._pause_start_time = 0.0
 
     if not sim.sim_paused and not sim.sim_started:
         sim.sim_started = True

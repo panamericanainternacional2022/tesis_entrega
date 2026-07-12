@@ -144,14 +144,7 @@ def simulator_start_view(request) -> JsonResponse:
             return json_ok({"message": f"Simuladores creados ({created_count})."})
         return json_error("No hay equipos de monitoreo en la BD.")
 
-    import time as _time
-    _now = _time.time()
     for simulator in simulators.values():
-        if simulator.sim_paused:
-            # FIX-2: Simulator was paused — accumulate the paused duration before resuming
-            if getattr(simulator, "_pause_start_time", 0) > 0:
-                simulator._total_paused_seconds += _now - simulator._pause_start_time
-                simulator._pause_start_time = 0.0
         simulator.sim_paused = False
     return json_ok({"message": "Simulación reanudada."})
 
@@ -163,12 +156,7 @@ def simulator_stop_view(request) -> JsonResponse:
 
     if not simulators:
         return json_ok({"message": "No hay simuladores activos."})
-    import time as _time
-    _now = _time.time()
     for simulator in simulators.values():
-        if not simulator.sim_paused:
-            # FIX-2: Record when pause began so fault timers can be compensated
-            simulator._pause_start_time = _now
         simulator.sim_paused = True
     return json_ok({"message": "Simulación pausada."})
 

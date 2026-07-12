@@ -4,7 +4,7 @@ import logging
 
 from apps.sensors.sensor_config import PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS
 from apps.sensors.simulation.constants import (
-    RANDOM_FAULT_PROB, FAULT_AUTO_CLEAR_SECONDS,
+    RANDOM_FAULT_PROB,
     SIMULTANEOUS_FAIL_PROB, LOG_SIM,
     FLOOR_HEIGHT, MAX_STEPS_PER_SECOND,
 )
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 def update_sensor_data(active_sim: BuildingSimulator) -> None:
     if active_sim.sim_paused:
         return
-    _auto_clear_expired_faults(active_sim)
     _apply_manual_override_transitions(active_sim)
     _bridge_manual_overrides_to_faults(active_sim)
     if active_sim.has_pump:
@@ -26,42 +25,6 @@ def update_sensor_data(active_sim: BuildingSimulator) -> None:
         from apps.sensors.simulation.physics.elevator import _update_elevator
         _update_elevator(active_sim)
     _inject_random_faults(active_sim)
-
-
-def _auto_clear_expired_faults(sim: BuildingSimulator) -> None:
-    expired = _get_expired_faults(sim)
-    for device in expired:
-        _clear_expired_fault_device(sim, device)
-
-
-def _get_expired_faults(sim: BuildingSimulator) -> list:
-    now = time.time()
-    manual = getattr(sim, "_manual_triggered_faults", set())
-    # Subtract accumulated pause duration so that pausing the simulator
-    # does not consume fault auto-clear time (BRECHA-4).
-    paused_offset = getattr(sim, "_total_paused_seconds", 0.0)
-    return [
-        device
-        for device, injected_at in sim.fault_injected_at.items()
-        if (now - injected_at - paused_offset) >= FAULT_AUTO_CLEAR_SECONDS
-        and device not in manual
-    ]
-
-
-
-def _clear_expired_fault_device(sim: BuildingSimulator, device: str) -> None:
-    sim.sim_faults.pop(device, None)
-    sim.fault_injected_at.pop(device, None)
-    if LOG_SIM:
-        print(
-            f"[SIM] {time.strftime('%H:%M:%S')} "
-            f"AUTO-CLEAR: falla de {device} expirada tras {FAULT_AUTO_CLEAR_SECONDS}s"
-        )
-    from apps.sensors.simulation.fault_recovery import apply_pump_recovery, apply_elevator_recovery
-    if device == "pump":
-        apply_pump_recovery(sim)
-    elif device == "elevator":
-        apply_elevator_recovery(sim)
 
 
 def _inject_random_faults(sim: BuildingSimulator) -> None:
@@ -218,7 +181,7 @@ def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
     if has_volt_override and sd.get("pump_voltage", 220) < 10.0:
         if "pump" not in sim.sim_faults:
             sim.sim_faults["pump"] = "power_outage"
-            sim.fault_injected_at["pump"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
+            sim.fault_injected_at["pump"] = now
             sim._manual_triggered_faults.add("pump")
     elif "pump" in sim._manual_triggered_faults and not has_volt_override:
         sim.sim_faults.pop("pump", None)
@@ -233,7 +196,7 @@ def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
     if has_load_override and sd.get("elev_load", 0) > 900:
         if "elevator" not in sim.sim_faults:
             sim.sim_faults["elevator"] = "overload"
-            sim.fault_injected_at["elevator"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
+            sim.fault_injected_at["elevator"] = now
             sim._manual_triggered_faults.add("elevator")
     elif "elevator" in sim._manual_triggered_faults and not has_load_override:
         if sim.sim_faults.get("elevator") == "overload":

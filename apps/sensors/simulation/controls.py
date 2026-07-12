@@ -213,9 +213,6 @@ def reset_simulator(edificio_id: int) -> str:
     sim.sim_paused = True
     sim.sim_started = False
     sim.sim_speed = 1.0
-    # FIX-2: Reset pause-time counters so they don't bleed into the next session
-    sim._pause_start_time = 0.0
-    sim._total_paused_seconds = 0.0
     sim._pump_demand = 15.0
     sim._pump_start_grace_ticks = 5
     sim._elev_state = "IDLE"
