@@ -239,6 +239,8 @@
             this.currentSpeed = 1.0;
             this._activeElevFault = '';
             this._activePumpFault = '';
+            this._elevFaultInFlight = false;
+            this._pumpFaultInFlight = false;
             this._hasElevator = true;
             this._hasPump = true;
 
@@ -336,6 +338,16 @@
 
             var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
 
+            // Optimistic update and flight flag
+            if (device === 'elevator') {
+                self._activeElevFault = newFault;
+                self._elevFaultInFlight = true;
+            } else {
+                self._activePumpFault = newFault;
+                self._pumpFaultInFlight = true;
+            }
+            self._updateControlStates();
+
             var chain = window.csrfFetch(URLS.clear, {
                 method: 'POST',
                 body: JSON.stringify({ device: device })
@@ -353,21 +365,29 @@
             chain
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
+                    if (device === 'elevator') self._elevFaultInFlight = false;
+                    else self._pumpFaultInFlight = false;
+
                     if (data.status === 'ok') {
-                        if (device === 'elevator') {
-                            self._activeElevFault = newFault;
-                        } else {
-                            self._activePumpFault = newFault;
-                        }
                         self._updateFaultUI();
                     } else {
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
                         var selId = device === 'elevator' ? 'simFaultElevator' : 'simFaultPump';
+                        if (device === 'elevator') self._activeElevFault = prevFault;
+                        else self._activePumpFault = prevFault;
                         _csVal(document.getElementById(selId), prevFault);
                     }
+                    self._updateControlStates();
                 })
                 .catch(function () {
+                    if (device === 'elevator') self._elevFaultInFlight = false;
+                    else self._pumpFaultInFlight = false;
+                    
                     window.showToast('Error de conexión al gestionar falla.', 'error');
+                    if (device === 'elevator') self._activeElevFault = prevFault;
+                    else self._activePumpFault = prevFault;
+                    self._updateFaultUI();
+                    self._updateControlStates();
                 });
         };
 
@@ -410,6 +430,10 @@
             var self = this;
             if (!BID) return;
 
+            self._pumpFaultInFlight = true;
+            self._elevFaultInFlight = true;
+            self._updateControlStates();
+
             Promise.all([
                 window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) }),
                 window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
@@ -418,6 +442,9 @@
                     return Promise.all(responses.map(function (r) { return r.json(); }));
                 })
                 .then(function (dataArr) {
+                    self._pumpFaultInFlight = false;
+                    self._elevFaultInFlight = false;
+
                     var allOk = dataArr.every(function (d) { return d.status === 'ok'; });
                     if (allOk) {
                         self._activeElevFault = '';
@@ -425,10 +452,14 @@
                         _csVal(document.getElementById('simFaultElevator'), '');
                         _csVal(document.getElementById('simFaultPump'), '');
                         self._updateFaultUI();
-                        self._updateControlStates();
                     }
+                    self._updateControlStates();
                 })
-                .catch(function () {});
+                .catch(function () {
+                    self._pumpFaultInFlight = false;
+                    self._elevFaultInFlight = false;
+                    self._updateControlStates();
+                });
         };
 
         // ─────────────── UI UPDATES ───────────────
@@ -467,9 +498,9 @@
             _csDis(document.getElementById('togglePumpBtn'), !running);
             _csDis(document.getElementById('toggleElevatorBtn'), !running);
 
-            // Fault selects - disabled when not running
-            _csDis(document.getElementById('simFaultPump'), !running);
-            _csDis(document.getElementById('simFaultElevator'), !running);
+            // Fault selects - disabled when not running or when a fault is being injected
+            _csDis(document.getElementById('simFaultPump'), !running || this._pumpFaultInFlight);
+            _csDis(document.getElementById('simFaultElevator'), !running || this._elevFaultInFlight);
 
             // Clear faults button - enabled only when there are active faults
             if (this.clearFaultsBtn) {
@@ -549,8 +580,12 @@
             }
 
             if (data.sim_faults) {
-                this._activeElevFault = data.sim_faults.elevator || '';
-                this._activePumpFault = data.sim_faults.pump || '';
+                if (!this._elevFaultInFlight) {
+                    this._activeElevFault = data.sim_faults.elevator || '';
+                }
+                if (!this._pumpFaultInFlight) {
+                    this._activePumpFault = data.sim_faults.pump || '';
+                }
                 this._updateFaultUI();
             }
 

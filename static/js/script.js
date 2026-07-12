@@ -852,7 +852,13 @@
     window.getVariableName = getVariableName;
     window.getUnit = getUnit;
     window.getRiskClass = getRiskClass;
-    window.setEquipmentState = (pumpOn, elevOn) => { currentPumpOn = pumpOn; currentElevOn = elevOn; };
+    window.setEquipmentState = (pumpOn, elevOn) => { 
+        currentPumpOn = pumpOn; 
+        currentElevOn = elevOn;
+        if (typeof updateEquipmentPowerBtns === 'function') {
+            updateEquipmentPowerBtns(pumpOn, elevOn);
+        }
+    };
     Object.defineProperty(window, '_SENSOR_RANGES', { get: function () { return _SENSOR_RANGES; }, configurable: true });
 
     function updateFaultWarnings() {
