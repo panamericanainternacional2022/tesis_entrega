@@ -126,8 +126,8 @@ def _apply_blocked_discharge(sd: dict, dt: float) -> None:
     sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 5.0 * dt, 0, 0.5)
     sd["pump_pressure"]    = clamp(sd["pump_pressure"]    + 1.5 * dt, 0, 12)
     sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.8 * dt, 0, 15)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 0.8 * dt, 0, 130)
-    sd["pump_current"]     = clamp(sd["pump_current"]     - 3.0 * dt, 0.5, 70)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, 0, 130)
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 2.0 * dt, 10.0, 70)
     sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  + 0.1 * dt, 0, 100)
 
 
@@ -248,7 +248,8 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     temp = sd["pump_temperature"] + temp_diff * 0.02 * dt + random.uniform(-0.1, 0.1) * dt
 
     vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
-    curr = flow * pressure / (volt * 0.75) + random.uniform(-0.5, 0.5) * dt
+    # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)
+    curr = (flow * pressure * 40.0 + pressure * 150.0) / (volt * 0.75) + random.uniform(-0.5, 0.5) * dt
 
     if not is_locked(sim, "pump_flow_rate"):
         sd["pump_flow_rate"]   = round(clamp(flow,     _FLOW_LOW,       _FLOW_HIGH),       1)

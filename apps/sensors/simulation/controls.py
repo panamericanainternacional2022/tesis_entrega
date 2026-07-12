@@ -187,7 +187,6 @@ def reset_simulator(edificio_id: int) -> str:
     fault_keys = [k for k in sim.active_alerts if k.startswith("fault:")]
     for k in fault_keys:
         sim.active_alerts.pop(k, None)
-    sim.door_close_attempts = 0
     sim.history.clear()
     sim.pending_alerts.clear()
     sim.sim_faults.clear()

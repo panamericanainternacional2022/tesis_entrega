@@ -97,12 +97,12 @@ NO_RISK_VARS = []
 
 LIMITS_EXCLUDE_VARS = [
     "pump_tank_level", "pump_flow_rate",
-    "elev_position", "elev_door_close_attempts", "elev_door_status", "motor_stuck",
+    "elev_position", "elev_door_status",
 ]
 
 ZERO_IS_CRITICAL_VARS = {"pump_flow_rate", "pump_pressure"}
 
-BOOLEAN_VARS = {"motor_stuck", "limit_switch_top", "limit_switch_bottom"}
+BOOLEAN_VARS = set()
 
 ENUM_VARS = {"elev_door_status"}
 
@@ -141,20 +141,6 @@ VALUE_DISPLAY_ES = {
         "closing":  "Cerrando",
         "true":     "Bloqueada",
         "false":    "Normal",
-    },
-    "motor_stuck": {
-        "true":  "Sí",
-        "false": "No",
-        "1":     "Sí",
-        "0":     "No",
-    },
-    "elev_door_close_attempts": {
-        "0": "Sin intentos",
-        "1": "1 intento",
-        "2": "2 intentos",
-        "3": "3 intentos",
-        "4": "4 intentos",
-        "5": "5 intentos",
     },
 }
 
@@ -209,9 +195,6 @@ ACTIONS: dict[str, dict[str, str]] = {
         RISK_NORMAL: "Corriente del motor dentro del rango operativo.",
         RISK_ALTO: "Corriente del motor por encima del límite recomendado. Verifica carga y estado del bobinado.",
         RISK_CRITICO: "Amperaje crítico (sobrecarga eléctrica). Apagado automático por protección activo.",
-    },
-    "motor_stuck": {
-        RISK_CRITICO: "Eje del motor del elevador atascado/bloqueado. Detén la cabina y realiza liberación de emergencia de pasajeros.",
     },
     "elev_speed": {
         RISK_NORMAL: "Velocidad de elevador normal.",
@@ -291,10 +274,10 @@ FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "overheat":              ["pump_temperature", "pump_vibration"],
     "power_surge":           ["pump_flow_rate", "pump_pressure", "pump_voltage", "pump_current", "pump_temperature", "pump_vibration"],
     "power_outage":          ["pump_voltage", "pump_current", "pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature"],
-    "motor_stuck":           ["motor_stuck", "elev_speed", "elev_current", "elev_door_status"],
-    "door_blocked":          ["elev_door_status", "elev_speed", "elev_door_close_attempts"],
+    "motor_stuck":           ["elev_temperature", "elev_speed", "elev_current", "elev_door_status"],
+    "door_blocked":          ["elev_door_status", "elev_speed"],
     "overspeed":             ["elev_speed", "elev_current", "elev_door_status"],
-    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_door_close_attempts", "elev_current"],
+    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current"],
     "pos_sensor_fail":       ["elev_position", "elev_speed", "elev_door_status"],
     "commercial_power_outage": ["elev_current", "elev_speed", "elev_door_status", "elev_temperature"],
 }

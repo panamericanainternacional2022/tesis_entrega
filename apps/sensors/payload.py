@@ -6,7 +6,6 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
     ctx = PayloadContext(
         sensor_data=sim.sensor_data,
         history=sim.history,
-        door_close_attempts=sim.door_close_attempts,
         pump_on=sim.pump_on,
         elevator_on=sim.elevator_on,
         equipment_types=sim.equipment_types,
@@ -16,6 +15,5 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
         active_edificio_id=sim.edificio_id,
         django_connected=True,
         sim_faults=sim.sim_faults,
-        active_alerts=sim.active_alerts,
-    )
+        active_alerts=sim.active_alerts)
     return _build_live_payload(ctx)

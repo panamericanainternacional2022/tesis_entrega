@@ -33,7 +33,6 @@ def apply_elevator_recovery(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     expiration = time.time() + PROGRESSIVE_DURATION
     _clear_elevator_fault_params(sim)
-    sd["motor_stuck"] = False
     if sd.get("elev_speed", 0) < 0.0:
         sim.manual_overrides["elev_speed"] = expiration
         sim.manual_targets["elev_speed"] = 0.0
@@ -41,5 +40,4 @@ def apply_elevator_recovery(sim: BuildingSimulator) -> None:
         sim.manual_overrides["elev_load"] = expiration
         sim.manual_targets["elev_load"] = CLEAR_FAULT_MAX_LOAD
     sd["elev_door_status"] = "closed"
-    sim.door_close_attempts = 0
     sim._elev_state = "IDLE"

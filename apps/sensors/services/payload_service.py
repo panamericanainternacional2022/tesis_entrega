@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class PayloadContext:
     sensor_data: dict
     history: list
-    door_close_attempts: int
+    
     pump_on: bool
     elevator_on: bool
     equipment_types: set
@@ -52,9 +52,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     speed = ctx.sensor_data.get("elev_speed", 0.0)
     sensors = _build_sensors_list(
         ctx.sensor_data, relevant_vars, thresholds,
-        pump_on=ctx.pump_on, speed=speed,
-        door_close_attempts=ctx.door_close_attempts,
-    )
+        pump_on=ctx.pump_on, speed=speed)
     pump_status, elevator_status = _fetch_equipment_status(
         ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts
     )
@@ -65,7 +63,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "thresholds": thresholds,
         "alert_log": get_alert_log(ctx.active_edificio_id, API_HISTORY_LIMIT),
         "stats": stats,
-        "door_close_attempts": ctx.door_close_attempts,
+        
         "pump_on": ctx.pump_on,
         "elevator_on": ctx.elevator_on,
         "equipment_types": list(ctx.equipment_types),
@@ -92,9 +90,7 @@ def _build_sensors_list(
     relevant_vars: set[str],
     thresholds: dict,
     pump_on: bool = True,
-    speed: float = 0.0,
-    door_close_attempts: int = 0,
-) -> list[dict[str, Any]]:
+    speed: float = 0.0) -> list[dict[str, Any]]:
     from apps.core.services.risk_service import classify_risk
     sensors = []
     for var, value in sensor_data.items():
@@ -103,12 +99,10 @@ def _build_sensors_list(
         risk, color = classify_risk(
             var, value, thresholds,
             pump_on=pump_on, speed=speed,
-            door_close_attempts=door_close_attempts,
             position=sensor_data.get("elev_position", 0.0),
             load=sensor_data.get("elev_load", 0.0),
             door_status=sensor_data.get("elev_door_status", "closed"),
-            elevator_state=sensor_data.get("elevator_state", "IDLE"),
-        )
+            elevator_state=sensor_data.get("elevator_state", "IDLE"))
         sensors.append({
             "id": var,
             "nombre": VAR_NAMES.get(var, var),
@@ -122,8 +116,7 @@ def _fetch_equipment_status(
     django_connected: bool,
     active_edificio_id: int,
     sim_faults: dict = None,
-    active_alerts: dict = None,
-) -> tuple:
+    active_alerts: dict = None) -> tuple:
     pump_status = None
     elevator_status = None
 

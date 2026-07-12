@@ -55,15 +55,6 @@ class AdminRequiredDecoratorTests(TestCase):
 
 
 class ClassifyRiskTests(TestCase):
-    def test_motor_stuck_true_returns_critico(self):
-        risk, color = classify_risk("motor_stuck", True)
-        self.assertEqual(risk, RISK_CRITICO)
-        self.assertEqual(color, "red")
-
-    def test_motor_stuck_false_returns_normal(self):
-        risk, color = classify_risk("motor_stuck", False)
-        self.assertEqual(risk, RISK_NORMAL)
-        self.assertEqual(color, "green")
 
     def test_no_risk_vars_return_normal(self):
         from unittest.mock import patch
@@ -93,17 +84,17 @@ class ClassifyRiskTests(TestCase):
         self.assertEqual(color, "green")
 
     def test_door_status_returns_normal_when_idle_and_no_failures(self):
-        risk, color = classify_risk("elev_door_status", "open", speed=0.0, door_close_attempts=0)
+        risk, color = classify_risk("elev_door_status", "open", speed=0.0)
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
     def test_door_status_returns_critico_when_moving(self):
-        risk, color = classify_risk("elev_door_status", "open", speed=1.5, door_close_attempts=0)
+        risk, color = classify_risk("elev_door_status", "open", speed=1.5)
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
     def test_door_status_returns_alto_when_failed_closing(self):
-        risk, color = classify_risk("elev_door_status", "open", speed=0.0, door_close_attempts=2)
+        risk, color = classify_risk("elev_door_status", "closing", speed=0.0)
         self.assertEqual(risk, RISK_ALTO)
         self.assertEqual(color, "orange")
 

@@ -15,7 +15,6 @@ class BuildingSimulator:
         self.pump_on: bool = False
         self.elevator_on: bool = False
         self.active_alerts: dict = {}
-        self.door_close_attempts: int = 0
         self.history: list = []
         self.pending_alerts: deque = deque()
         self.last_email_sent_time_per_var: dict = {}

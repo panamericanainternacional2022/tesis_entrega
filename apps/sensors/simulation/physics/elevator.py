@@ -134,7 +134,6 @@ def _update_elevator(sim: BuildingSimulator) -> None:
 def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
     targets = {
         "motor_stuck": {
-            "motor_stuck": True,
             "elev_speed": 0.0,
             "elev_current": _CURR_HIGH,
             "elev_door_status": "closed",
@@ -144,7 +143,6 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         "door_blocked": {
             "elev_door_status": "closing",
             "elev_speed": 0.0,
-            "elev_door_close_attempts": 3,
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
@@ -158,7 +156,6 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_load": _LOAD_HIGH * 0.85,
             "elev_door_status": "open",
             "elev_speed": 0.0,
-            "elev_door_close_attempts": 3,
             "elev_current": _CURR_HIGH * 0.6,
             "elevator_state": "DOORS_OPEN",
         },
@@ -213,13 +210,6 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
     for var, target in targets.items():
         if var in BOOLEAN_VARS or var in ENUM_VARS:
             sd[var] = target
-            if var == "elev_door_close_attempts":
-                sim.door_close_attempts = target
-            continue
-
-        if var == "elev_door_close_attempts":
-            sd[var] = target
-            sim.door_close_attempts = target
             continue
 
         current = sd.get(var)
@@ -266,11 +256,6 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sd["elev_speed"] = 0.0
     if not is_locked(sim, "elev_load"):
         sd["elev_load"] = int(max(0, sd["elev_load"] - 50 * dt))
-    if not is_locked(sim, "motor_stuck"):
-        sd["motor_stuck"] = False
-    if not is_locked(sim, "elev_door_close_attempts"):
-        sim.door_close_attempts = 0
-        sd["elev_door_close_attempts"] = 0
     sim._elev_state = "IDLE"
     sim._elev_stuck_timer = 0.0
     sim._elev_current_accel = 0.0
@@ -473,11 +458,9 @@ def _handle_elev_door_closing(
         sim._elev_timer = 0
         sd["elev_door_status"] = "open"
         sd["elev_speed"] = 0.0
-        sim.door_close_attempts += 1
-        sd["elev_door_close_attempts"] = sim.door_close_attempts
         return
-
-    from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
+        
+    # Lógica de cierre normal
     if sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
         door_obstructed = sim._elev_door_obstructed
         overload_fault_active = (
@@ -488,9 +471,7 @@ def _handle_elev_door_closing(
         random_fail = random.random() < 0.02 * dt
 
         if door_obstructed or overload_fault_active or is_locked_open or random_fail:
-            sim.door_close_attempts += 1
-            sd["elev_door_close_attempts"] = sim.door_close_attempts
-            if sim.door_close_attempts >= MAX_DOOR_CLOSE_ATTEMPTS:
+            if door_obstructed or overload_fault_active:
                 sim._elev_state = "DOORS_OPEN"
                 sim._elev_timer = 0
                 sd["elev_door_status"] = "open"
@@ -646,17 +627,13 @@ def _run_elevator_post_fsm(
     if current_state in ("IDLE", "DOOR_OPENING", "DOORS_OPEN", "DOOR_CLOSING"):
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_position_meters = pos
-    if not is_locked(sim, "elev_door_close_attempts"):
-        if spd != 0:
-            sim.door_close_attempts = 0
-            sd["elev_door_close_attempts"] = 0
-        if current_state == "DOOR_CLOSING" and sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
-            if random.random() < 0.15 * dt:
-                sim.door_close_attempts += 1
-                sd["elev_door_close_attempts"] = sim.door_close_attempts
-                if door == "closed":
-                    sim._elev_state = "DOOR_OPENING"
-                    sim._elev_timer = 0
+    if spd != 0:
+        pass
+    if current_state == "DOOR_CLOSING" and sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
+        if random.random() < 0.15 * dt:
+            if door == "closed":
+                sim._elev_state = "DOOR_OPENING"
+                sim._elev_timer = 0
 
     effective_load = _effective_load(sim, load)
 
@@ -693,11 +670,6 @@ def _run_elevator_post_fsm(
     else:
         sim._elev_pos_sensor_mismatch_timer = 0.0
 
-    # ── Motor stuck detection ──────────────────────────────────────────────
-    stuck = _check_motor_stuck(sim, current_state, spd, effective_load, sd.get("elev_temperature", 25.0), dt)
-    if not is_locked(sim, "motor_stuck"):
-        sd["motor_stuck"] = stuck
-
     # ── Power outage forces current to 0 ───────────────────────────────────
     if not sim._elev_power_available:
         sd["elev_current"] = 0.0
@@ -729,17 +701,35 @@ def _run_elevator_post_fsm(
             total_cabin_mass = CABIN_EMPTY_MASS + effective_load
             unbalance = (total_cabin_mass - COUNTERWEIGHT_MASS) * G
             direction = sim._elev_direction
-            motor_force = unbalance if direction * unbalance > 0 else 0.0
+            
+            # Frenado regenerativo: la fuerza puede ser negativa si la carga empuja a favor del viaje
+            motor_force_gravity = unbalance * direction
+            
             total_mass = total_cabin_mass + COUNTERWEIGHT_MASS
-            inertial_force = total_mass * abs(sim._elev_current_accel)
-            motor_force += inertial_force
+            inertial_force = total_mass * sim._elev_current_accel
+            
+            motor_force = motor_force_gravity + inertial_force
             mechanical_power = motor_force * abs(spd)
-            electrical_power = mechanical_power / MOTOR_EFFICIENCY / 1000
+            
+            # Si power < 0, regenera. Dividir / Eficiencia si consume, multiplicar si genera
+            electrical_power = mechanical_power / MOTOR_EFFICIENCY / 1000 if mechanical_power > 0 else mechanical_power * MOTOR_EFFICIENCY / 1000
+            
             load_ratio = effective_load / max(RATED_LOAD, 1)
             base_current = ELEVATOR_MOTOR_RATED_CURRENT * (0.3 + load_ratio * 0.7)
-            accel_factor = 1.15 if abs(sim._elev_current_accel) > 0.1 else 0.85
-            sim._elev_current = base_current * accel_factor + electrical_power * 2
+            
+            # El consumo eléctrico de la potencia se suma (o resta si regenera, pero limitaremos al mínimo)
+            sim._elev_current = base_current + electrical_power * 2
+            
+            # Inrush current (pico de arranque) durante los primeros 0.5s de aceleración
+            if current_state == "ACCELERATING" and sim._elev_timer < 0.5:
+                # Multiplicador que va de 5.0 a 1.0
+                inrush_multiplier = 1.0 + 4.0 * (1.0 - sim._elev_timer / 0.5)
+                sim._elev_current *= inrush_multiplier
+                
             sim._elev_current += random.uniform(-0.5, 0.5) * dt
+            
+            # Límite mínimo para evitar corriente totalmente negativa (disipación en resistencias)
+            sim._elev_current = max(sim._elev_current, ELEVATOR_MOTOR_RATED_CURRENT * 0.15)
         else:
             sim._elev_current = ELEVATOR_MOTOR_RATED_CURRENT * 0.15 + random.uniform(-0.3, 0.3) * dt
         sd["elev_current"] = round(clamp(sim._elev_current, _CURR_LOW, _CURR_HIGH), 1)
@@ -750,23 +740,3 @@ def _run_elevator_post_fsm(
     sim._elev_prev_position = prev_pos
 
 
-def _check_motor_stuck(
-    sim: BuildingSimulator, state: str, speed: float,
-    load: float, temperature: float, dt: float,
-) -> bool:
-    if state in ("IDLE", "DOOR_OPENING", "DOORS_OPEN", "DOOR_CLOSING"):
-        sim._elev_stuck_timer = 0.0
-        return False
-    from apps.sensors.simulation.constants import (
-        ELEVATOR_LOAD_ALERT, ELEVATOR_TEMP_ALERT,
-        STUCK_THRESHOLD_TICKS, STUCK_SPEED_EPSILON,
-    )
-    if abs(speed) < STUCK_SPEED_EPSILON and (
-        load > ELEVATOR_LOAD_ALERT
-        or temperature > ELEVATOR_TEMP_ALERT
-        or sim._elev_motor_torque_factor <= 0
-    ):
-        sim._elev_stuck_timer += dt
-    else:
-        sim._elev_stuck_timer = 0.0
-    return sim._elev_stuck_timer >= STUCK_THRESHOLD_TICKS

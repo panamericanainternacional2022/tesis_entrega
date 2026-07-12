@@ -13,21 +13,18 @@ from apps.core.auth_decorators import login_required, admin_required
 from apps.core.services.http_response import json_ok
 from apps.buildings.models import Building, MonitoringEquipment
 from apps.buildings.services import (
-    sync_equipment_for_building, EquipmentConfig,
-)
+    sync_equipment_for_building, EquipmentConfig)
 from apps.buildings.validators import validate_building_form, validate_unique_rif
 from apps.users.validators import normalize_rif
 from apps.buildings.shared import (
     extract_building_data,
-    extract_equipment_config,
-)
+    extract_equipment_config)
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
     SEVERITY_LEVELS, SEVERITY_DISPLAY_LEVELS, RISK_STYLES,
     HISTORY_SEVERITY_DISPLAY_LEVELS,
     PUMP_VARS, ELEVATOR_VARS,
-    VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES,
-)
+    VAR_NAMES, UNITS, STATS_VARS, ACTIONS, VALUE_DISPLAY_ES)
 from apps.history.models import History
 from apps.core.services.risk_service import classify_risk
 from apps.thresholds.services import get_thresholds
@@ -36,8 +33,7 @@ from apps.core.services.pdf_shared import _pdf_font, draw_row, safe_text
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,
     render_pdf_header, render_section_divider, render_summary_box,
-    render_severity_legend, render_table_header,
-)
+    render_severity_legend, render_table_header)
 
 
 def _validate_floors_elevator(floors: str, has_elevator: bool) -> str | None:
@@ -75,8 +71,7 @@ def building_list_view(request: HttpRequest) -> HttpResponse:
             "buildings": list(buildings),
             "page_messages": [],
             "current_equipamiento": equipamiento,
-        },
-    )
+        })
 
 
 @login_required
@@ -109,8 +104,7 @@ def register_building_view(request: HttpRequest) -> HttpResponse:
             with transaction.atomic():
                 building = Building.objects.create(
                     name=data["name"], rif=data["rif"], address=data["address"],
-                    floors=int(data["floors"]),
-                )
+                    floors=int(data["floors"]))
                 sync_equipment_for_building(building, config)
             messages.success(request, "Edificio registrado correctamente.")
             return redirect("building_list")
@@ -123,8 +117,7 @@ def register_building_view(request: HttpRequest) -> HttpResponse:
             "form_errors": form_errors,
             "building": building_data,
             "has_elevator": config.has_elevator,
-        },
-    )
+        })
 
 
 @login_required
@@ -151,8 +144,7 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
                 "rif": data["rif"],
                 "cantidadPisos": data.get("floors"),
             },
-            exclude_building_id=building.id,
-        )
+            exclude_building_id=building.id)
         if not form_errors:
             error = _validate_floors_elevator(data.get("floors"), config.has_elevator)
             if error:
@@ -178,8 +170,7 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
             "building": building,
             "form_errors": form_errors,
             "has_elevator": has_elevator,
-        },
-    )
+        })
 
 
 @login_required
@@ -189,8 +180,7 @@ def delete_building_view(request: HttpRequest, building_id: int) -> HttpResponse
     building.delete()
     messages.success(
         request,
-        "El edificio y todos sus datos asociados se eliminaron correctamente.",
-    )
+        "El edificio y todos sus datos asociados se eliminaron correctamente.")
     return redirect("building_list")
 
 
@@ -252,7 +242,7 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
 
     pump_on = sim.pump_on if sim else False
     speed = sensor_data.get("elev_speed", 0.0)
-    door_close_attempts = sim.door_close_attempts if sim else 0
+    
 
     relevant_vars = set()
     if "bomba" in equip_types:
@@ -271,27 +261,23 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
             f"Edificio: {building.name}",
             f"RIF: {building.rif}",
             f"Dirección: {address}",
-        ],
-    )
+        ])
 
     _render_executive_summary(
         pdf, sensor_data, thresholds, relevant_vars,
-        pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
-    )
+        pump_on=pump_on, speed=speed)
     _render_equipment_summary(pdf, equipment)
     render_severity_legend(pdf)
 
     critical_items = _get_critical_items(
         sensor_data, thresholds, relevant_vars,
-        pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
-    )
+        pump_on=pump_on, speed=speed)
     if critical_items:
         _render_critical_section(pdf, critical_items, VAR_NAMES, UNITS, VALUE_DISPLAY_ES)
 
     _render_current_readings(
         pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, VALUE_DISPLAY_ES,
-        pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
-    )
+        pump_on=pump_on, speed=speed)
 
     if stats:
         _render_stats_table(pdf, stats, relevant_vars, VAR_NAMES, UNITS)
@@ -320,14 +306,12 @@ def building_report_pdf_view(request: Any, edificio_id: int) -> HttpResponse:
     except ImportError:
         return HttpResponse(
             "Error: fpdf2 no está instalado. Ejecute: pip install fpdf2",
-            content_type="text/plain", status=500,
-        )
+            content_type="text/plain", status=500)
     except Exception as e:
         _logger_bld.warning("Building report PDF failed: %s", e)
         return HttpResponse(
             f"Error generando PDF: {e}",
-            content_type="text/plain", status=500,
-        )
+            content_type="text/plain", status=500)
 
 
 def _compute_stats(history: list, stats_vars: list) -> dict:
@@ -352,8 +336,7 @@ def _compute_stats(history: list, stats_vars: list) -> dict:
 
 def _get_critical_items(
     sensor_data: dict, thresholds: dict, relevant_vars: set,
-    pump_on: bool = True, speed: float = 0.0, door_close_attempts: int = 0
-) -> list[dict]:
+    pump_on: bool = True, speed: float = 0.0) -> list[dict]:
     _CRITICAL_LEVELS = {RISK_ALTO, RISK_CRITICO}
     items = []
     for var in sorted(relevant_vars):
@@ -361,8 +344,7 @@ def _get_critical_items(
             continue
         risk, _ = classify_risk(
             var, sensor_data[var], thresholds,
-            pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
-        )
+            pump_on=pump_on, speed=speed)
         if risk in _CRITICAL_LEVELS:
             items.append({"var": var, "value": sensor_data[var], "risk": risk})
     return items
@@ -383,9 +365,7 @@ def _format_value(var: str, value, units: dict, value_display_map: dict = None) 
 
 def _render_executive_summary(
     pdf: Any, sensor_data: dict, thresholds: dict,
-    relevant_vars: set, pump_on: bool = True, speed: float = 0.0,
-    door_close_attempts: int = 0
-) -> None:
+    relevant_vars: set, pump_on: bool = True, speed: float = 0.0) -> None:
 
     render_section_divider(pdf, "Resumen ejecutivo")
 
@@ -394,8 +374,7 @@ def _render_executive_summary(
         if var in sensor_data:
             risk, _ = classify_risk(
                 var, sensor_data[var], thresholds,
-                pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
-            )
+                pump_on=pump_on, speed=speed)
             if risk in counts:
                 counts[risk] += 1
 
@@ -413,8 +392,7 @@ def _render_executive_summary(
 
 def _render_equipment_summary(
     pdf: Any,
-    equipment: list,
-) -> None:
+    equipment: list) -> None:
 
     if not equipment:
         return
@@ -440,8 +418,7 @@ def _render_equipment_summary(
             [eq.name, type_label, status_label],
             [None, None, fill_c],
             [None, None, text_c],
-            row_index=idx,
-        )
+            row_index=idx)
 
     pdf.ln(4)
 
@@ -449,8 +426,7 @@ def _render_equipment_summary(
 def _render_critical_section(
     pdf: Any, critical_items: list[dict],
     _VAR_NAMES: dict, _UNITS: dict,
-    _VALUE_DISPLAY_ES: dict = None,
-) -> None:
+    _VALUE_DISPLAY_ES: dict = None) -> None:
     if pdf.get_y() > 230:
         pdf.add_page()
 
@@ -477,8 +453,7 @@ def _render_critical_section(
             [var_name, val_str, risk],
             [None, None, fill_c],
             [None, None, text_c],
-            row_index=idx,
-        )
+            row_index=idx)
 
     pdf.ln(4)
 
@@ -488,8 +463,7 @@ def _render_current_readings(
     relevant_vars: set, equip_types: set,
     _VAR_NAMES: dict, _UNITS: dict,
     _VALUE_DISPLAY_ES: dict = None,
-    pump_on: bool = True, speed: float = 0.0, door_close_attempts: int = 0
-) -> None:
+    pump_on: bool = True, speed: float = 0.0) -> None:
     if pdf.get_y() > 230:
         pdf.add_page()
 
@@ -525,8 +499,7 @@ def _render_current_readings(
             val = sensor_data[var]
             risk, _ = classify_risk(
                 var, val, thresholds,
-                pump_on=pump_on, speed=speed, door_close_attempts=door_close_attempts
-            )
+                pump_on=pump_on, speed=speed)
             val_str = _format_value(var, val, _UNITS, _VALUE_DISPLAY_ES)
             var_name = _VAR_NAMES.get(var, var)
             fill_c, text_c = RISK_STYLES.get(risk, ((255, 255, 255), (26, 26, 26)))
@@ -536,8 +509,7 @@ def _render_current_readings(
                 [var_name, val_str, risk],
                 [None, None, fill_c],
                 [None, None, text_c],
-                row_index=row_idx,
-            )
+                row_index=row_idx)
             row_idx += 1
 
         pdf.ln(4)
@@ -547,8 +519,7 @@ def _render_history_section(
     pdf: Any,
     edificio_id: int,
     usuario_id: int | None = None,
-    usuario_rol: str = "US",
-) -> None:
+    usuario_rol: str = "US") -> None:
     from apps.history.shared import _build_history_query
     from apps.dashboard.shared import parse_history
 
@@ -561,8 +532,7 @@ def _render_history_section(
         records, _ = _build_history_query(usuario_id, usuario_rol, str(edificio_id))
     else:
         records = History.objects.filter(
-            monitoring_equipment__building_id=edificio_id,
-        )
+            monitoring_equipment__building_id=edificio_id)
 
     records = (
         records
@@ -612,8 +582,7 @@ def _render_history_section(
             [risk_lvl, str(cnt)],
             [fill, None],
             [text_c, None],
-            row_index=row_idx,
-        )
+            row_index=row_idx)
         row_idx += 1
 
     pdf.ln(4)
@@ -621,8 +590,7 @@ def _render_history_section(
 
 def _render_stats_table(
     pdf: Any, stats: dict, relevant_vars: set,
-    _VAR_NAMES: dict, _UNITS: dict,
-) -> None:
+    _VAR_NAMES: dict, _UNITS: dict) -> None:
     if pdf.get_y() > 230:
         pdf.add_page()
 
@@ -650,16 +618,14 @@ def _render_stats_table(
                 f"{s['min']:.1f} {unit}".strip(),
                 f"{s['max']:.1f} {unit}".strip(),
             ],
-            row_index=idx,
-        )
+            row_index=idx)
 
     pdf.ln(4)
 
 
 def _render_thresholds(
     pdf: Any, thresholds: dict, relevant_vars: set,
-    _VAR_NAMES: dict, _UNITS: dict,
-) -> None:
+    _VAR_NAMES: dict, _UNITS: dict) -> None:
     if pdf.get_y() > 230:
         pdf.add_page()
 
@@ -685,8 +651,7 @@ def _render_thresholds(
             draw_row(
                 pdf, col_widths, col_aligns,
                 [var_name, dir_labels.get(d, d), f"{cfg['low']}", "—", f"{cfg['high']}", unit],
-                row_index=idx,
-            )
+                row_index=idx)
         else:
             low = cfg.get("low", 0)
             med = cfg.get("medium", 0)
@@ -694,8 +659,7 @@ def _render_thresholds(
             draw_row(
                 pdf, col_widths, col_aligns,
                 [var_name, dir_labels.get(d, d), str(low), str(med), str(high), unit],
-                row_index=idx,
-            )
+                row_index=idx)
 
     pdf.ln(4)
 
@@ -705,8 +669,7 @@ def _render_limits_section(
     edificio_id: int,
     relevant_vars: set,
     _VAR_NAMES: dict,
-    _UNITS: dict,
-) -> None:
+    _UNITS: dict) -> None:
     from apps.limits.services import get_sensor_limits
 
     limits = get_sensor_limits(edificio_id)
@@ -737,7 +700,6 @@ def _render_limits_section(
         draw_row(
             pdf, col_widths, col_aligns,
             [var_name, f"{lo:.1f}", f"{hi:.1f}", unit],
-            row_index=idx,
-        )
+            row_index=idx)
 
     pdf.ln(4)

@@ -6,8 +6,7 @@ import eventlet
 from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS,
     RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
-    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
-)
+    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES)
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
@@ -84,10 +83,8 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
             var, value, thresholds,
             pump_on=sim.pump_on,
             speed=sim.sensor_data.get("elev_speed", 0.0),
-            door_close_attempts=sim.door_close_attempts,
             pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
-            elevator_on=sim.elevator_on,
-        )
+            elevator_on=sim.elevator_on)
         risk_cache[var] = risk
 
         if risk in (RISK_ALTO, RISK_CRITICO):
@@ -157,10 +154,8 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
                 var, value, thresholds,
                 pump_on=sim.pump_on,
                 speed=sim.sensor_data.get("elev_speed", 0.0),
-                door_close_attempts=sim.door_close_attempts,
                 pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
-                elevator_on=sim.elevator_on,
-            )
+                elevator_on=sim.elevator_on)
         color = RISK_COLORS.get(risk, {}).get("email", {}).get("text", "#475569")
         sensor_type = "Bomba" if var in PUMP_VARS else "Elevador"
         new_readings.append({
@@ -198,11 +193,9 @@ def generate_data_and_emit() -> None:
                 _consecutive_failures[eid] = fails
                 logger.exception(
                     "Error en tick de sim %s (%s) — fallo consecutivo #%s",
-                    eid, sim.nombre, fails,
-                )
+                    eid, sim.nombre, fails)
                 backoff = min(2 ** fails, _MAX_BACKOFF_TICKS)
                 _backoff_remaining[eid] = backoff
                 logger.warning(
                     "Simulador %s (%s) en backoff por %s ticks — reintentará automáticamente",
-                    eid, sim.nombre, backoff,
-                )
+                    eid, sim.nombre, backoff)

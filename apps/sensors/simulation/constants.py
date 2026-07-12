@@ -62,10 +62,8 @@ DEFAULT_SENSOR_DATA: dict = {
     "elev_speed": 0.0,
     "elev_load": 0,
     "elev_door_status": "closed",
-    "elev_door_close_attempts": 0,
     "elev_temperature": 25.0,
     "elev_current": 0.0,
-    "motor_stuck": False,
     "elevator_state": "IDLE",
 }
 
