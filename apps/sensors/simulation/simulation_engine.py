@@ -195,8 +195,8 @@ def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
     physics so the simulation reacts consistently regardless of whether the
     fault was injected via simulation controls or manual data injection.
 
-    For example, setting ``motor_stuck = True`` via manual override will
-    activate the ``motor_stuck`` fault in the physics engine (torque=0,
+    For example, setting ``elev_load = 1000`` via manual override will
+    activate the ``overload`` fault in the physics engine (torque=0,
     FSM blocked), exactly as if the fault had been triggered from the
     control panel.
     """
@@ -220,21 +220,6 @@ def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
         sim.sim_faults.pop("pump", None)
         sim.fault_injected_at.pop("pump", None)
         sim._manual_triggered_faults.discard("pump")
-
-    # ── Elevator: motor_stuck forced True → activate motor_stuck fault ──
-    has_motor_override = (
-        "motor_stuck" in sim.manual_overrides
-        and now < sim.manual_overrides.get("motor_stuck", 0)
-    )
-    if has_motor_override and sd.get("motor_stuck") is True:
-        if "elevator" not in sim.sim_faults:
-            sim.sim_faults["elevator"] = "motor_stuck"
-            sim.fault_injected_at["elevator"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
-            sim._manual_triggered_faults.add("elevator")
-    elif "elevator" in sim._manual_triggered_faults and not has_motor_override:
-        sim.sim_faults.pop("elevator", None)
-        sim.fault_injected_at.pop("elevator", None)
-        sim._manual_triggered_faults.discard("elevator")
 
     # ── Elevator: load > 900 (Critico) via manual → activate overload physics ──
     has_load_override = (

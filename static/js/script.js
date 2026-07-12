@@ -466,7 +466,7 @@
 
     const CHART_PUMP_VARS = _BOMBA_VARS.filter(v => v !== 'tank_level');
     const CHART_ELEV_VARS = _ELEVADOR_VARS.filter(
-        v => v !== 'elev_position' && v !== 'elev_door_status' && v !== 'motor_stuck'
+        v => v !== 'elev_position' && v !== 'elev_door_status'
     );
 
     let EDIFICIO_ID = _CONFIG.edificio_id || window.SELECTED_EDIFICIO_ID || 0;
@@ -485,7 +485,6 @@
     let currentPumpOn = false;
     let currentElevOn = false;
     let _lastPosition = null;
-    let currentDoorCloseAttempts = 0;
     let chart1, chart2;
     let unreadHistoryCount = 0;
     let _originalLimits = {};
@@ -546,14 +545,6 @@
                 return { badge: 'badge-crit', label: _RISK.critico };
             }
         }
-        if (varName === 'door_close_attempts') {
-            const crit = Number(value) >= 2;
-            const high = Number(value) >= 1;
-            return {
-                badge: crit ? 'badge-crit' : high ? 'badge-high' : 'badge-normal',
-                label: crit ? _RISK.critico : high ? _RISK.alto : _RISK.normal,
-            };
-        }
         if (_BOOLEAN_VARS.includes(varName)) {
             const crit = !!value;
             return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
@@ -564,8 +555,7 @@
             if (varName === 'elev_door_status' && crit) {
                 const speed = Number(currentReadings['elev_speed'] || 0);
                 const isMoving = speed > 0.05;
-                const hasFailedToClose = currentDoorCloseAttempts >= 2;
-                if (!isMoving && !hasFailedToClose) {
+                if (!isMoving) {
                     crit = false;
                 }
             }
@@ -966,7 +956,6 @@
             currentElevOn = data.elevator_on === true;
             updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
         }
-        if (data.door_close_attempts !== undefined) currentDoorCloseAttempts = data.door_close_attempts;
         hideAllStates();
 
         const simPaused = data.sim_paused === true;

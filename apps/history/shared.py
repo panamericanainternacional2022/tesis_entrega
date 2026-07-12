@@ -71,8 +71,6 @@ def _make_parsed(
 
     if variable in VALUE_DISPLAY_ES:
         value_display = VALUE_DISPLAY_ES[variable].get(value_str, raw_str.capitalize())
-        if value_str in ("true", "false") and variable in ("motor_stuck",):
-            value_display = ""
     elif raw_str:
         value_display = raw_str
     else:
