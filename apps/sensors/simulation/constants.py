@@ -58,12 +58,15 @@ DEFAULT_SENSOR_DATA: dict = {
     "pump_tank_level": 80.0,
     "pump_voltage": 220.0,
     "pump_current": 0.0,
+    "pump_water_quality": 500.0,
     "elev_position": 0,
     "elev_speed": 0.0,
     "elev_load": 0,
     "elev_door_status": "closed",
     "elev_temperature": 25.0,
     "elev_current": 0.0,
+    "elev_vibration": 0.0,
+    "elev_voltage": 380.0,
     "elevator_state": "IDLE",
 }
 
@@ -88,9 +91,12 @@ MAX_STEPS_PER_SECOND: dict[str, float] = {
     "pump_tank_level": 10.0,
     "pump_voltage": 15.0,
     "pump_current": 5.0,
+    "pump_water_quality": 20.0,
     "elev_speed": 1.0,
     "elev_load": 150.0,
     "elev_position": 1.0,
     "elev_temperature": 3.0,
     "elev_current": 8.0,
+    "elev_vibration": 2.0,
+    "elev_voltage": 15.0,
 }

@@ -1087,9 +1087,6 @@
         const _THRESHOLDS_HIDDEN_VARS = ['elev_position'];
         const bombaVars = _BOMBA_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
         const elevadorVars = _ELEVADOR_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
-        const otherVars = Object.keys(th).filter(k =>
-            !_NO_RISK_VARS.includes(k) && !_BOMBA_VARS.includes(k) && !_ELEVADOR_VARS.includes(k)
-        );
 
         function buildCard(k, cfg) {
             const div = document.createElement('div');
@@ -1134,16 +1131,19 @@
         function buildSection(containerId, vars) {
             const panel = document.getElementById(containerId);
             if (!panel) return;
+            const section = panel.closest('section');
+            if (vars.length === 0) {
+                if (section) section.style.display = 'none';
+                panel.innerHTML = '';
+                return;
+            }
+            if (section) section.style.display = '';
             panel.innerHTML = '';
             vars.forEach(k => { const cfg = th[k]; if (cfg) panel.appendChild(buildCard(k, cfg)); });
         }
 
         buildSection('thresholdsBombaPanel', bombaVars);
         buildSection('thresholdsElevadorPanel', elevadorVars);
-        if (otherVars.length) {
-            const panel = document.getElementById('thresholdsBombaPanel');
-            if (panel) otherVars.forEach(k => panel.appendChild(buildCard(k, th[k])));
-        }
 
         _originalThresholds = JSON.parse(JSON.stringify(th));
         _dirtySensorKeys.clear();
@@ -1365,6 +1365,13 @@
         function buildLimitSection(containerId, vars) {
             const panel = document.getElementById(containerId);
             if (!panel) return;
+            const section = panel.closest('section');
+            if (vars.length === 0) {
+                if (section) section.style.display = 'none';
+                panel.innerHTML = '';
+                return;
+            }
+            if (section) section.style.display = '';
             panel.innerHTML = '';
             vars.forEach(k => panel.appendChild(buildLimitCard(k, ranges[k])));
         }
