@@ -37,12 +37,16 @@ def _auto_clear_expired_faults(sim: BuildingSimulator) -> None:
 def _get_expired_faults(sim: BuildingSimulator) -> list:
     now = time.time()
     manual = getattr(sim, "_manual_triggered_faults", set())
+    # Subtract accumulated pause duration so that pausing the simulator
+    # does not consume fault auto-clear time (BRECHA-4).
+    paused_offset = getattr(sim, "_total_paused_seconds", 0.0)
     return [
         device
         for device, injected_at in sim.fault_injected_at.items()
-        if now - injected_at >= FAULT_AUTO_CLEAR_SECONDS
+        if (now - injected_at - paused_offset) >= FAULT_AUTO_CLEAR_SECONDS
         and device not in manual
     ]
+
 
 
 def _clear_expired_fault_device(sim: BuildingSimulator, device: str) -> None:

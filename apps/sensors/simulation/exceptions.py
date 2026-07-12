@@ -31,3 +31,14 @@ class InvalidFaultTypeError(SimulatorError):
         nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
         nombre_dispositivo = _DEVICE_ES.get(device, device)
         super().__init__(f"Falla '{nombre_falla}' no es válida para {nombre_dispositivo}")
+
+
+class DeviceOffError(SimulatorError):
+    """Raised when a fault injection is attempted on a powered-off device."""
+    def __init__(self, device: str):
+        _ES = {"pump": "Bomba", "elevator": "Elevador"}
+        super().__init__(
+            f"No se puede inyectar una falla: {_ES.get(device, device)} está apagada/o.",
+            status_code=409,
+        )
+

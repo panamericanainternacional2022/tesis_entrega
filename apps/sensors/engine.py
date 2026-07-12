@@ -123,7 +123,7 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
         if not alert_vars:
             continue
 
-        fault_key = f"fault:{fault_type}"
+        fault_key = f"fault_raw:{fault_type}"
         if sim.active_alerts.get(fault_key) == worst_risk:
             continue
 
@@ -146,6 +146,10 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
     new_readings = []
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
+            continue
+        # FIX-8 (BRECHA-3): Skip grace-period variables so startup spikes
+        # don't pollute the in-memory history with misleading readings.
+        if _should_skip(sim, var):
             continue
         if risk_cache and var in risk_cache:
             risk = risk_cache[var]

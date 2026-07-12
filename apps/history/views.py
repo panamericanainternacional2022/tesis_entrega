@@ -274,9 +274,30 @@ def history_pdf_view(request: Any) -> HttpResponse:
         pdf = _create_report_pdf("Historial")
         now = dt.datetime.now()
 
+        # FIX-12 (BRECHA-12): Capture a real-time snapshot of the active simulator
+        # so the PDF header reflects the machine state at generation time.
+        sim_snapshot_lines: list = []
+        if building_id_raw and building_id_raw.isdigit():
+            from apps.sensors.simulation.globals import simulators
+            active_sim = simulators.get(int(building_id_raw))
+            if active_sim:
+                pump_status = "Encendida" if active_sim.pump_on else "Apagada"
+                elev_status = "Encendido" if active_sim.elevator_on else "Apagado"
+                fallas_activas = (
+                    ", ".join(active_sim.sim_faults.values()) if active_sim.sim_faults else "Ninguna"
+                )
+                sim_snapshot_lines = [
+                    "── Estado del simulador al generar ──",
+                    f"Bomba: {pump_status} | Elevador: {elev_status}",
+                    f"Fallas activas: {fallas_activas}",
+                    f"Velocidad de simulación: {active_sim.sim_speed}x",
+                ]
+
         render_pdf_header(
             pdf,
-            title="Historial",
+            # FIX-10 (BRECHA-10): Renamed to 'Historial de Alertas' — this PDF only
+            # contains Alto/Crítico events, not every telemetry reading.
+            title="Historial de Alertas",
             now=now,
             meta_lines=[
                 f"Generado: {now.strftime('%d/%m/%Y %H:%M:%S')}",
@@ -290,6 +311,8 @@ def history_pdf_view(request: Any) -> HttpResponse:
                     else None
                 ),
                 f"Total de eventos: {len(parsed_list)}",
+                "Nota: Este reporte incluye únicamente eventos Alto o Crítico.",
+                *sim_snapshot_lines,
             ],
         )
 

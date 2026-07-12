@@ -16,7 +16,7 @@ class BuildingSimulator:
         self.elevator_on: bool = False
         self.active_alerts: dict = {}
         self.history: list = []
-        self.pending_alerts: deque = deque()
+        self.pending_alerts: deque = deque(maxlen=500)
         self.last_email_sent_time_per_var: dict = {}
         self.manual_overrides: dict = {}
         self.manual_targets: dict = {}
@@ -26,6 +26,10 @@ class BuildingSimulator:
         self.sim_paused: bool = True
         self.sim_started: bool = False
         self.sim_speed: float = 1.0
+        # Pause-time tracking: used to compensate fault auto-clear timers
+        # so that pausing the simulator doesn't consume fault expiry time.
+        self._pause_start_time: float = 0.0
+        self._total_paused_seconds: float = 0.0
         self.sim_faults: dict = {}
         self.fault_injected_at: dict = {}
 

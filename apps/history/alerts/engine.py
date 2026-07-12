@@ -142,6 +142,7 @@ def _build_compound_email_subject(fault_name: str, risk_level: str) -> str:
 
 
 def _send_compound_email(
+    fault_type: str,
     fault_name: str,
     risk_level: str,
     affected_vars: dict,
@@ -154,7 +155,9 @@ def _send_compound_email(
     if not isinstance(sim.last_email_sent_time_per_var, dict):
         sim.last_email_sent_time_per_var = {}
 
-    fault_key = f"fault:{fault_name}"
+    # FIX-7 (BRECHA-8): Use raw fault_type key so clear_fault() can reliably
+    # remove the cooldown entry regardless of Spanish translation availability.
+    fault_key = f"fault_raw:{fault_type}"
     last_sent = sim.last_email_sent_time_per_var.get(fault_key, 0.0)
     if now - last_sent <= COOLDOWN_SECONDS:
         return
@@ -219,7 +222,7 @@ def send_compound_alert(
             f"vars=[{var_names}] level={risk_level}"
         )
 
-    _send_compound_email(fault_name, risk_level, affected_vars, recommended_action, sim)
+    _send_compound_email(fault_type, fault_name, risk_level, affected_vars, recommended_action, sim)
 
     alert_payload = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),

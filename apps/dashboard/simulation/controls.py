@@ -36,10 +36,12 @@ def sim_status(request, building_id: int) -> JsonResponse:
 @login_required
 @admin_required
 def sim_pause(request, building_id: int) -> JsonResponse:
+    import time as _time
     sim = get_simulator(building_id)
     if sim is None:
         return json_error("No hay simulador activo para este edificio", 404)
 
+    was_paused = sim.sim_paused
     try:
         body = parse_json_body(request)
         paused = body.get("paused")
@@ -49,6 +51,18 @@ def sim_pause(request, building_id: int) -> JsonResponse:
             sim.sim_paused = not sim.sim_paused
     except (SimulatorError, Exception):
         sim.sim_paused = not sim.sim_paused
+
+    # ── FIX-2 (BRECHA-4): Track cumulative paused time so fault timers
+    # are not consumed while the simulator is paused. ──────────────────
+    now = _time.time()
+    if not was_paused and sim.sim_paused:
+        # Simulator just paused — record the moment
+        sim._pause_start_time = now
+    elif was_paused and not sim.sim_paused:
+        # Simulator just resumed — accumulate the paused duration
+        if sim._pause_start_time > 0:
+            sim._total_paused_seconds += now - sim._pause_start_time
+            sim._pause_start_time = 0.0
 
     if not sim.sim_paused and not sim.sim_started:
         sim.sim_started = True
@@ -156,6 +170,14 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
         sim._pump_start_grace_ticks = 5
     else:
         sim.manual_pump_override = True
+        # ── FIX-1 (BRECHA-1): Clear pump faults when pump is powered off.
+        # A manual shutdown is an intentional resolution of any active fault.
+        if sim.sim_faults.get("pump"):
+            from apps.sensors.simulation.controls import clear_fault
+            try:
+                clear_fault(building_id, "pump")
+            except Exception:
+                logger.warning("Could not auto-clear pump fault on power-off (building=%s)", building_id)
 
     return json_ok({"pump_on": sim.pump_on})
 
@@ -178,5 +200,14 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
     except (SimulatorError, Exception):
         sim.elevator_on = not sim.elevator_on
 
+    if not sim.elevator_on:
+        # ── FIX-1 (BRECHA-1): Clear elevator faults when elevator is powered off.
+        if sim.sim_faults.get("elevator"):
+            from apps.sensors.simulation.controls import clear_fault
+            try:
+                clear_fault(building_id, "elevator")
+            except Exception:
+                logger.warning("Could not auto-clear elevator fault on power-off (building=%s)", building_id)
 
     return json_ok({"elevator_on": sim.elevator_on})
+

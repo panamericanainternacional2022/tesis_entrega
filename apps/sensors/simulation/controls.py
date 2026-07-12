@@ -12,6 +12,7 @@ from apps.sensors.simulation.exceptions import (
     InvalidDeviceError,
     DeviceNotInBuildingError,
     InvalidFaultTypeError,
+    DeviceOffError,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,12 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
     }
     if fault_type not in valid_faults[device]:
         raise InvalidFaultTypeError(device, fault_type)
+    # ── FIX-3 (BRECHA-5): Block fault injection when device is powered off.
+    # Injecting a fault on a stopped device creates inconsistent telemetry.
+    if device == "pump" and not sim.pump_on:
+        raise DeviceOffError(device)
+    if device == "elevator" and not sim.elevator_on:
+        raise DeviceOffError(device)
     sim.sim_faults[device] = fault_type
     sim.fault_injected_at[device] = time.time()
     logger.info("Falla inyectada: edificio=%s, device=%s, tipo=%s", edificio_id, device, fault_type)
@@ -89,7 +96,9 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
 
     for old_dev, old_fault in old_faults.items():
         fault_name = FAULT_NAMES_ES.get(old_fault, old_fault)
-        fault_email_key = f"fault:{fault_name}"
+        # ── FIX-7 (BRECHA-8): Use raw fault_type as cooldown key (prefix fault_raw:)
+        # to stay consistent with alerts/engine.py and avoid Spanish vs raw mismatch.
+        fault_email_key = f"fault_raw:{old_fault}"
         sim.last_email_sent_time_per_var.pop(fault_email_key, None)
         fault_alert_key = f"fault:{old_fault}"
         sim.active_alerts.pop(fault_alert_key, None)
@@ -204,6 +213,9 @@ def reset_simulator(edificio_id: int) -> str:
     sim.sim_paused = True
     sim.sim_started = False
     sim.sim_speed = 1.0
+    # FIX-2: Reset pause-time counters so they don't bleed into the next session
+    sim._pause_start_time = 0.0
+    sim._total_paused_seconds = 0.0
     sim._pump_demand = 15.0
     sim._pump_start_grace_ticks = 5
     sim._elev_state = "IDLE"

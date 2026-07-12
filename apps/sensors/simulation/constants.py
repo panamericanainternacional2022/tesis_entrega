@@ -56,7 +56,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "pump_temperature": 25.0,
     "pump_vibration": 0.0,
     "pump_tank_level": 80.0,
-    "pump_voltage": 220.0,
+    "pump_voltage": 0.0,          # 0 V when pump is off (no voltage at motor terminals)
     "pump_current": 0.0,
     "pump_water_quality": 500.0,
     "elev_position": 0,

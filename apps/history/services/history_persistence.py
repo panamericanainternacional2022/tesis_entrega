@@ -41,9 +41,23 @@ def save_history_record(
 ) -> None:
     try:
         from django.utils import timezone
+        from datetime import timedelta
+        from apps.sensors.sensor_config import COOLDOWN_SECONDS
 
         equipo, usuario = _find_equipment(variable, edificio_id)
         if not usuario:
+            return
+
+        # FIX-6 (BRECHA-7): Prevent duplicate DB rows when the same variable
+        # re-triggers at the same risk level within the cooldown window.
+        cutoff = timezone.now() - timedelta(seconds=COOLDOWN_SECONDS)
+        already_exists = History.objects.filter(
+            monitoring_equipment=equipo,
+            message__variable=variable,
+            message__risk=risk_level,
+            date__gte=cutoff,
+        ).exists()
+        if already_exists:
             return
 
         mensaje_data: Dict[str, Any] = {
@@ -59,7 +73,12 @@ def save_history_record(
             message=mensaje_data,
         )
     except Exception as e:
-        logger.warning("Could not save history record in Django DB: %s", e)
+        # FIX-11 (BRECHA-11): Upgrade to error so data-loss events are visible
+        logger.error(
+            "LOSS: Could not save history record in Django DB — "
+            "variable=%s risk=%s error=%s",
+            variable, risk_level, e,
+        )
 
 
 def get_alert_log(edificio_id: Optional[int] = None, limit: int = 50) -> List[Dict[str, str]]:
@@ -160,7 +179,12 @@ def save_compound_history_record(
             affected_variables=[v["variable"] for v in var_summaries],
         )
     except Exception as e:
-        logger.warning("Could not save compound history record in Django DB: %s", e)
+        # FIX-11 (BRECHA-11): Upgrade to error so compound data-loss is visible
+        logger.error(
+            "LOSS: Could not save compound history record in Django DB — "
+            "fault_type=%s risk=%s error=%s",
+            fault_type, risk_level, e,
+        )
 
 
 def _find_equipment_by_fault(fault_type: str, edificio_id: Optional[int]) -> Any:
