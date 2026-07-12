@@ -237,6 +237,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     # ── Normal operating regime ────────────────────────────────────────────
     if is_locked(sim, "pump_flow_rate"):
         sim._pump_demand = sd["pump_flow_rate"]
+        flow = sim._pump_demand
     else:
         flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
         target_max = max(5.0, flow_high * 0.85)

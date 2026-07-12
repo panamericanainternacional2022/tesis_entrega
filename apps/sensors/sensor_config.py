@@ -278,78 +278,78 @@ ACTIONS: dict[str, dict[str, str]] = {
 FAULT_ALERT_MESSAGES: dict[str, str] = {
     # ── BOMBA ────────────────────────────────────────────────────────────────
     "dry_run":
-        "Sequía — El sistema de bombeo opera sin agua en la línea de succión. "
+        "El sistema de bombeo opera sin agua en la línea de succión. "
         "Los sensores de caudal, presión, nivel de tanque y corriente presentan "
         "lecturas anómalas simultáneas características de esta condición.",
 
     "blocked_discharge":
-        "Descarga Bloqueada — La línea de descarga de la bomba se encuentra obstruida. "
+        "La línea de descarga de la bomba se encuentra obstruida. "
         "Los sensores de caudal, presión, temperatura y corriente presentan "
         "desviaciones simultáneas características de esta condición.",
 
     "pipe_burst":
-        "Ruptura de Tubería — Se ha detectado una ruptura en la línea de distribución. "
+        "Se ha detectado una ruptura en la línea de distribución. "
         "Los sensores de caudal, presión, nivel de tanque y temperatura presentan "
         "lecturas anómalas simultáneas características de esta condición.",
 
     "cavitation":
-        "Cavitación — El sistema de bombeo presenta un fenómeno de cavitación. "
+        "El sistema de bombeo presenta un fenómeno de cavitación. "
         "Los sensores de vibración, presión y caudal presentan oscilaciones "
         "violentas e inestables simultáneas características de esta condición.",
 
     "overheat":
-        "Sobrecalentamiento — El motor de la bomba presenta un ascenso térmico continuo. "
+        "El motor de la bomba presenta un ascenso térmico continuo. "
         "Los sensores de temperatura y vibración presentan lecturas por encima "
         "de los límites operativos.",
 
     "power_surge":
-        "Sobrecarga Eléctrica — Se ha detectado una sobrecarga en el sistema eléctrico "
+        "Se ha detectado una sobrecarga en el sistema eléctrico "
         "de la bomba. Los sensores de corriente, voltaje, temperatura y caudal "
         "presentan desviaciones simultáneas características de esta condición.",
 
     "power_outage":
-        "Corte Eléctrico — La alimentación eléctrica de la bomba ha sido interrumpida. "
+        "La alimentación eléctrica de la bomba ha sido interrumpida. "
         "Los sensores de voltaje, corriente, caudal y presión reportan valores "
         "en cero de forma simultánea.",
 
     "bearing_failure":
-        "Falla de Rodamientos — Se ha detectado degradación en los rodamientos de la bomba. "
+        "Se ha detectado degradación en los rodamientos de la bomba. "
         "Los sensores de vibración, temperatura y corriente presentan un incremento "
         "progresivo y simultáneo característico de esta condición.",
 
     # ── ELEVADOR ─────────────────────────────────────────────────────────────
     "motor_stuck":
-        "Motor Atascado — El motor de tracción del elevador se encuentra en condición "
+        "El motor de tracción del elevador se encuentra en condición "
         "de rotor bloqueado. Los sensores de corriente, temperatura, velocidad y vibración "
         "presentan lecturas anómalas simultáneas características de esta condición.",
 
     "door_blocked":
-        "Puerta Bloqueada — La puerta del elevador se encuentra físicamente bloqueada "
+        "La puerta del elevador se encuentra físicamente bloqueada "
         "en posición abierta. El sistema ha abortado el arranque. Los sensores de "
         "estado de puerta y velocidad reflejan esta condición.",
 
     "overspeed":
-        "Exceso de Velocidad — La cabina del elevador ha superado la velocidad crítica "
+        "La cabina del elevador ha superado la velocidad crítica "
         "de operación. Los sensores de velocidad, vibración y corriente presentan "
         "lecturas anómalas simultáneas características de esta condición.",
 
     "overload":
-        "Sobrecarga — La carga en la cabina del elevador supera el límite de bloqueo físico. "
+        "La carga en la cabina del elevador supera el límite de bloqueo físico. "
         "El motor ha sido bloqueado por el sistema de protección. Los sensores de carga, "
         "velocidad y corriente reflejan esta condición.",
 
     "pos_sensor_fail":
-        "Fallo del Sensor de Posición — El sensor de posición de la cabina del elevador "
+        "El sensor de posición de la cabina del elevador "
         "reporta valores erróneos o congelados. Esta condición activa la parada de "
         "emergencia inmediata del sistema.",
 
     "commercial_power_outage":
-        "Corte de Energía Comercial — La alimentación trifásica del elevador ha sido "
+        "La alimentación trifásica del elevador ha sido "
         "interrumpida. El sistema ha activado los frenos mecánicos de seguridad. "
         "Los sensores de voltaje, corriente y velocidad confirman la pérdida de suministro.",
 
     "traction_loss":
-        "Pérdida de Tracción — Se ha detectado un desfase entre la velocidad del motor "
+        "Se ha detectado un desfase entre la velocidad del motor "
         "y el desplazamiento real de la cabina. Los sensores de posición, vibración, "
         "corriente y velocidad presentan lecturas inconsistentes simultáneas "
         "características de esta condición.",
