@@ -172,11 +172,11 @@ def populate():
     print("Sembrando límites de sensores por edificio...")
     for edificio in [e1, e2]:
         for variable, val_range in SENSOR_RANGES.items():
-            SensorLimitConfig.objects.get_or_create(
+            SensorLimitConfig.objects.update_or_create(
                 building=edificio,
                 variable=variable,
                 defaults={
-                    "max_value": val_range[1],
+                    "max_value": val_range[1],   # Límite físico máximo (simulator.md §2)
                 },
             )
 
