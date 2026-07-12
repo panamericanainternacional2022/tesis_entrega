@@ -59,9 +59,10 @@ def classify_risk(
         if is_stuck_situation:
             return RISK_CRITICO, "red"
 
-        # Alto consumo en standby (IDLE)
-        if speed < 0.05 and elevator_state == "IDLE":
-            if value > current_high * 0.07:
+        # Alto consumo en standby (IDLE) — umbral realista al 20% del máximo
+        # para evitar falsos positivos por fluctuaciones normales de standby.
+        if speed < 0.05 and elevator_state == "IDLE" and elevator_on:
+            if value > current_high * 0.20:
                 return RISK_CRITICO, "red"
 
     if variable == "elev_temperature":
@@ -98,10 +99,12 @@ def classify_risk(
     if variable == "elev_position":
         if value is None:
             return RISK_CRITICO, "red"
-        if abs(value - round(value)) > 0.05:
-            return RISK_CRITICO, "red"
+        # La posición no tiene umbrales de riesgo propios (simulator.md §2).
+        # Solo es crítica cuando el sensor está atascado (fault: pos_sensor_fail)
+        # mientras la cabina debería estar en movimiento.
         if pos_stuck and speed > 0.05:
             return RISK_CRITICO, "red"
+        return RISK_NORMAL, "green"
 
 
     if variable in ENUM_VARS:

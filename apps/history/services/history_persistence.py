@@ -46,7 +46,20 @@ def save_history_record(
 
         equipo, usuario = _find_equipment(variable, edificio_id)
         if not usuario:
+            logger.error(
+                "PERSISTENCE: No hay ningún Usuario en la BD. "
+                "No se puede guardar registro de alerta (variable=%s).",
+                variable,
+            )
             return
+        if equipo is None:
+            logger.warning(
+                "PERSISTENCE: No se encontró MonitoringEquipment para "
+                "variable=%s edificio_id=%s. El registro se guardará sin "
+                "equipo asociado — no aparecerá si se filtra por edificio "
+                "sin el fix de shared.py activo.",
+                variable, edificio_id,
+            )
 
         # FIX-6 (BRECHA-7): Prevent duplicate DB rows when the same variable
         # re-triggers at the same risk level within the cooldown window.

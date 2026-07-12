@@ -27,7 +27,7 @@ _VOLT_LOW, _VOLT_HIGH = SENSOR_RANGES["elev_voltage"]
 
 # Umbral de bloqueo físico por sobrecarga — derivado de DEFAULT_THRESHOLDS para
 # que cada edificio con sus propios umbrales refleje el bloqueo correcto (spec: >800 kg)
-_OVERLOAD_BLOCK_KG: float = DEFAULT_THRESHOLDS["elev_load"]["medium"]  # 800.0 kg
+_OVERLOAD_BLOCK_KG: float = DEFAULT_THRESHOLDS["elev_load"]["critic"]  # 800.0 kg
 
 
 def _effective_load(sim: BuildingSimulator, base_load: float) -> float:

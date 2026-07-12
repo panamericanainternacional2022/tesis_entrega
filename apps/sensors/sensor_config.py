@@ -194,80 +194,163 @@ FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección pre
 
 ACTIONS: dict[str, dict[str, str]] = {
     "pump_flow_rate": {
-        RISK_NORMAL: "Caudal dentro del rango normal. Monitoreo rutinario activo.",
-        RISK_ALTO: "Caudal significativamente bajo. Verifica posibles fugas o fallas parciales en la bomba.",
-        RISK_CRITICO: "Caudal crítico bajo (flujo casi nulo). Parada preventiva de bomba activada. Inspecciona la tubería de succión y la bomba.",
+        RISK_NORMAL:  "Caudal dentro del rango normal. Monitoreo rutinario activo.",
+        RISK_ALTO:    "El caudal de la bomba se encuentra por encima del rango operativo normal.",
+        RISK_CRITICO: "El caudal de la bomba ha superado el umbral crítico. Riesgo de sobrepresión hidráulica y daño en la tubería.",
     },
     "pump_pressure": {
-        RISK_NORMAL: "Presión dentro del rango normal. Monitoreo rutinario activo.",
-        RISK_ALTO: "Presión fuera del rango operativo seguro (2.0 - 8.0 bar). Verifica posibles fugas (presión baja) o bloqueos (presión alta).",
-        RISK_CRITICO: "Presión en nivel crítico (flujo nulo o sobrepresión extrema). Detén la bomba de inmediato y verifique la tubería.",
+        RISK_NORMAL:  "Presión dentro del rango normal. Monitoreo rutinario activo.",
+        RISK_ALTO:    "La presión de la bomba está fuera del rango operativo seguro.",
+        RISK_CRITICO: "La presión de la bomba se encuentra en nivel crítico. Riesgo de ruptura de tubería o colapso de flujo.",
     },
     "pump_temperature": {
-        RISK_NORMAL: "Temperatura normal. Ventilación adecuada.",
-        RISK_ALTO: "Temperatura alta del motor de bomba. Aumenta la ventilación de la sala de máquinas.",
-        RISK_CRITICO: "Temperatura crítica del motor. Riesgo de sobrecalentamiento y fusión. Apagado de emergencia y verificación del sistema de enfriamiento.",
+        RISK_NORMAL:  "Temperatura normal. Ventilación adecuada.",
+        RISK_ALTO:    "La temperatura del motor de la bomba supera el umbral seguro.",
+        RISK_CRITICO: "La temperatura del motor de la bomba ha alcanzado el nivel crítico. Riesgo de fallo térmico del devanado.",
     },
     "pump_vibration": {
-        RISK_NORMAL: "Vibración normal. Alineación mecánica correcta.",
-        RISK_ALTO: "Vibración por encima del estándar. Programa mantenimiento mecánico.",
-        RISK_CRITICO: "Vibración mecánica severa. Desalineación grave o falla de rodamiento. Detén el equipo inmediatamente.",
+        RISK_NORMAL:  "Vibración normal. Alineación mecánica correcta.",
+        RISK_ALTO:    "La vibración de la bomba supera el estándar operativo normal.",
+        RISK_CRITICO: "Vibración mecánica severa en la bomba detectada. Riesgo de fallo de rodamiento o desalineación estructural.",
     },
     "pump_tank_level": {
-        RISK_NORMAL: "Nivel de tanque bajo. Monitorea el reabastecimiento.",
-        RISK_ALTO: "Nivel de tanque alto. Monitorea el llenado automático.",
-        RISK_CRITICO: "Nivel de tanque crítico. Riesgo de cavitación de bomba. Detén succión y rellena el tanque urgentemente.",
+        RISK_NORMAL:  "Nivel de tanque dentro del rango normal.",
+        RISK_ALTO:    "El nivel del tanque está fuera del rango seguro de operación.",
+        RISK_CRITICO: "El nivel del tanque se encuentra en zona crítica. Riesgo de operación en seco o desbordamiento.",
     },
     "pump_voltage": {
-        RISK_NORMAL: "Voltaje dentro del rango nominal (200-240 V).",
-        RISK_ALTO: "Inestabilidad de voltaje (fuera del rango 200 V - 240 V). Riesgo para componentes electrónicos.",
-        RISK_CRITICO: "Fluctuación crítica de voltaje. Desconecta el equipo para evitar daños.",
+        RISK_NORMAL:  "Voltaje dentro del rango nominal.",
+        RISK_ALTO:    "El voltaje de alimentación de la bomba está fuera del rango nominal.",
+        RISK_CRITICO: "El voltaje de alimentación de la bomba se encuentra en nivel crítico. Riesgo de daño en componentes electrónicos y bobinados.",
     },
     "pump_current": {
-        RISK_NORMAL: "Corriente del motor dentro del rango operativo.",
-        RISK_ALTO: "Corriente del motor por encima del límite recomendado. Verifica carga y estado del bobinado.",
-        RISK_CRITICO: "Amperaje crítico (sobrecarga eléctrica). Apagado automático por protección activo.",
+        RISK_NORMAL:  "Corriente del motor dentro del rango operativo.",
+        RISK_ALTO:    "La corriente del motor de la bomba supera el límite recomendado.",
+        RISK_CRITICO: "La corriente del motor de la bomba ha alcanzado el nivel de sobrecarga eléctrica. Riesgo de disparo de protecciones y fallo del motor.",
     },
     "pump_water_quality": {
-        RISK_NORMAL: "Calidad del agua normal (TDS/Conductividad).",
-        RISK_ALTO: "Incremento en sedimentos o conductividad. Verifica los filtros de succión.",
-        RISK_CRITICO: "Calidad del agua crítica. Riesgo de daño en el impulsor por sedimentos o contaminación severa.",
+        RISK_NORMAL:  "Calidad del agua normal.",
+        RISK_ALTO:    "La concentración de sólidos disueltos en el agua supera el umbral normal.",
+        RISK_CRITICO: "La calidad del agua ha alcanzado el nivel crítico. Riesgo de daño abrasivo en el impulsor de la bomba.",
     },
     "elev_speed": {
-        RISK_NORMAL: "Velocidad de elevador normal.",
-        RISK_ALTO: "Velocidad de elevador por encima del límite seguro. Programa inspección del VFD.",
-        RISK_CRITICO: "Sobrepaso de velocidad crítico. Frenado de emergencia activado. Inspección de seguridad obligatoria.",
+        RISK_NORMAL:  "Velocidad de elevador normal.",
+        RISK_ALTO:    "La velocidad de la cabina del elevador supera el límite seguro de operación.",
+        RISK_CRITICO: "La velocidad de la cabina del elevador ha superado el umbral crítico. Activación del gobernador de velocidad requerida.",
     },
     "elev_load": {
-        RISK_NORMAL: "Carga de cabina normal.",
-        RISK_ALTO: "Carga de cabina cerca del límite de diseño. Monitorea el comportamiento del motor.",
-        RISK_CRITICO: "Sobrecarga de cabina de elevador. Retira el exceso de peso para reanudar operación.",
+        RISK_NORMAL:  "Carga de cabina normal.",
+        RISK_ALTO:    "La carga de la cabina del elevador se acerca al límite de diseño.",
+        RISK_CRITICO: "La carga de la cabina del elevador supera el umbral de bloqueo físico. Sistema de bloqueo de motor activado.",
     },
     "elev_door_status": {
-        RISK_NORMAL: "Estado de puerta normal.",
-        RISK_ALTO: "Fallo de cierre de puerta. Verifica mecanismo de enclavamiento.",
-        RISK_CRITICO: "Puerta sin respuesta. Detén operación e inspeccione el sistema de puerta.",
+        RISK_NORMAL:  "Estado de puerta normal.",
+        RISK_ALTO:    "La puerta del elevador se encuentra en estado de cierre anómalo.",
+        RISK_CRITICO: "La puerta del elevador está abierta con la cabina en movimiento o fuera de zona de piso. Condición de seguridad crítica.",
     },
     "elev_temperature": {
-        RISK_NORMAL: "Temperatura del motor de tracción normal.",
-        RISK_ALTO: "Temperatura del motor de tracción alta. Monitorea el sistema de ventilación de la sala de máquinas.",
-        RISK_CRITICO: "Temperatura crítica del motor de tracción. Riesgo de daño a bobinas. Parada de emergencia y verificación del enfriamiento.",
+        RISK_NORMAL:  "Temperatura del motor de tracción normal.",
+        RISK_ALTO:    "La temperatura del motor de tracción del elevador supera el umbral seguro.",
+        RISK_CRITICO: "La temperatura del motor de tracción del elevador se encuentra en nivel crítico. Riesgo de fallo térmico de las bobinas.",
     },
     "elev_current": {
-        RISK_NORMAL: "Corriente del motor de tracción normal.",
-        RISK_ALTO: "Corriente del motor de tracción elevada. Verifica carga de cabina y estado del variador.",
-        RISK_CRITICO: "Corriente crítica del motor de tracción. Posible rotor bloqueado o sobrecarga severa. Apagado de emergencia.",
+        RISK_NORMAL:  "Corriente del motor de tracción normal.",
+        RISK_ALTO:    "La corriente del motor de tracción del elevador supera el límite nominal.",
+        RISK_CRITICO: "La corriente del motor de tracción del elevador ha alcanzado el nivel crítico. Posible condición de rotor bloqueado o sobrecarga severa.",
     },
     "elev_vibration": {
-        RISK_NORMAL: "Vibración de cabina dentro del rango normal. Viaje confortable.",
-        RISK_ALTO: "Vibración anómala. Verifica desgaste en guías, zapatas o desbalance de tracción.",
-        RISK_CRITICO: "Vibración severa en cabina. Detén el equipo e inspecciona integridad mecánica y tracción.",
+        RISK_NORMAL:  "Vibración de cabina dentro del rango normal.",
+        RISK_ALTO:    "La vibración de la cabina del elevador supera el umbral de confort y seguridad normal.",
+        RISK_CRITICO: "Vibración severa detectada en la cabina del elevador. Riesgo de daño estructural en guías de rodamiento y sistema de tracción.",
     },
     "elev_voltage": {
-        RISK_NORMAL: "Voltaje trifásico dentro del rango operativo normal (380V aprox).",
-        RISK_ALTO: "Inestabilidad de voltaje. Revisa el suministro general o variador.",
-        RISK_CRITICO: "Voltaje crítico (pérdida de fase o caída severa). Apagado preventivo.",
+        RISK_NORMAL:  "Voltaje trifásico dentro del rango operativo normal.",
+        RISK_ALTO:    "El voltaje de alimentación del elevador está fuera del rango operativo nominal.",
+        RISK_CRITICO: "El voltaje de alimentación del elevador se encuentra en nivel crítico. Riesgo de pérdida de fase o disparo de protecciones del variador.",
     },
+}
+
+# Textos de alerta especial unificada por falla inyectada.
+# Los nombres corresponden exactamente a los selectores del dashboard (FAULT_NAMES_ES).
+# Sin prefijo de nivel de riesgo, sin nombre de equipo, sin instrucciones.
+FAULT_ALERT_MESSAGES: dict[str, str] = {
+    # ── BOMBA ────────────────────────────────────────────────────────────────
+    "dry_run":
+        "Sequía — El sistema de bombeo opera sin agua en la línea de succión. "
+        "Los sensores de caudal, presión, nivel de tanque y corriente presentan "
+        "lecturas anómalas simultáneas características de esta condición.",
+
+    "blocked_discharge":
+        "Descarga Bloqueada — La línea de descarga de la bomba se encuentra obstruida. "
+        "Los sensores de caudal, presión, temperatura y corriente presentan "
+        "desviaciones simultáneas características de esta condición.",
+
+    "pipe_burst":
+        "Ruptura de Tubería — Se ha detectado una ruptura en la línea de distribución. "
+        "Los sensores de caudal, presión, nivel de tanque y temperatura presentan "
+        "lecturas anómalas simultáneas características de esta condición.",
+
+    "cavitation":
+        "Cavitación — El sistema de bombeo presenta un fenómeno de cavitación. "
+        "Los sensores de vibración, presión y caudal presentan oscilaciones "
+        "violentas e inestables simultáneas características de esta condición.",
+
+    "overheat":
+        "Sobrecalentamiento — El motor de la bomba presenta un ascenso térmico continuo. "
+        "Los sensores de temperatura y vibración presentan lecturas por encima "
+        "de los límites operativos.",
+
+    "power_surge":
+        "Sobrecarga Eléctrica — Se ha detectado una sobrecarga en el sistema eléctrico "
+        "de la bomba. Los sensores de corriente, voltaje, temperatura y caudal "
+        "presentan desviaciones simultáneas características de esta condición.",
+
+    "power_outage":
+        "Corte Eléctrico — La alimentación eléctrica de la bomba ha sido interrumpida. "
+        "Los sensores de voltaje, corriente, caudal y presión reportan valores "
+        "en cero de forma simultánea.",
+
+    "bearing_failure":
+        "Falla de Rodamientos — Se ha detectado degradación en los rodamientos de la bomba. "
+        "Los sensores de vibración, temperatura y corriente presentan un incremento "
+        "progresivo y simultáneo característico de esta condición.",
+
+    # ── ELEVADOR ─────────────────────────────────────────────────────────────
+    "motor_stuck":
+        "Motor Atascado — El motor de tracción del elevador se encuentra en condición "
+        "de rotor bloqueado. Los sensores de corriente, temperatura, velocidad y vibración "
+        "presentan lecturas anómalas simultáneas características de esta condición.",
+
+    "door_blocked":
+        "Puerta Bloqueada — La puerta del elevador se encuentra físicamente bloqueada "
+        "en posición abierta. El sistema ha abortado el arranque. Los sensores de "
+        "estado de puerta y velocidad reflejan esta condición.",
+
+    "overspeed":
+        "Exceso de Velocidad — La cabina del elevador ha superado la velocidad crítica "
+        "de operación. Los sensores de velocidad, vibración y corriente presentan "
+        "lecturas anómalas simultáneas características de esta condición.",
+
+    "overload":
+        "Sobrecarga — La carga en la cabina del elevador supera el límite de bloqueo físico. "
+        "El motor ha sido bloqueado por el sistema de protección. Los sensores de carga, "
+        "velocidad y corriente reflejan esta condición.",
+
+    "pos_sensor_fail":
+        "Fallo del Sensor de Posición — El sensor de posición de la cabina del elevador "
+        "reporta valores erróneos o congelados. Esta condición activa la parada de "
+        "emergencia inmediata del sistema.",
+
+    "commercial_power_outage":
+        "Corte de Energía Comercial — La alimentación trifásica del elevador ha sido "
+        "interrumpida. El sistema ha activado los frenos mecánicos de seguridad. "
+        "Los sensores de voltaje, corriente y velocidad confirman la pérdida de suministro.",
+
+    "traction_loss":
+        "Pérdida de Tracción — Se ha detectado un desfase entre la velocidad del motor "
+        "y el desplazamiento real de la cabina. Los sensores de posición, vibración, "
+        "corriente y velocidad presentan lecturas inconsistentes simultáneas "
+        "características de esta condición.",
 }
 
 SIM_TICK_INTERVAL = 1

@@ -138,7 +138,7 @@ def send_alert(
 
 
 def _build_compound_email_subject(fault_name: str, risk_level: str) -> str:
-    return f"Alerta de falla: {fault_name} — Nivel {risk_level}"
+    return f"{fault_name} — Nivel {risk_level}"
 
 
 def _send_compound_email(
@@ -207,12 +207,15 @@ def send_compound_alert(
 
     fault_name = FAULT_NAMES_ES.get(fault_type, fault_type)
 
-    from apps.sensors.services.professional_action import get_professional_action
-    primary_var = max(
-        affected_vars.items(),
-        key=lambda x: 1 if x[1]["risk"] == RISK_CRITICO else 0,
+    # Usar el texto de alerta especial unificada desde FAULT_ALERT_MESSAGES.
+    # Esto garantiza que el campo message.action en la BD, el correo y el PDF
+    # usen siempre el texto normalizado correspondiente a la falla, no el de
+    # un sensor individual derivado de get_professional_action().
+    from apps.sensors.sensor_config import FAULT_ALERT_MESSAGES
+    recommended_action = FAULT_ALERT_MESSAGES.get(
+        fault_type,
+        f"{fault_name} — Anomía detectada en múltiples sensores de forma simultánea.",
     )
-    recommended_action = get_professional_action(primary_var[0], risk_level, primary_var[1]["value"])
 
     from apps.sensors.simulation.constants import LOG_SIM
     if LOG_SIM:

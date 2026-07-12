@@ -50,7 +50,13 @@ def _build_history_query(
         ).distinct()
 
     if building_id:
-        records = records.filter(monitoring_equipment__building_id=building_id)
+        # FIX-HISTORY: Usar Q con OR para incluir registros guardados sin
+        # MonitoringEquipment (monitoring_equipment=NULL). El filtro anterior
+        # hacía INNER JOIN implícito y excluía esos registros silenciosamente.
+        records = records.filter(
+            Q(monitoring_equipment__building_id=building_id)
+            | Q(monitoring_equipment__isnull=True)
+        )
 
     building_obj = Building.objects.filter(id=building_id).first() if building_id else None
     building_name = building_obj.name if building_obj else ""
