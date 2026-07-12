@@ -163,9 +163,8 @@ def populate():
                 variable=variable,
                 defaults={
                     "direction": cfg.get("direction", "higher"),
-                    "low": cfg.get("low", 0),
-                    "medium": cfg.get("medium"),
                     "high": cfg.get("high", 0),
+                    "critic": cfg.get("critic", 0),
                 },
             )
 

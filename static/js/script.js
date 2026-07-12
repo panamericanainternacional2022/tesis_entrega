@@ -1037,48 +1037,41 @@
     // 9. UMBRALES Y LÍMITES DE SENSORES
     // =============================================================================
 
-    function _validateThresholdRange(dir, low, med, high) {
-        if (isNaN(low) || isNaN(high) || (dir !== 'range' && isNaN(med))) {
+    function _validateThresholdRange(dir, high, critic) {
+        if (isNaN(high) || isNaN(critic)) {
             const errs = [];
-            if (isNaN(low)) errs.push('low');
-            if (isNaN(med)) errs.push('med');
             if (isNaN(high)) errs.push('high');
+            if (isNaN(critic)) errs.push('critic');
             return { valid: false, errorText: 'Introduzca valores numéricos válidos.', errorInputs: errs };
         }
         if (dir === 'range') {
-            if (!(low < high)) return { valid: false, errorText: 'El mínimo aceptable debe ser menor al máximo aceptable.', errorInputs: ['low', 'high'] };
+            if (!(high < critic)) return { valid: false, errorText: 'El mínimo aceptable debe ser menor al máximo aceptable.', errorInputs: ['high', 'critic'] };
         } else if (dir === 'higher') {
-            const errs = [];
-            if (low >= med) errs.push('low', 'med');
-            if (med >= high) errs.push('med', 'high');
-            if (errs.length) return { valid: false, errorText: 'Los valores deben estar ordenados: Medio < Alto < Crítico.', errorInputs: [...new Set(errs)] };
+            if (high >= critic) return { valid: false, errorText: 'Los valores deben estar ordenados: Alto < Crítico.', errorInputs: ['high', 'critic'] };
         } else if (dir === 'lower') {
-            const errs = [];
-            if (low <= med) errs.push('low', 'med');
-            if (med <= high) errs.push('med', 'high');
-            if (errs.length) return { valid: false, errorText: 'Los valores deben estar ordenados: Medio > Alto > Crítico.', errorInputs: [...new Set(errs)] };
+            if (high <= critic) return { valid: false, errorText: 'Los valores deben estar ordenados: Alto > Crítico.', errorInputs: ['high', 'critic'] };
         }
         return { valid: true, errorText: '', errorInputs: [] };
     }
 
-    function _validateThresholdBounds(dir, low, high, bounds, unit) {
+    function _validateThresholdBounds(dir, high, critic, bounds, unit) {
         const [minBound, maxBound] = bounds;
         const unitStr = unit ? ` ${unit}` : '';
         const outOfRange = (dir === 'lower')
-            ? (low > maxBound && high < minBound)
-            : (low < minBound && high > maxBound);
+            ? (high > maxBound && critic < minBound)
+            : (high < minBound && critic > maxBound);
 
-        if (outOfRange) return { valid: false, errorText: `Los umbrales deben estar dentro de los límites del sensor (${minBound} - ${maxBound}${unitStr}).`, errorInputs: ['low', 'high'] };
+        if (outOfRange) return { valid: false, errorText: `Los umbrales deben estar dentro de los límites del sensor (${minBound} - ${maxBound}${unitStr}).`, errorInputs: ['high', 'critic'] };
 
         if (dir === 'lower') {
-            if (low > maxBound) return { valid: false, errorText: `El umbral medio no puede ser mayor al límite.`, errorInputs: ['low'] };
-            if (high < minBound) return { valid: false, errorText: `El umbral crítico no puede ser menor al límite.`, errorInputs: ['high'] };
+            if (high > maxBound) return { valid: false, errorText: `El umbral alto no puede ser mayor al límite.`, errorInputs: ['high'] };
+            if (critic < minBound) return { valid: false, errorText: `El umbral crítico no puede ser menor al límite.`, errorInputs: ['critic'] };
         } else if (dir === 'higher') {
-            if (low < minBound) return { valid: false, errorText: `El umbral medio no puede ser menor al límite.`, errorInputs: ['low'] };
-            if (high > maxBound) return { valid: false, errorText: `El umbral crítico no puede ser mayor al límite.`, errorInputs: ['high'] };
+            if (high < minBound) return { valid: false, errorText: `El umbral alto no puede ser menor al límite.`, errorInputs: ['high'] };
+            if (critic > maxBound) return { valid: false, errorText: `El umbral crítico no puede ser mayor al límite.`, errorInputs: ['critic'] };
         } else {
-            if (low < minBound) return { valid: false, errorText: `El mínimo aceptable no puede ser menor al límite.`, errorInputs: ['low'] };
-            if (high > maxBound) return { valid: false, errorText: `El máximo aceptable no puede ser mayor al límite.`, errorInputs: ['high'] };
+            if (high < minBound) return { valid: false, errorText: `El mínimo aceptable no puede ser menor al límite.`, errorInputs: ['high'] };
+            if (critic > maxBound) return { valid: false, errorText: `El máximo aceptable no puede ser mayor al límite.`, errorInputs: ['critic'] };
         }
         return { valid: true, errorText: '', errorInputs: [] };
     }
@@ -1108,18 +1101,17 @@
             if (cfg.direction === 'range') {
                 div.innerHTML = headerHtml + `
                     <div class="thresh-grid-2">
-                        <div class="form-group"><label class="form-label">Mínimo aceptable</label><input type="number" step="any" data-var="${k}" data-level="low" value="${cfg.low}" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Máximo aceptable</label><input type="number" step="any" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Mínimo aceptable</label><input type="number" step="any" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Máximo aceptable</label><input type="number" step="any" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
                     <input type="hidden" data-var="${k}" data-level="direction" value="range">
                     <div class="thresh-card-footer"><span>${boundsText}</span></div>`;
             } else {
                 div.innerHTML = headerHtml + `
-                    <div class="thresh-grid-3">
-                        <div class="form-group"><label class="form-label">Medio</label><input type="number" step="any" data-var="${k}" data-level="low" value="${cfg.low}" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Alto</label><input type="number" step="any" data-var="${k}" data-level="medium" value="${cfg.medium}" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Crítico</label><input type="number" step="any" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                    <div class="thresh-grid-2">
+                        <div class="form-group"><label class="form-label">Alto</label><input type="number" step="any" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Crítico</label><input type="number" step="any" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
                     <input type="hidden" data-var="${k}" data-level="direction" value="${cfg.direction}">
@@ -1238,24 +1230,22 @@
                 processed[v] = true;
 
                 const dirInp = findInp(v, 'direction');
-                const lowInp = findInp(v, 'low');
-                const medInp = findInp(v, 'medium');
                 const highInp = findInp(v, 'high');
-                const inputMap = { low: lowInp, med: medInp, high: highInp };
+                const criticInp = findInp(v, 'critic');
+                const inputMap = { high: highInp, critic: criticInp };
 
-                setInputColors(['low', 'med', 'high'], inputMap, false);
+                setInputColors(['high', 'critic'], inputMap, false);
 
                 const errorMsgEl = findErrorMsgEl(v);
                 if (errorMsgEl) { errorMsgEl.textContent = ''; errorMsgEl.style.visibility = 'hidden'; }
 
                 const dir = dirInp?.value;
-                const low = parseFloat(lowInp?.value);
-                const med = parseFloat(medInp?.value);
                 const high = parseFloat(highInp?.value);
+                const critic = parseFloat(criticInp?.value);
 
-                let result = _validateThresholdRange(dir, low, med, high);
+                let result = _validateThresholdRange(dir, high, critic);
                 if (result.valid && _SENSOR_RANGES[v]) {
-                    result = _validateThresholdBounds(dir, low, high, _SENSOR_RANGES[v], getUnit(v));
+                    result = _validateThresholdBounds(dir, high, critic, _SENSOR_RANGES[v], getUnit(v));
                 }
 
                 if (!result.valid) {

@@ -13,7 +13,10 @@ class ThresholdModelTests(TestCase):
         self.building = Building.objects.create(name="Test", rif="J-11111111-0", address="Dir", floors=10)
 
     def test_create_threshold_config(self):
-        umbral = ThresholdConfig.objects.create(building=self.building, variable="temperature", direction="higher", low=20, medium=40, high=60)
+        umbral = ThresholdConfig.objects.create(
+            building=self.building, variable="temperature",
+            direction="higher", high=20, critic=60
+        )
         self.assertEqual(ThresholdConfig.objects.count(), 1)
         self.assertEqual(umbral.variable, "temperature")
 
@@ -28,7 +31,7 @@ class ThresholdApiViewTests(TestCase):
 
     @patch("apps.thresholds.views.get_thresholds")
     def test_get_thresholds(self, mock_get):
-        mock_get.return_value = {"temperature": {"direction": "higher", "low": 20, "medium": 40, "high": 60}}
+        mock_get.return_value = {"temperature": {"direction": "higher", "high": 20, "critic": 60}}
         response = self.client.get(reverse("api_thresholds"), {"edificio_id": self.building.pk})
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
@@ -37,6 +40,7 @@ class ThresholdApiViewTests(TestCase):
     @patch("apps.thresholds.views.bulk_update")
     def test_update_thresholds(self, mock_bulk):
         mock_bulk.return_value = None
-        payload = {"edificio_id": self.building.pk, "temperature": {"direction": "higher", "low": 30, "medium": 50, "high": 80}}
+        payload = {"edificio_id": self.building.pk, "temperature": {"direction": "higher", "high": 30, "critic": 80}}
         response = self.client.post(reverse("api_thresholds_update"), json.dumps(payload), content_type="application/json")
         self.assertEqual(response.status_code, 200)
+

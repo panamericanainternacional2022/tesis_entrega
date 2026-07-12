@@ -82,9 +82,9 @@ def _validate_limit_input(
 
         if variable in thresholds:
             t_config = thresholds[variable]
-            if "high" in t_config:
-                high_thresh = float(t_config["high"])
-                if max_val < high_thresh:
+            if "critic" in t_config:
+                critic_thresh = float(t_config["critic"])
+                if max_val < critic_thresh:
                     label = (
                         "máximo aceptable"
                         if t_config.get("direction") == "range"
@@ -92,7 +92,7 @@ def _validate_limit_input(
                     )
                     errors[variable] = (
                         f"El límite máximo ({max_val}) no puede ser "
-                        f"inferior al umbral {label} ({high_thresh})"
+                        f"inferior al umbral {label} ({critic_thresh})"
                     )
 
         cleaned[variable] = max_val

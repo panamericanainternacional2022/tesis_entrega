@@ -67,14 +67,13 @@ def _validate_threshold_config(
         return f"Invalid direction: {direction}"
 
     try:
-        low = float(config.get("low", 0))
+        high = float(config.get("high", 0))
         if direction == "range":
-            if "high" not in config:
-                return "Missing 'high' for range direction"
-            high = float(config["high"])
+            if "critic" not in config:
+                return "Missing 'critic' for range direction"
+            critic = float(config["critic"])
         else:
-            medium = float(config.get("medium", 0))
-            high = float(config.get("high", 0))
+            critic = float(config.get("critic", 0))
     except (ValueError, TypeError) as e:
         logger.warning(
             "Threshold non-numeric for %s: %s — config=%s", variable, e, config
@@ -82,54 +81,52 @@ def _validate_threshold_config(
         return f"Non-numeric threshold value: config={config}"
 
     if direction == "range":
-        if low >= high:
+        if high >= critic:
             logger.warning(
-                "Threshold range fail for %s: low=%s high=%s", variable, low, high
+                "Threshold range fail for %s: high=%s critic=%s", variable, high, critic
             )
-            return f"Low limit ({low}) must be lower than high limit ({high})"
+            return f"Low limit ({high}) must be lower than high limit ({critic})"
     elif direction == "higher":
-        if not (low < medium < high):
+        if not (high < critic):
             logger.warning(
-                "Threshold higher fail for %s: low=%s med=%s high=%s",
-                variable, low, medium, high,
+                "Threshold higher fail for %s: high=%s critic=%s",
+                variable, high, critic,
             )
             return (
                 f"Thresholds must be ascending: "
-                f"low={low} < medium={medium} < high={high}"
+                f"high={high} < critic={critic}"
             )
     elif direction == "lower":
-        if not (low > medium > high):
-            return "Thresholds must be descending: low > medium > high"
+        if not (high > critic):
+            return "Thresholds must be descending: high > critic"
 
     sensor_limits = get_sensor_limits(building_id)
     limits = sensor_limits.get(variable)
     if limits:
         min_bound, max_bound = limits
         if direction == "range":
-            if low < min_bound or high > max_bound:
+            if high < min_bound or critic > max_bound:
                 return (
-                    f"Los umbrales [{low}, {high}] deben estar dentro de "
+                    f"Los umbrales [{high}, {critic}] deben estar dentro de "
                     f"los límites físicos del sensor [{min_bound}, {max_bound}]"
                 )
         elif direction == "higher":
-            if low < min_bound or high > max_bound:
+            if high < min_bound or critic > max_bound:
                 return (
                     f"Los umbrales deben estar dentro de los límites físicos "
                     f"del sensor [{min_bound}, {max_bound}] "
-                    f"(recibido low={low}, high={high})"
+                    f"(recibido high={high}, critic={critic})"
                 )
         elif direction == "lower":
-            if low > max_bound or high < min_bound:
+            if high > max_bound or critic < min_bound:
                 return (
                     f"Los umbrales deben estar dentro de los límites físicos "
                     f"del sensor [{min_bound}, {max_bound}] "
-                    f"(recibido low={low}, high={high})"
+                    f"(recibido high={high}, critic={critic})"
                 )
 
-    config["low"] = low
     config["high"] = high
-    if direction != "range":
-        config["medium"] = medium
+    config["critic"] = critic
     return None
 
 

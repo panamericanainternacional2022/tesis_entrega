@@ -42,8 +42,8 @@ def classify_risk(
 
     if variable == "elev_load":
         load_thresh = (thresholds or {}).get("elev_load", {})
-        crit = load_thresh.get("high", 900)
-        alto = load_thresh.get("low", 600)
+        crit = load_thresh.get("critic", 900)
+        alto = load_thresh.get("high", 600)
         if value > crit:
             return RISK_CRITICO, "red"
         elif value > alto:
@@ -84,12 +84,12 @@ def classify_risk(
             return RISK_CRITICO, "red"
         speed_cfg = (thresholds or {}).get("elev_speed", {})
         if speed_cfg:
-            if value > speed_cfg.get("high", SENSOR_RANGES.get("elev_speed", (0, 6))[1] * 0.67):
+            if value > speed_cfg.get("critic", SENSOR_RANGES.get("elev_speed", (0, 3))[1] * 0.67):
                 return RISK_CRITICO, "red"
-            if value > speed_cfg.get("low", SENSOR_RANGES.get("elev_speed", (0, 6))[1] * 0.42):
+            if value > speed_cfg.get("high", SENSOR_RANGES.get("elev_speed", (0, 3))[1] * 0.42):
                 return RISK_ALTO, "orange"
         else:
-            speed_high = SENSOR_RANGES.get("elev_speed", (0, 6))[1]
+            speed_high = SENSOR_RANGES.get("elev_speed", (0, 3))[1]
             if value > speed_high * 0.67:
                 return RISK_CRITICO, "red"
             if value > speed_high * 0.42:
@@ -118,7 +118,7 @@ def classify_risk(
         press_range = SENSOR_RANGES.get("pump_pressure", (0, 12))
         low_val = flow_range[1] * 0.13 if variable == "pump_flow_rate" else press_range[1] * 0.17
         if thresholds and variable in thresholds:
-            low_val = thresholds[variable].get("low", low_val)
+            low_val = thresholds[variable].get("high", low_val)
         if value <= low_val:
             return RISK_NORMAL, "green"
 
@@ -132,7 +132,7 @@ def classify_risk(
     d = cfg["direction"]
 
     if d == "range":
-        low, high = cfg["low"], cfg["high"]
+        high_bound, critic_bound = cfg["high"], cfg["critic"]
         crit_low  = cfg.get("crit_low")
         crit_high = cfg.get("crit_high")
         # Nivel Crítico bidireccional (extremos)
@@ -141,16 +141,16 @@ def classify_risk(
         if crit_high is not None and value > crit_high:
             return RISK_CRITICO, "red"
         # Nivel Alto (fuera del rango operativo normal)
-        if low <= value <= high:
+        if high_bound <= value <= critic_bound:
             return RISK_NORMAL, "green"
         return RISK_ALTO, "orange"
 
     # direction == "higher": alerta cuando el valor sube
-    low_thresh = cfg["low"]
     high_thresh = cfg["high"]
-    if value <= low_thresh:
+    critic_thresh = cfg["critic"]
+    if value <= high_thresh:
         return RISK_NORMAL, "green"
-    elif value <= high_thresh:
+    elif value <= critic_thresh:
         return RISK_ALTO, "orange"
     else:
         return RISK_CRITICO, "red"

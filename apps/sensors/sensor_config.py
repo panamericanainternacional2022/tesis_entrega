@@ -156,38 +156,37 @@ VALUE_DISPLAY_ES = {
 DEFAULT_THRESHOLDS = {
     # ── SISTEMA BOMBA ───────────────────────────────────────────────────────
     # Normal: 0-15 | Alto: >15 | Crítico: >20
-    "pump_flow_rate":    {"direction": "higher", "low": 15.0,  "medium": 20.0,  "high": 20.0},
-    # Normal: 1.0-6.0 | Alto: >6.0 o <1.0 | Crítico: >8.0 o <0.5  (*bidireccional)
-    "pump_pressure":     {"direction": "range",  "low": 1.0,   "high": 6.0,
+    "pump_flow_rate":    {"direction": "higher", "high": 15.0,  "critic": 20.0},
+    # Normal: 1.0-6.0 | Alto: fuera del rango | Crítico: fuera del rango crítico
+    "pump_pressure":     {"direction": "range",  "high": 1.0,   "critic": 6.0,
                           "crit_low": 0.5, "crit_high": 8.0},
     # Normal: 20-60 | Alto: >60 | Crítico: >85
-    "pump_temperature":  {"direction": "higher", "low": 60.0,  "medium": 85.0,  "high": 85.0},
+    "pump_temperature":  {"direction": "higher", "high": 60.0,  "critic": 85.0},
     # Normal: 0-4.5 | Alto: >4.5 | Crítico: >7.1
-    "pump_vibration":    {"direction": "higher", "low": 4.5,   "medium": 7.1,   "high": 7.1},
-    # Normal: 20-85 | Alto: >85 o <20 | Crítico: >95 o <10  (*bidireccional)
-    "pump_tank_level":   {"direction": "range",  "low": 20.0,  "high": 85.0,
+    "pump_vibration":    {"direction": "higher", "high": 4.5,   "critic": 7.1},
+    # Normal: 20-85 | Alto: fuera del rango | Crítico: fuera del rango crítico
+    "pump_tank_level":   {"direction": "range",  "high": 20.0,  "critic": 85.0,
                           "crit_low": 10.0, "crit_high": 95.0},
-    # Normal: 210-230 | Alto: fuera de 210-230 | Crítico: >242 o <198  (*bidireccional)
-    "pump_voltage":      {"direction": "range",  "low": 210.0, "high": 230.0,
+    # Normal: 210-230 | Alto: fuera del rango | Crítico: fuera del rango crítico
+    "pump_voltage":      {"direction": "range",  "high": 210.0, "critic": 230.0,
                           "crit_low": 198.0, "crit_high": 242.0},
     # Normal: 0-16 | Alto: >16 | Crítico: >22
-    "pump_current":      {"direction": "higher", "low": 16.0,  "medium": 22.0,  "high": 22.0},
+    "pump_current":      {"direction": "higher", "high": 16.0,  "critic": 22.0},
     # Normal: 0-300 | Alto: >300 | Crítico: >500
-    "pump_water_quality":{"direction": "higher", "low": 300.0, "medium": 500.0, "high": 500.0},
+    "pump_water_quality":{"direction": "higher", "high": 300.0, "critic": 500.0},
     # ── SISTEMA ELEVADOR ────────────────────────────────────────────────────
     # Normal: 0-1.2 | Alto: >1.2 | Crítico: >1.6
-    "elev_speed":        {"direction": "higher", "low": 1.2,   "medium": 1.6,   "high": 1.6},
+    "elev_speed":        {"direction": "higher", "high": 1.2,   "critic": 1.6},
     # Normal: 0-600 | Alto: >600 | Crítico: >800
-    "elev_load":         {"direction": "higher", "low": 600.0, "medium": 800.0, "high": 800.0},
-    # Misma lógica industrial — límites de componentes del motor de tracción
-    # Normal: 20-50 | Alto: >50 | Crítico: >75  (motor de tracción — spec actualizado)
-    "elev_temperature":  {"direction": "higher", "low": 50.0,  "medium": 75.0,  "high": 75.0},
-    # Normal: 0-20 | Alto: >20 | Crítico: >30  (spec actualizado)
-    "elev_current":      {"direction": "higher", "low": 20.0,  "medium": 30.0,  "high": 30.0},
-    # Normal: 0-2.0 | Alto: >2.0 | Crítico: >5.0  (spec actualizado)
-    "elev_vibration":    {"direction": "higher", "low": 2.0,   "medium": 5.0,   "high": 5.0},
-    # Normal: 360-400 V | Alto: fuera de 360-400 | Crítico: >418 ó <342  (trifásico industrial — spec)
-    "elev_voltage":      {"direction": "range",  "low": 360.0, "high": 400.0,
+    "elev_load":         {"direction": "higher", "high": 600.0, "critic": 800.0},
+    # Normal: 20-50 | Alto: >50 | Crítico: >75
+    "elev_temperature":  {"direction": "higher", "high": 50.0,  "critic": 75.0},
+    # Normal: 0-20 | Alto: >20 | Crítico: >30
+    "elev_current":      {"direction": "higher", "high": 20.0,  "critic": 30.0},
+    # Normal: 0-2.0 | Alto: >2.0 | Crítico: >5.0
+    "elev_vibration":    {"direction": "higher", "high": 2.0,   "critic": 5.0},
+    # Normal: 360-400 V | Alto: fuera del rango | Crítico: fuera del rango crítico
+    "elev_voltage":      {"direction": "range",  "high": 360.0, "critic": 400.0,
                           "crit_low": 342.0, "crit_high": 418.0},
 }
 
