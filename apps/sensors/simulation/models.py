@@ -33,14 +33,11 @@ class BuildingSimulator:
         self.fault_injected_at: dict = {}
 
         self._pump_demand: float = 15.0
-        self._pump_failure_timer: float = 0
-        self._pump_failure_var = None
         self._pump_start_grace_ticks: int = 0
 
         self._elev_state: str = "IDLE"
         self._elev_timer: float = 0
         self._elev_current_accel: float = 0.0    # Actual acceleration (for S-curve)
-        self._elev_stuck_timer: float = 0.0      # Consecutive stall ticks
         if self.has_elevator:
             self.sensor_data["elev_position"] = 0
             self._elev_position_meters = 0.0
@@ -49,7 +46,6 @@ class BuildingSimulator:
             self._elev_target_floor = 0
             self._elev_position_meters = 0.0
         self._elev_direction: int = 1
-        self._elev_prev_position: float = 0
 
         # Elevator motor thermal & electrical state
         self._elev_motor_temp: float = 25.0

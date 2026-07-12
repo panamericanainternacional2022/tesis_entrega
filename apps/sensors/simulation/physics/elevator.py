@@ -12,7 +12,7 @@ from apps.sensors.simulation.constants import (
     BATTERY_RESCUE_SPEED,
     OVERSPEED_GOVERNOR_TRIGGER, OVERSPEED_ACCEL_RATE,
     MAX_STEPS_PER_SECOND,
-    ELEVATOR_MOTOR_TEMP_AMBIENT, ELEVATOR_MOTOR_TEMP_ALERT,
+    ELEVATOR_MOTOR_TEMP_AMBIENT,
     ELEVATOR_MOTOR_RATED_CURRENT,
 )
 from apps.sensors.simulation.models import BuildingSimulator
@@ -269,7 +269,6 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if not is_locked(sim, "elev_vibration"):
         sd["elev_vibration"] = 0.5
     sim._elev_state = "IDLE"
-    sim._elev_stuck_timer = 0.0
     sim._elev_current_accel = 0.0
 
 
@@ -810,7 +809,5 @@ def _run_elevator_post_fsm(
 
     # ── Synchronize elevator_state ─────────────────────────────────────────
     sd["elevator_state"] = current_state
-
-    sim._elev_prev_position = prev_pos
 
 

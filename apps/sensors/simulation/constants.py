@@ -1,9 +1,6 @@
 from apps.sensors.sensor_config import SENSOR_RANGES as _SR
 MAX_HISTORY_SIZE: int = 500
 LOG_SIM: bool = True
-SIMULTANEOUS_FAIL_PROB: float = 0.3
-MAX_DOOR_CLOSE_ATTEMPTS: int = 3
-RANDOM_FAULT_PROB: float = 0.0
 
 PUMP_P0: float = 7.0
 PUMP_K: float = 0.012
@@ -40,10 +37,6 @@ OVERSPEED_ACCEL_RATE: float = 0.5       # Acceleration rate when governor failed
 
 # Door obstruction retry interval (seconds)
 
-# Motor stall detection
-STUCK_THRESHOLD_TICKS: int = 3          # Consecutive ticks at speed≈0 before alarm
-STUCK_SPEED_EPSILON: float = 0.01       # Speed threshold considered "zero"
-
 # Elevator motor thermal & electrical constants
 ELEVATOR_MOTOR_TEMP_AMBIENT: float = 25.0
 ELEVATOR_MOTOR_TEMP_ALERT: float = 90.0
@@ -73,9 +66,6 @@ DEFAULT_SENSOR_DATA: dict = {
 
 MIN_SIM_SPEED: float = 0.1
 MAX_SIM_SPEED: float = 10.0
-
-ELEVATOR_LOAD_ALERT: float = 700.0
-ELEVATOR_TEMP_ALERT: float = 90.0
 
 CLEAR_FAULT_MIN_FLOW: float = _SR["pump_flow_rate"][1] * 0.25       # 15.0
 CLEAR_FAULT_MIN_PRESSURE: float = _SR["pump_pressure"][1] * 0.25    # 3.0

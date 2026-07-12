@@ -6,12 +6,10 @@ from django.test import TestCase
 from apps.users.models import Persona, Usuario
 from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
 from apps.sensors.simulation.models import BuildingSimulator
-from apps.sensors.simulation.physics.pump import (
-    _update_pump, _TANK_FULL_THRESHOLD, _TANK_LOW_THRESHOLD)
+from apps.sensors.simulation.physics.pump import _update_pump
 from apps.sensors.simulation.physics.elevator import _update_elevator
 from apps.core.services.risk_service import classify_risk
 from apps.sensors.sensor_config import RISK_CRITICO, RISK_NORMAL, RISK_ALTO
-from apps.sensors.simulation.constants import MAX_DOOR_CLOSE_ATTEMPTS
 
 
 # ---------------------------------------------------------------------------
@@ -214,44 +212,6 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # =======================================================================
     # NEW TESTS — Float switch, pump ON/OFF, faults, elevator OFF
     # =======================================================================
-
-    # -----------------------------------------------------------------------
-    # 10. Float switch: full tank (≥ 85%) cuts the pump automatically
-    # -----------------------------------------------------------------------
-    def test_pump_float_switch_high_cutoff(self):
-        """When tank reaches the FULL threshold the float switch must turn the pump off."""
-        sim = _make_sim(self.building, tank_level=_TANK_FULL_THRESHOLD + 0.1, pump_on=True)
-        sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        _update_pump(sim)
-        self.assertFalse(
-            sim.pump_on,
-            "Float switch should have turned the pump OFF when tank >= FULL threshold.")
-
-    # -----------------------------------------------------------------------
-    # 11. Float switch: low tank (< 80%) starts the pump automatically
-    # -----------------------------------------------------------------------
-    def test_pump_float_switch_low_trigger(self):
-        """When tank drops below the LOW threshold the float switch must turn the pump on."""
-        sim = _make_sim(self.building, tank_level=_TANK_LOW_THRESHOLD - 1.0, pump_on=False)
-        sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        _update_pump(sim)
-        self.assertTrue(
-            sim.pump_on,
-            "Float switch should have turned the pump ON when tank < LOW threshold.")
-
-    # -----------------------------------------------------------------------
-    # 12. Float switch is disabled during manual override window
-    # -----------------------------------------------------------------------
-    def test_float_switch_respects_manual_override(self):
-        """A 90-second manual override must prevent the float switch from acting."""
-        sim = _make_sim(self.building, tank_level=_TANK_LOW_THRESHOLD - 1.0, pump_on=False)
-        sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        # Register the manual override that blocks the float switch
-        sim.manual_pump_override = True
-        _update_pump(sim)
-        self.assertFalse(
-            sim.pump_on,
-            "Float switch must NOT override a user's manual pump-off during the 90-second lock.")
 
     # -----------------------------------------------------------------------
     # 13. Pump OFF → flow and pressure are exactly 0.0

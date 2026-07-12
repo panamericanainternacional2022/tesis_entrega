@@ -1,11 +1,7 @@
-import random
 import time
 import logging
 
-from apps.sensors.sensor_config import PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS
 from apps.sensors.simulation.constants import (
-    RANDOM_FAULT_PROB,
-    SIMULTANEOUS_FAIL_PROB, LOG_SIM,
     FLOOR_HEIGHT, MAX_STEPS_PER_SECOND,
 )
 from apps.sensors.simulation.models import BuildingSimulator
@@ -24,67 +20,6 @@ def update_sensor_data(active_sim: BuildingSimulator) -> None:
     if active_sim.has_elevator:
         from apps.sensors.simulation.physics.elevator import _update_elevator
         _update_elevator(active_sim)
-    _inject_random_faults(active_sim)
-
-
-def _inject_random_faults(sim: BuildingSimulator) -> None:
-    if sim.sim_faults:
-        return
-    dt = sim.sim_speed
-    pump_can_fault = (
-        sim.pump_on
-        and random.random() < RANDOM_FAULT_PROB * dt
-    )
-    elev_can_fault = (
-        sim.elevator_on
-        and random.random() < RANDOM_FAULT_PROB * dt
-    )
-    pump_faulted = False
-    elev_faulted = False
-    if pump_can_fault:
-        _inject_random_pump_fault(sim)
-        pump_faulted = True
-    if elev_can_fault:
-        _inject_random_elevator_fault(sim)
-        elev_faulted = True
-    if pump_faulted and not elev_faulted:
-        _maybe_simultaneous_elevator_fault(sim)
-    elif elev_faulted and not pump_faulted:
-        _maybe_simultaneous_pump_fault(sim)
-
-
-def _maybe_simultaneous_elevator_fault(sim: BuildingSimulator) -> None:
-    if (
-        sim.elevator_on
-        and random.random() < SIMULTANEOUS_FAIL_PROB
-    ):
-        _inject_random_elevator_fault(sim)
-
-
-def _maybe_simultaneous_pump_fault(sim: BuildingSimulator) -> None:
-    if (
-        sim.pump_on
-        and random.random() < SIMULTANEOUS_FAIL_PROB
-    ):
-        _inject_random_pump_fault(sim)
-
-
-def _inject_random_pump_fault(sim: BuildingSimulator) -> None:
-    fault_type = random.choice(list(PUMP_FAULT_KEYS))
-    sim.sim_faults["pump"] = fault_type
-    sim.fault_injected_at["pump"] = time.time()
-    logger.info("Falla aleatoria de bomba inyectada (vía sim_faults): %s", fault_type)
-    if LOG_SIM:
-        print(f"[SIM] {time.strftime('%H:%M:%S')} INYECCION: pump {fault_type}")
-
-
-def _inject_random_elevator_fault(sim: BuildingSimulator) -> None:
-    fault_type = random.choice(list(ELEVATOR_FAULT_KEYS))
-    sim.sim_faults["elevator"] = fault_type
-    sim.fault_injected_at["elevator"] = time.time()
-    logger.info("Falla aleatoria de elevador inyectada (vía sim_faults): %s", fault_type)
-    if LOG_SIM:
-        print(f"[SIM] {time.strftime('%H:%M:%S')} INYECCION: elevator {fault_type}")
 
 
 def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
