@@ -1,7 +1,7 @@
 import random
 import time
 
-from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS, RISK_CRITICO
+from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS, RISK_CRITICO, DEFAULT_THRESHOLDS
 from apps.sensors.simulation.constants import (
     FLOOR_HEIGHT,
     CRUISING_SPEED, ACCELERATION, PASSENGER_WAIT_TICKS,
@@ -24,6 +24,10 @@ _TEMP_LOW, _TEMP_HIGH = SENSOR_RANGES["elev_temperature"]
 _CURR_LOW, _CURR_HIGH = SENSOR_RANGES["elev_current"]
 _VIB_LOW, _VIB_HIGH = SENSOR_RANGES["elev_vibration"]
 _VOLT_LOW, _VOLT_HIGH = SENSOR_RANGES["elev_voltage"]
+
+# Umbral de bloqueo físico por sobrecarga — derivado de DEFAULT_THRESHOLDS para
+# que cada edificio con sus propios umbrales refleje el bloqueo correcto (spec: >800 kg)
+_OVERLOAD_BLOCK_KG: float = DEFAULT_THRESHOLDS["elev_load"]["medium"]  # 800.0 kg
 
 
 def _effective_load(sim: BuildingSimulator, base_load: float) -> float:
@@ -156,7 +160,10 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
-            "elev_speed": _SPEED_HIGH * 0.75,
+            # Spec: speed > 1.6 m/s (crítico), dentro del límite físico 3.0 m/s
+            # Se usa valor fijo 2.0 m/s en vez de _SPEED_HIGH * 0.75 para
+            # garantizar que siempre caiga en zona crítica independiente del rango configurado
+            "elev_speed": 2.0,
             "elev_current": 5.0,
             "elev_door_status": "closed",
             "elev_temperature": 80.0,
@@ -476,8 +483,8 @@ def _handle_elev_door_closing(
 ) -> None:
 
     total_load = _effective_load(sim, load)
-    # Spec: bloqueo físico cuando load > 800 kg (umbral crítico)
-    if total_load > 800.0:
+    # Spec: bloqueo físico cuando load > _OVERLOAD_BLOCK_KG (umbral crítico derivado de DEFAULT_THRESHOLDS)
+    if total_load > _OVERLOAD_BLOCK_KG:
         sim._elev_state = "DOOR_OPENING"
         sim._elev_timer = 0
         sd["elev_door_status"] = "open"
@@ -691,8 +698,9 @@ def _run_elevator_post_fsm(
             sim._elev_pos_sensor_mismatch_timer = 0.0
         if abs(spd) > 0.05:
             sim._elev_pos_sensor_mismatch_timer += dt
-            # Spec: parada de emergencia inmediata (≤1 tick) ante fallo de sensor de posición
-            if sim._elev_pos_sensor_mismatch_timer >= 1.0:
+            # Spec: parada de emergencia INMEDIATA (≤1 tick) ante fallo de sensor de posición (B-5)
+            # Umbral = dt (un solo tick) en lugar de 1.0 s acumulado
+            if sim._elev_pos_sensor_mismatch_timer >= dt:
                 sim._elev_state = "IDLE"
                 sd["elev_speed"] = 0.0
                 spd = 0.0

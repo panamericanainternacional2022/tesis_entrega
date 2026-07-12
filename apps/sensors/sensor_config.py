@@ -281,21 +281,23 @@ API_HISTORY_LIMIT: int = 50
 PAYLOAD_HISTORY_SLICE: int = 200
 
 SENSOR_RANGES = {
-    "pump_flow_rate":   (0, 60),
-    "pump_pressure":    (0, 12),
-    "pump_temperature": (22.0, 130),
-    "pump_vibration":   (0, 15),
-    "pump_tank_level":  (0, 100),
-    "pump_voltage":     (180, 260),
-    "pump_current":     (0, 70),
-    "pump_water_quality": (0, 1000),
-    "elev_speed":       (0, 6),
-    "elev_load":        (0, 1200),
-    "elev_position":    (0, 100),
-    "elev_temperature": (25.0, 120),
-    "elev_current":     (0, 80),
-    "elev_vibration":   (0, 20),
-    "elev_voltage":     (0, 450),
+    # ── SISTEMA BOMBA — Límites físicos destructivos (simulator.md §2) ──────
+    "pump_flow_rate":    (0.0,   60.0),   # sin límite explícito en spec → headroom de fallas
+    "pump_pressure":     (0.0,   10.0),   # Límite Máx spec = 10.0 bar (antes 12)
+    "pump_temperature":  (-10.0, 100.0),  # Límite Mín=-10°C, Máx=100°C (antes 22.0, 130)
+    "pump_vibration":    (0.0,   15.0),   # sin cambio
+    "pump_tank_level":   (0.0,  100.0),   # sin cambio
+    "pump_voltage":      (0.0,  300.0),   # Límite Mín=0 (corte), Máx=300 V spec (antes 180-260)
+    "pump_current":      (0.0,   30.0),   # Límite Máx spec = 30.0 A (antes 70)
+    "pump_water_quality":(0.0, 1000.0),   # sin cambio
+    # ── SISTEMA ELEVADOR — Límites físicos destructivos (simulator.md §2) ───
+    "elev_speed":        (0.0,    3.0),   # Límite Máx spec = 3.0 m/s (antes 6)
+    "elev_load":         (0.0, 1200.0),   # sin cambio
+    "elev_position":     (0.0,    5.0),   # Rango discreto 0-5 pisos (antes 100)
+    "elev_temperature":  (-10.0,  90.0),  # Límite Mín=-10°C, Máx=90°C (antes 25.0, 120)
+    "elev_current":      (0.0,   40.0),   # Límite Máx spec = 40.0 A (antes 80)
+    "elev_vibration":    (0.0,   10.0),   # Límite Máx spec = 10.0 mm/s (antes 20)
+    "elev_voltage":      (0.0,  500.0),   # Límite Máx spec = 500.0 V (antes 450)
 }
 
 FAULT_NAMES_ES = {

@@ -43,7 +43,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
         net = inflow - outflow
         d_tank = net * 0.05 * dt + random.uniform(-0.1, 0.1) * dt
-        sd["pump_tank_level"] = round(clamp(sd["pump_tank_level"] + d_tank, 0.0, 100.0), 1)
+        sd["pump_tank_level"] = round(clamp(sd["pump_tank_level"] + d_tank, _TANK_LOW, _TANK_HIGH), 1)
 
     # ── Float switch: auto turn pump ON/OFF based on tank level ────────────
     if not getattr(sim, "manual_pump_override", False):
@@ -121,76 +121,78 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _apply_dry_run(sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]  = clamp(sd["pump_flow_rate"]  - 5.0 * dt, 0, 0.5)
-    sd["pump_pressure"]   = clamp(sd["pump_pressure"]   - 2.0 * dt, 0, 0.5)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.5 * dt, 0, 130)
-    sd["pump_vibration"]  = clamp(sd["pump_vibration"]  + 0.5 * dt, 0, 15)
-    sd["pump_current"]    = clamp(sd["pump_current"]    - 2.0 * dt, 1.0, 70)
-    sd["pump_tank_level"] = clamp(sd["pump_tank_level"] - 15.0 * dt, 0, 10)
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 5.0 * dt, _FLOW_LOW, 0.5)          # converge a casi-cero (0.5 = techo de sequía)
+    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 2.0 * dt, _PRES_LOW, 0.5)          # idem
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.5 * dt, _TEMP_LOW, _TEMP_HIGH)   # sube sin refrigeración
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.5 * dt, _VIB_LOW,  _VIB_HIGH)
+    sd["pump_current"]     = clamp(sd["pump_current"]     - 2.0 * dt, _CURR_LOW, _CURR_HIGH)   # B-4: mín era 1.0 A → ahora 0.0
+    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  - 15.0 * dt, _TANK_LOW, 10.0)        # 10% = umbral crítico-bajo del tanque
 
 
 def _apply_blocked_discharge(sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 5.0 * dt, 0, 0.5)
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    + 1.5 * dt, 0, 12)
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.8 * dt, 0, 15)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, 0, 130)
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 2.0 * dt, 10.0, 70)
-    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  + 0.1 * dt, 0, 100)
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 5.0 * dt, _FLOW_LOW, 0.5)          # flujo cae a casi-cero
+    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    + 1.5 * dt, _PRES_LOW, _PRES_HIGH)   # presión sube a máx (descarga bloqueada)
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.8 * dt, _VIB_LOW,  _VIB_HIGH)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, _TEMP_LOW, _TEMP_HIGH)   # fricción hidrodinámica interna
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 2.0 * dt, 10.0,      _CURR_HIGH)   # 10.0 A = carga mínima con bloqueo
+    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  + 0.1 * dt, _TANK_LOW, _TANK_HIGH)
 
 
 def _apply_pipe_burst(sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]  = clamp(sd["pump_flow_rate"]  + 3.0 * dt, 0, 60)
-    sd["pump_pressure"]   = clamp(sd["pump_pressure"]   - 0.8 * dt, 0, 2)
-    sd["pump_vibration"]  = clamp(sd["pump_vibration"]  + 0.6 * dt, 0, 15)
-    sd["pump_current"]    = clamp(sd["pump_current"]    + 8.0 * dt, 0, 70)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.0 * dt, 0, 130)
-    sd["pump_tank_level"] = clamp(sd["pump_tank_level"] - 5.0 * dt, 0, 100)
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   + 3.0 * dt, _FLOW_LOW, _FLOW_HIGH)
+    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 0.8 * dt, _PRES_LOW, 2.0)          # 2.0 = presión residual post-ruptura
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.6 * dt, _VIB_LOW,  _VIB_HIGH)
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 8.0 * dt, _CURR_LOW, _CURR_HIGH)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.0 * dt, _TEMP_LOW, _TEMP_HIGH)
+    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  - 5.0 * dt, _TANK_LOW, _TANK_HIGH)
 
 
 def _apply_cavitation(sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]  = clamp(sd["pump_flow_rate"]  + random.uniform(-5, 5) * dt, 0, 60)
-    sd["pump_vibration"]  = clamp(sd["pump_vibration"]  + random.uniform(0.5, 2.0) * dt, 0, 15)
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   + random.uniform(-5, 5) * dt,      _FLOW_LOW, _FLOW_HIGH)
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + random.uniform(0.5, 2.0) * dt,  _VIB_LOW,  _VIB_HIGH)
     # Oscilación brusca de presión — inestabilidad hidrodinámica real (±2.0 bar)
-    sd["pump_pressure"]   = clamp(sd["pump_pressure"]   + random.uniform(-2.0, 2.0) * dt, 0, 12)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.2 * dt, 0, 130)
+    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    + random.uniform(-2.0, 2.0) * dt, _PRES_LOW, _PRES_HIGH)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.2 * dt,                      _TEMP_LOW, _TEMP_HIGH)
     # Picos de corriente por variaciones de carga hidrodinámica
-    sd["pump_current"]    = clamp(sd["pump_current"]    + random.uniform(-3.0, 5.0) * dt, 0, 70)
+    sd["pump_current"]     = clamp(sd["pump_current"]     + random.uniform(-3.0, 5.0) * dt, _CURR_LOW, _CURR_HIGH)
 
 
 def _apply_overheat(sd: dict, dt: float) -> None:
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 2.0 * dt, 0, 130)
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.3 * dt, 0, 15)
+    # Spec: temp sube linealmente hasta rebasar el Límite Físico (100°C = _TEMP_HIGH)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 2.0 * dt, _TEMP_LOW, _TEMP_HIGH)   # B-7: antes clampeaba a 130°C
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.3 * dt, _VIB_LOW,  _VIB_HIGH)
     # Resistencia eléctrica del bobinado aumenta con temperatura (R = R0 * (1 + α*ΔT))
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 0.5 * dt, 0, 70)
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 0.5 * dt, _CURR_LOW, _CURR_HIGH)
     # Viscosidad del fluido caliente reduce el caudal
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 0.3 * dt, 0, 60)
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 0.3 * dt, _FLOW_LOW, _FLOW_HIGH)
 
 
 def _apply_power_surge(sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 10.0 * dt, 0, 0.5)
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 5.0 * dt, 0, 0.5)
-    sd["pump_voltage"]     = clamp(sd["pump_voltage"]     - 15.0 * dt, 180, 260)
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 12.0 * dt, 0, 70)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, 0, 130)
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 1.5 * dt, 0, 15)
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 10.0 * dt, _FLOW_LOW, 0.5)         # converge a casi-cero durante sobrecarga
+    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 5.0 * dt,  _PRES_LOW, 0.5)
+    sd["pump_voltage"]     = clamp(sd["pump_voltage"]     - 15.0 * dt, _VOLT_LOW, _VOLT_HIGH)  # usa rango completo (0–300 V)
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 12.0 * dt, _CURR_LOW, _CURR_HIGH)  # dispara a crítico (>22 A)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt,  _TEMP_LOW, _TEMP_HIGH)  # Efecto Joule
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 1.5 * dt,  _VIB_LOW,  _VIB_HIGH)
 
 
 def _apply_power_outage(sd: dict, dt: float) -> None:
+    # Spec: voltage→0, current→0, flow y pressure→0.0 de forma INMEDIATA (B-3)
     sd["pump_voltage"]     = 0.0
     sd["pump_current"]     = 0.0
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 20.0 * dt, 0, 60)
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 4.0 * dt, 0, 12)
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   - 5.0 * dt, 0, 15)
+    sd["pump_flow_rate"]   = 0.0                                                                 # B-3: inmediato (antes: rampa -20*dt)
+    sd["pump_pressure"]    = 0.0                                                                 # B-3: inmediato (antes: rampa -4*dt)
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   - 5.0 * dt, _VIB_LOW,  _VIB_HIGH)
     sd["pump_temperature"] = clamp(sd["pump_temperature"] - 0.5 * dt, T_AMBIENT, _TEMP_HIGH)
 
 def _apply_bearing_failure(sd: dict, dt: float) -> None:
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 1.5 * dt, 0, 15)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, 0, 130)
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 4.0 * dt, 10.0, 70)
-    sd["pump_water_quality"] = clamp(sd.get("pump_water_quality", 200.0) + 15.0 * dt, 0, 1000)
+    sd["pump_vibration"]     = clamp(sd["pump_vibration"]     + 1.5 * dt,  _VIB_LOW,  _VIB_HIGH)
+    sd["pump_temperature"]   = clamp(sd["pump_temperature"]   + 3.0 * dt,  _TEMP_LOW, _TEMP_HIGH)
+    sd["pump_current"]       = clamp(sd["pump_current"]       + 4.0 * dt,  10.0,      _CURR_HIGH)   # 10.0 A = carga mínima por fricción parásita
+    sd["pump_water_quality"] = clamp(sd.get("pump_water_quality", 200.0) + 15.0 * dt, _QUAL_LOW, _QUAL_HIGH)
     # Pérdida de eficiencia mecánica → degradación progresiva de caudal y presión
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 0.4 * dt, 0, 60)
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 0.2 * dt, 0, 12)
+    sd["pump_flow_rate"]     = clamp(sd["pump_flow_rate"]     - 0.4 * dt,  _FLOW_LOW, _FLOW_HIGH)
+    sd["pump_pressure"]      = clamp(sd["pump_pressure"]      - 0.2 * dt,  _PRES_LOW, _PRES_HIGH)
 
 def _clamp_pump_values(sd: dict) -> None:
     sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   _FLOW_LOW,       _FLOW_HIGH),       1)
@@ -231,13 +233,13 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     tank = sd["pump_tank_level"]
     if tank < 10.0:
         if not is_locked(sim, "pump_flow_rate"):
-            sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, 0.0, 2.0),   1)
+            sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, _FLOW_LOW, 2.0),        1)  # 2.0 = techo de inanición
         if not is_locked(sim, "pump_pressure"):
-            sd["pump_pressure"]    = round(clamp(sd["pump_pressure"]    - 0.8 * dt, 0.0, 1.0),   1)
+            sd["pump_pressure"]    = round(clamp(sd["pump_pressure"]    - 0.8 * dt, _PRES_LOW, 1.0),        1)  # 1.0 bar = presión residual
         if not is_locked(sim, "pump_vibration"):
-            sd["pump_vibration"]   = round(clamp(sd["pump_vibration"]   + 1.2 * dt, 0.5, 15.0),  1)
+            sd["pump_vibration"]   = round(clamp(sd["pump_vibration"]   + 1.2 * dt, 0.5, _VIB_HIGH),        1)  # 0.5 = vibración mínima en cavitación
         if not is_locked(sim, "pump_temperature"):
-            sd["pump_temperature"] = round(clamp(sd["pump_temperature"] + 2.0 * dt, _TEMP_LOW, 120.0), 1)
+            sd["pump_temperature"] = round(clamp(sd["pump_temperature"] + 2.0 * dt, _TEMP_LOW, _TEMP_HIGH), 1)
         if not is_locked(sim, "pump_current"):
             sd["pump_current"]     = round(clamp(sd["pump_current"]     - 2.0 * dt, 0.0, 8.0),   1)
         return
