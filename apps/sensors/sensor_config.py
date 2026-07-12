@@ -154,20 +154,38 @@ VALUE_DISPLAY_ES = {
 }
 
 DEFAULT_THRESHOLDS = {
-    "pump_flow_rate":   {"direction": "lower",  "low": 8.0,  "medium": 5.0, "high": 2.0},
-    "pump_pressure":    {"direction": "range",  "low": 2.0,  "high": 8.0},
-    "pump_temperature": {"direction": "higher", "low": 70,   "medium": 85,  "high": 100},
-    "pump_vibration":   {"direction": "higher", "low": 4,    "medium": 7,   "high": 10},
-    "pump_tank_level":  {"direction": "lower",  "low": 30,   "medium": 15,  "high": 5},
-    "pump_voltage":     {"direction": "range",  "low": 200,  "high": 240},
-    "pump_current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
-    "pump_water_quality":{"direction": "higher", "low": 300,  "medium": 500, "high": 800},
-    "elev_speed":       {"direction": "higher", "low": 2.5,  "medium": 3.0, "high": 4.0},
-    "elev_load":        {"direction": "higher", "low": 600,  "medium": 800, "high": 900},
-    "elev_temperature": {"direction": "higher", "low": 70,   "medium": 85,  "high": 90},
-    "elev_current":     {"direction": "higher", "low": 32,   "medium": 40,  "high": 45},
-    "elev_vibration":   {"direction": "higher", "low": 4.0,  "medium": 7.0, "high": 10.0},
-    "elev_voltage":     {"direction": "range",  "low": 360,  "high": 400},
+    # ── SISTEMA BOMBA ───────────────────────────────────────────────────────
+    # Normal: 0-15 | Alto: >15 | Crítico: >20
+    "pump_flow_rate":    {"direction": "higher", "low": 15.0,  "medium": 20.0,  "high": 20.0},
+    # Normal: 1.0-6.0 | Alto: >6.0 o <1.0 | Crítico: >8.0 o <0.5  (*bidireccional)
+    "pump_pressure":     {"direction": "range",  "low": 1.0,   "high": 6.0,
+                          "crit_low": 0.5, "crit_high": 8.0},
+    # Normal: 20-60 | Alto: >60 | Crítico: >85
+    "pump_temperature":  {"direction": "higher", "low": 60.0,  "medium": 85.0,  "high": 85.0},
+    # Normal: 0-4.5 | Alto: >4.5 | Crítico: >7.1
+    "pump_vibration":    {"direction": "higher", "low": 4.5,   "medium": 7.1,   "high": 7.1},
+    # Normal: 20-85 | Alto: >85 o <20 | Crítico: >95 o <10  (*bidireccional)
+    "pump_tank_level":   {"direction": "range",  "low": 20.0,  "high": 85.0,
+                          "crit_low": 10.0, "crit_high": 95.0},
+    # Normal: 210-230 | Alto: fuera de 210-230 | Crítico: >242 o <198  (*bidireccional)
+    "pump_voltage":      {"direction": "range",  "low": 210.0, "high": 230.0,
+                          "crit_low": 198.0, "crit_high": 242.0},
+    # Normal: 0-16 | Alto: >16 | Crítico: >22
+    "pump_current":      {"direction": "higher", "low": 16.0,  "medium": 22.0,  "high": 22.0},
+    # Normal: 0-300 | Alto: >300 | Crítico: >500
+    "pump_water_quality":{"direction": "higher", "low": 300.0, "medium": 500.0, "high": 500.0},
+    # ── SISTEMA ELEVADOR ────────────────────────────────────────────────────
+    # Normal: 0-1.2 | Alto: >1.2 | Crítico: >1.6
+    "elev_speed":        {"direction": "higher", "low": 1.2,   "medium": 1.6,   "high": 1.6},
+    # Normal: 0-600 | Alto: >600 | Crítico: >800
+    "elev_load":         {"direction": "higher", "low": 600.0, "medium": 800.0, "high": 800.0},
+    # Misma lógica industrial — límites de componentes del motor de tracción
+    "elev_temperature":  {"direction": "higher", "low": 60.0,  "medium": 85.0,  "high": 85.0},
+    "elev_current":      {"direction": "higher", "low": 32.0,  "medium": 40.0,  "high": 45.0},
+    "elev_vibration":    {"direction": "higher", "low": 4.5,   "medium": 7.1,   "high": 7.1},
+    # Normal: ~360-400V | Crítico: fuera de tolerancia extrema  (*bidireccional)
+    "elev_voltage":      {"direction": "range",  "low": 360.0, "high": 400.0,
+                          "crit_low": 340.0, "crit_high": 420.0},
 }
 
 FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."

@@ -146,9 +146,11 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_door_status": "closed",
             "elev_temperature": 110.0,
             "elevator_state": "STUCK",
+            "elev_vibration": 9.5,     # Vibración severa por rotor bloqueado
+            "elev_voltage": 355.0,     # Caída de tensión por sobrecorriente en la línea
         },
         "door_blocked": {
-            "elev_door_status": "closing",
+            "elev_door_status": "open",    # Puerta no puede cerrar — coherente con FSM DOORS_OPEN
             "elev_speed": 0.0,
             "elevator_state": "DOORS_OPEN",
         },
@@ -174,7 +176,8 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         },
         "traction_loss": {
             "elev_vibration": 12.0,
-            "elev_current": _CURR_HIGH * 0.8,
+            # Motor patina sin carga mecánica real → corriente de vacío (~20% de la nominal)
+            "elev_current": ELEVATOR_MOTOR_RATED_CURRENT * 0.2,
             "elev_temperature": 95.0,
         }
     }

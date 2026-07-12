@@ -10,7 +10,7 @@ PUMP_P0: float = 7.0
 PUMP_K: float = 0.012
 T_AMBIENT: float = 22.0
 
-CRUISING_SPEED: float = 2.0
+CRUISING_SPEED: float = 1.0
 ACCELERATION: float = 0.8
 FLOOR_HEIGHT: float = 3.5
 PASSENGER_WAIT_TICKS: int = 8
@@ -28,7 +28,7 @@ DOOR_OPEN_TIME: float = 2.0
 DOOR_CLOSE_TIME: float = 2.0
 
 # Overload fault
-OVERLOAD_EXTRA_KG: float = 500.0        # Extra virtual mass during overload fault (kg)
+OVERLOAD_EXTRA_KG: float = 900.0        # Extra virtual mass during overload fault (kg) — garantiza total > 900 kg con cabina vacía
 
 # Power outage phases (seconds)
 POWER_OUTAGE_BRAKE_TIME: float = 1.0    # Emergency brake deceleration phase
@@ -51,23 +51,25 @@ ELEVATOR_MOTOR_TEMP_ALERT: float = 90.0
 ELEVATOR_MOTOR_RATED_CURRENT: float = 28.0
 
 DEFAULT_SENSOR_DATA: dict = {
-    "pump_flow_rate": 0.0,
-    "pump_pressure": 0.0,
-    "pump_temperature": 25.0,
-    "pump_vibration": 0.0,
-    "pump_tank_level": 80.0,
-    "pump_voltage": 0.0,          # 0 V when pump is off (no voltage at motor terminals)
-    "pump_current": 0.0,
-    "pump_water_quality": 500.0,
-    "elev_position": 0,
-    "elev_speed": 0.0,
-    "elev_load": 0,
-    "elev_door_status": "closed",
-    "elev_temperature": 25.0,
-    "elev_current": 0.0,
-    "elev_vibration": 0.0,
-    "elev_voltage": 380.0,
-    "elevator_state": "IDLE",
+    # ── SISTEMA BOMBA — Reposo Seguro ──────────────────────────────────────
+    "pump_flow_rate":    0.0,      # Apagada
+    "pump_pressure":     1.0,      # Presión atmosférica base (bar)
+    "pump_temperature":  25.0,     # Temperatura ambiente (°C)
+    "pump_vibration":    0.0,      # Detenida (mm/s)
+    "pump_tank_level":   50.0,     # Nivel medio seguro (%)
+    "pump_voltage":      0.0,      # Motor desenergizado — 0 V en bornes del motor
+    "pump_current":      0.0,      # Sin consumo (A)
+    "pump_water_quality": 150.0,   # Calidad de agua estándar (ppm)
+    # ── SISTEMA ELEVADOR — Reposo Seguro ───────────────────────────────────
+    "elev_position":     0,        # Planta baja (piso)
+    "elev_speed":        0.0,      # Detenido (m/s)
+    "elev_load":         0,        # Vacío (kg)
+    "elev_door_status":  "closed", # Puerta cerrada
+    "elev_temperature":  25.0,     # Temperatura ambiente (°C)
+    "elev_current":      0.0,      # Sin consumo (A)
+    "elev_vibration":    0.0,      # Detenido (mm/s)
+    "elev_voltage":      380.0,    # Tensión trifásica nominal lista (V)
+    "elevator_state":    "IDLE",
 }
 
 MIN_SIM_SPEED: float = 0.1

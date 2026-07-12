@@ -151,13 +151,20 @@ def _apply_pipe_burst(sd: dict, dt: float) -> None:
 def _apply_cavitation(sd: dict, dt: float) -> None:
     sd["pump_flow_rate"]  = clamp(sd["pump_flow_rate"]  + random.uniform(-5, 5) * dt, 0, 60)
     sd["pump_vibration"]  = clamp(sd["pump_vibration"]  + random.uniform(0.5, 2.0) * dt, 0, 15)
-    sd["pump_pressure"]   = clamp(sd["pump_pressure"]   + random.uniform(-0.5, 0.5) * dt, 0, 12)
+    # Oscilación brusca de presión — inestabilidad hidrodinámica real (±2.0 bar)
+    sd["pump_pressure"]   = clamp(sd["pump_pressure"]   + random.uniform(-2.0, 2.0) * dt, 0, 12)
     sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.2 * dt, 0, 130)
+    # Picos de corriente por variaciones de carga hidrodinámica
+    sd["pump_current"]    = clamp(sd["pump_current"]    + random.uniform(-3.0, 5.0) * dt, 0, 70)
 
 
 def _apply_overheat(sd: dict, dt: float) -> None:
     sd["pump_temperature"] = clamp(sd["pump_temperature"] + 2.0 * dt, 0, 130)
     sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.3 * dt, 0, 15)
+    # Resistencia eléctrica del bobinado aumenta con temperatura (R = R0 * (1 + α*ΔT))
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 0.5 * dt, 0, 70)
+    # Viscosidad del fluido caliente reduce el caudal
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 0.3 * dt, 0, 60)
 
 
 def _apply_power_surge(sd: dict, dt: float) -> None:
@@ -182,6 +189,9 @@ def _apply_bearing_failure(sd: dict, dt: float) -> None:
     sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, 0, 130)
     sd["pump_current"]     = clamp(sd["pump_current"]     + 4.0 * dt, 10.0, 70)
     sd["pump_water_quality"] = clamp(sd.get("pump_water_quality", 200.0) + 15.0 * dt, 0, 1000)
+    # Pérdida de eficiencia mecánica → degradación progresiva de caudal y presión
+    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 0.4 * dt, 0, 60)
+    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 0.2 * dt, 0, 12)
 
 def _clamp_pump_values(sd: dict) -> None:
     sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   _FLOW_LOW,       _FLOW_HIGH),       1)
@@ -263,7 +273,9 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
     vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
     # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)
-    curr = (flow * pressure * 40.0 + pressure * 150.0) / (volt * 0.75) + random.uniform(-0.5, 0.5) * dt
+    # Modelo eléctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
+    # Opción A: ecuación recalibrada para que el régimen normal quede dentro del umbral (<16 A)
+    curr = (flow * pressure * 28.0 + pressure * 120.0) / (volt * 0.85) + random.uniform(-0.5, 0.5) * dt
 
     if not is_locked(sim, "pump_flow_rate"):
         sd["pump_flow_rate"]   = round(clamp(flow,     _FLOW_LOW,       _FLOW_HIGH),       1)

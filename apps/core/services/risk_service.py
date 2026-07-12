@@ -112,7 +112,7 @@ def classify_risk(
     if variable in NO_RISK_VARS:
         return RISK_NORMAL, "green"
 
-    # Corrección para bomba apagada
+    # Corrección para bomba apagada: flow y pressure en 0 no son anómalos
     if variable in {"pump_flow_rate", "pump_pressure"} and not pump_on:
         flow_range = SENSOR_RANGES.get("pump_flow_rate", (0, 60))
         press_range = SENSOR_RANGES.get("pump_pressure", (0, 12))
@@ -130,22 +130,27 @@ def classify_risk(
 
     cfg = thresholds[variable]
     d = cfg["direction"]
+
     if d == "range":
         low, high = cfg["low"], cfg["high"]
-        return (RISK_NORMAL, "green") if low <= value <= high else (RISK_ALTO, "orange")
+        crit_low  = cfg.get("crit_low")
+        crit_high = cfg.get("crit_high")
+        # Nivel Crítico bidireccional (extremos)
+        if crit_low is not None and value < crit_low:
+            return RISK_CRITICO, "red"
+        if crit_high is not None and value > crit_high:
+            return RISK_CRITICO, "red"
+        # Nivel Alto (fuera del rango operativo normal)
+        if low <= value <= high:
+            return RISK_NORMAL, "green"
+        return RISK_ALTO, "orange"
+
+    # direction == "higher": alerta cuando el valor sube
+    low_thresh = cfg["low"]
+    high_thresh = cfg["high"]
+    if value <= low_thresh:
+        return RISK_NORMAL, "green"
+    elif value <= high_thresh:
+        return RISK_ALTO, "orange"
     else:
-        low, _, high = cfg["low"], cfg["medium"], cfg["high"]
-        if d == "higher":
-            if value <= low:
-                return RISK_NORMAL, "green"
-            elif value <= high:
-                return RISK_ALTO, "orange"
-            else:
-                return RISK_CRITICO, "red"
-        else:
-            if value >= low:
-                return RISK_NORMAL, "green"
-            elif value >= high:
-                return RISK_ALTO, "orange"
-            else:
-                return RISK_CRITICO, "red"
+        return RISK_CRITICO, "red"
