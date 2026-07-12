@@ -143,17 +143,32 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # 7. Door status risk classification
     # -----------------------------------------------------------------------
     def test_door_status_alert_logic(self):
-        """'open' siempre es Crítico (Opción A: sin contexto de velocidad).
+        """'open' sin fallo activo es Normal. 'open' con fallo door_blocked es Crítico.
         'closing' es Normal — estado transitorio per spec."""
-        # open → Crítico independientemente del estado del elevador
+        # open sin fallo → Normal (puerta abierta en parada es esperado)
         risk, _ = classify_risk("elev_door_status", "open", {})
+        self.assertEqual(risk, RISK_NORMAL)
+
+        # open con door_blocked → Crítico
+        risk, _ = classify_risk("elev_door_status", "open", {},
+                                active_faults={"elevator": "door_blocked"})
+        self.assertEqual(risk, RISK_CRITICO)
+
+        # open con pos_sensor_fail → Crítico
+        risk, _ = classify_risk("elev_door_status", "open", {},
+                                active_faults={"elevator": "pos_sensor_fail"})
+        self.assertEqual(risk, RISK_CRITICO)
+
+        # closed con pos_sensor_fail → Crítico
+        risk, _ = classify_risk("elev_door_status", "closed", {},
+                                active_faults={"elevator": "pos_sensor_fail"})
         self.assertEqual(risk, RISK_CRITICO)
 
         # closing → Normal (ya no es riesgoso per spec)
         risk, _ = classify_risk("elev_door_status", "closing", {})
         self.assertEqual(risk, RISK_NORMAL)
 
-        # closed → Normal
+        # closed sin fallo → Normal
         risk, _ = classify_risk("elev_door_status", "closed", {})
         self.assertEqual(risk, RISK_NORMAL)
 

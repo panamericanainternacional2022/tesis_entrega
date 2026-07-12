@@ -464,6 +464,12 @@
     const _VALUE_DISPLAY = _CONFIG.value_display_es || {};
     let _SENSOR_RANGES = _CONFIG.sensor_ranges || {};
 
+    let _currentFaults = {};
+    const _FAULT_FORCED_RISK = {
+        "door_blocked|elev_door_status":    true,
+        "pos_sensor_fail|elev_door_status": true,
+    };
+
     const CHART_PUMP_VARS = _BOMBA_VARS.filter(v => v !== 'tank_level');
     const CHART_ELEV_VARS = _ELEVADOR_VARS.filter(
         v => v !== 'elev_position' && v !== 'elev_door_status'
@@ -533,6 +539,11 @@
     }
 
     function getRiskClass(varName, value) {
+        for (const faultType of Object.values(_currentFaults)) {
+            if (_FAULT_FORCED_RISK[`${faultType}|${varName}`]) {
+                return { badge: 'badge-crit', label: _RISK.critico };
+            }
+        }
         if (_BOOLEAN_VARS.includes(varName)) {
             const crit = !!value;
             return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
@@ -944,6 +955,7 @@
 
     function applyPayload(data) {
         if (data.thresholds) currentThresholds = data.thresholds;
+        if (data.sim_faults) _currentFaults = data.sim_faults;
         if (data.pump_on !== undefined) {
             currentPumpOn = data.pump_on;
             currentElevOn = data.elevator_on === true;

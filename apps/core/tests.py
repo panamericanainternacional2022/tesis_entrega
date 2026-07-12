@@ -72,9 +72,30 @@ class ClassifyRiskTests(TestCase):
 
     # ── Sensores de enumeración (elev_door_status) ──────────────────────────
 
-    def test_door_status_open_is_critico(self):
-        """'open' siempre es Crítico, sin contexto de velocidad (Opción A)."""
+    def test_door_status_open_is_normal_without_fault(self):
+        """'open' sin fallo activo es Normal — puerta abierta en parada es esperado."""
         risk, color = classify_risk("elev_door_status", "open")
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    def test_door_status_open_is_critico_with_door_blocked(self):
+        """'open' con fallo door_blocked → Crítico."""
+        risk, color = classify_risk("elev_door_status", "open",
+                                    active_faults={"elevator": "door_blocked"})
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_door_status_open_is_critico_with_pos_sensor_fail(self):
+        """'open' con fallo pos_sensor_fail → Crítico."""
+        risk, color = classify_risk("elev_door_status", "open",
+                                    active_faults={"elevator": "pos_sensor_fail"})
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_door_status_closed_is_critico_with_pos_sensor_fail(self):
+        """'closed' con fallo pos_sensor_fail → Crítico (sensor afectado)."""
+        risk, color = classify_risk("elev_door_status", "closed",
+                                    active_faults={"elevator": "pos_sensor_fail"})
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
@@ -88,6 +109,12 @@ class ClassifyRiskTests(TestCase):
         risk, color = classify_risk("elev_door_status", "closed")
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
+
+    def test_fault_forced_risk_overrides_value(self):
+        """El riesgo forzado por fallo se aplica sin importar el valor del sensor."""
+        risk, _ = classify_risk("elev_door_status", "closed",
+                                active_faults={"elevator": "door_blocked"})
+        self.assertEqual(risk, RISK_CRITICO)
 
     # ── direction == "higher" ───────────────────────────────────────────────
     # Usando la estructura real: {"direction": "higher", "high": X, "critic": Y}

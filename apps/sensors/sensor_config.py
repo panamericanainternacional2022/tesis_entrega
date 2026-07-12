@@ -118,6 +118,13 @@ ENUM_RISK_VALUES = {
     # Se elimina del dict para que no genere alertas automáticas.
 }
 
+# Riesgo forzado por fallo activo: solo cuando el fallo afecta la variable.
+# Clave: (fault_type, variable) → (nivel_riesgo, color)
+FAULT_FORCED_RISK = {
+    ("door_blocked", "elev_door_status"):    (RISK_CRITICO, "red"),
+    ("pos_sensor_fail", "elev_door_status"): (RISK_CRITICO, "red"),
+}
+
 PUMP_VARS = [
     "pump_flow_rate",
     "pump_pressure",
