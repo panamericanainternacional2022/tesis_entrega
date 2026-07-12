@@ -28,10 +28,10 @@ DOOR_OPEN_TIME: float = 2.0
 DOOR_CLOSE_TIME: float = 2.0
 
 # Overload fault
-OVERLOAD_EXTRA_KG: float = 900.0        # Extra virtual mass during overload fault (kg) — garantiza total > 900 kg con cabina vacía
+OVERLOAD_EXTRA_KG: float = 900.0        # Extra virtual mass during overload fault (kg) — garantiza total > 800 kg con cabina vacía (spec: bloqueo en >800 kg)
 
 # Power outage phases (seconds)
-POWER_OUTAGE_BRAKE_TIME: float = 1.0    # Emergency brake deceleration phase
+POWER_OUTAGE_BRAKE_TIME: float = 0.1    # Emergency brake — frenos mecánicos actúan en ≤1 tick (spec: speed→0 inmediato)
 POWER_OUTAGE_BATTERY_WAIT: float = 3.0  # Wait before battery rescue activates
 BATTERY_RESCUE_SPEED: float = 0.3       # Low-speed rescue (m/s)
 
@@ -57,7 +57,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "pump_temperature":  25.0,     # Temperatura ambiente (°C)
     "pump_vibration":    0.0,      # Detenida (mm/s)
     "pump_tank_level":   50.0,     # Nivel medio seguro (%)
-    "pump_voltage":      0.0,      # Motor desenergizado — 0 V en bornes del motor
+    "pump_voltage":      220.0,    # Tensión de red disponible en reposo seguro (220 V monofásico)
     "pump_current":      0.0,      # Sin consumo (A)
     "pump_water_quality": 150.0,   # Calidad de agua estándar (ppm)
     # ── SISTEMA ELEVADOR — Reposo Seguro ───────────────────────────────────

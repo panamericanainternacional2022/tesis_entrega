@@ -152,6 +152,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         "door_blocked": {
             "elev_door_status": "open",    # Puerta no puede cerrar — coherente con FSM DOORS_OPEN
             "elev_speed": 0.0,
+            "elev_current": 0.0,           # Spec: puerta bloqueada → speed Y current = 0.0 (arranque abortado)
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
@@ -159,13 +160,14 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_current": 5.0,
             "elev_door_status": "closed",
             "elev_temperature": 80.0,
+            "elev_vibration": 6.5,         # Spec: exceso de velocidad → vibración incrementa (>5.0 = crítico)
             "elevator_state": "MOVING",
         },
         "overload": {
-            "elev_load": _LOAD_HIGH * 0.85,
+            "elev_load": _LOAD_HIGH * 0.85,  # ~1020 kg (>800 = crítico)
             "elev_door_status": "open",
             "elev_speed": 0.0,
-            "elev_current": _CURR_HIGH * 0.6,
+            "elev_current": 0.0,              # Spec: motor bloqueado físicamente → current = 0.0
             "elevator_state": "DOORS_OPEN",
         },
         "pos_sensor_fail": {
@@ -179,6 +181,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             # Motor patina sin carga mecánica real → corriente de vacío (~20% de la nominal)
             "elev_current": ELEVATOR_MOTOR_RATED_CURRENT * 0.2,
             "elev_temperature": 95.0,
+            "elev_speed": CRUISING_SPEED,    # Spec: el motor gira a velocidad normal/alta mientras la cabina no avanza
         }
     }
     if fault == "commercial_power_outage":
@@ -473,11 +476,13 @@ def _handle_elev_door_closing(
 ) -> None:
 
     total_load = _effective_load(sim, load)
-    if total_load > RATED_LOAD * 1.8:
+    # Spec: bloqueo físico cuando load > 800 kg (umbral crítico)
+    if total_load > 800.0:
         sim._elev_state = "DOOR_OPENING"
         sim._elev_timer = 0
         sd["elev_door_status"] = "open"
         sd["elev_speed"] = 0.0
+        sd["elev_current"] = 0.0   # Spec: motor bloqueado → current = 0.0
         return
         
     # Lógica de cierre normal
@@ -686,7 +691,8 @@ def _run_elevator_post_fsm(
             sim._elev_pos_sensor_mismatch_timer = 0.0
         if abs(spd) > 0.05:
             sim._elev_pos_sensor_mismatch_timer += dt
-            if sim._elev_pos_sensor_mismatch_timer >= 4.0:
+            # Spec: parada de emergencia inmediata (≤1 tick) ante fallo de sensor de posición
+            if sim._elev_pos_sensor_mismatch_timer >= 1.0:
                 sim._elev_state = "IDLE"
                 sd["elev_speed"] = 0.0
                 spd = 0.0

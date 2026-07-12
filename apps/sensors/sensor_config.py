@@ -180,12 +180,15 @@ DEFAULT_THRESHOLDS = {
     # Normal: 0-600 | Alto: >600 | Crítico: >800
     "elev_load":         {"direction": "higher", "low": 600.0, "medium": 800.0, "high": 800.0},
     # Misma lógica industrial — límites de componentes del motor de tracción
-    "elev_temperature":  {"direction": "higher", "low": 60.0,  "medium": 85.0,  "high": 85.0},
-    "elev_current":      {"direction": "higher", "low": 32.0,  "medium": 40.0,  "high": 45.0},
-    "elev_vibration":    {"direction": "higher", "low": 4.5,   "medium": 7.1,   "high": 7.1},
-    # Normal: ~360-400V | Crítico: fuera de tolerancia extrema  (*bidireccional)
+    # Normal: 20-50 | Alto: >50 | Crítico: >75  (motor de tracción — spec actualizado)
+    "elev_temperature":  {"direction": "higher", "low": 50.0,  "medium": 75.0,  "high": 75.0},
+    # Normal: 0-20 | Alto: >20 | Crítico: >30  (spec actualizado)
+    "elev_current":      {"direction": "higher", "low": 20.0,  "medium": 30.0,  "high": 30.0},
+    # Normal: 0-2.0 | Alto: >2.0 | Crítico: >5.0  (spec actualizado)
+    "elev_vibration":    {"direction": "higher", "low": 2.0,   "medium": 5.0,   "high": 5.0},
+    # Normal: 360-400 V | Alto: fuera de 360-400 | Crítico: >418 ó <342  (trifásico industrial — spec)
     "elev_voltage":      {"direction": "range",  "low": 360.0, "high": 400.0,
-                          "crit_low": 340.0, "crit_high": 420.0},
+                          "crit_low": 342.0, "crit_high": 418.0},
 }
 
 FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."

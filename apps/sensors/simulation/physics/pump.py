@@ -80,9 +80,8 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         )
     if not is_locked(sim, "pump_voltage"):
         volt = sd["pump_voltage"]
-        # FIX-9 (BRECHA-2): Idle target is 0 V — motor terminals are de-energised
-        # when the pump is off. Previously converged toward 220 V which was wrong.
-        volt_diff = 0.0 - volt
+        # Red monofásica disponible aunque el motor esté parado — converge a 220 V (spec: voltage_inicial=220 V)
+        volt_diff = 220.0 - volt
         sd["pump_voltage"] = round(
             clamp(
                 volt + volt_diff * 0.1 * dt,
