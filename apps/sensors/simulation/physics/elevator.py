@@ -708,16 +708,26 @@ def _run_elevator_post_fsm(
 
     # ── Elevator motor temperature simulation ──────────────────────────────
     if not is_locked(sim, "elev_temperature") and not sim._elev_power_outage_complete:
-        target_temp = ELEVATOR_MOTOR_TEMP_AMBIENT + (effective_load / max(RATED_LOAD, 1)) * 20 + abs(spd) * 8
+        from apps.thresholds.services import get_thresholds
+        thresh = get_thresholds(sim.edificio_id)
+        temp_high = thresh.get("elev_temperature", {}).get("high", 60.0)
+        safe_temp_max = temp_high * 0.95
+
+        target_temp = ELEVATOR_MOTOR_TEMP_AMBIENT + (effective_load / max(RATED_LOAD, 1)) * 20 + abs(spd) * 5
         if current_state in ("ACCELERATING", "DECELERATING"):
             target_temp += 5.0
         temp_diff = target_temp - sim._elev_motor_temp
         sim._elev_motor_temp += temp_diff * 0.03 * dt + random.uniform(-0.2, 0.2) * dt
-        sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (-10.0, 90.0))[1])
+        
+        # Enforce safe normal regime if no fault
+        if "elevator" not in sim.sim_faults:
+            sim._elev_motor_temp = min(sim._elev_motor_temp, safe_temp_max)
+
+        sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1])
         sd["elev_temperature"] = round(sim._elev_motor_temp, 1)
     elif sim._elev_power_outage_complete or not sim._elev_power_available:
         sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
-        sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (-10.0, 90.0))[1]), 1)
+        sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1]), 1)
 
     # ── Elevator voltage simulation ────────────────────────────────────────
     if not is_locked(sim, "elev_voltage"):
@@ -733,6 +743,11 @@ def _run_elevator_post_fsm(
 
     # ── Elevator vibration simulation ──────────────────────────────────────
     if not is_locked(sim, "elev_vibration"):
+        from apps.thresholds.services import get_thresholds
+        thresh = get_thresholds(sim.edificio_id)
+        vib_high = thresh.get("elev_vibration", {}).get("high", 3.0)
+        safe_vib_max = vib_high * 0.9
+
         if not sim._elev_power_available and spd == 0:
             sim._elev_vibration = 0.0
         else:
@@ -740,6 +755,11 @@ def _run_elevator_post_fsm(
             sim._elev_vibration = base_vib + random.uniform(0.0, 0.4)
             if getattr(sim, "_elev_traction_loss", False):
                 sim._elev_vibration += 8.5 + random.uniform(0.0, 2.0)
+            
+            # Enforce safe normal regime if no fault
+            if "elevator" not in sim.sim_faults:
+                sim._elev_vibration = min(sim._elev_vibration, safe_vib_max)
+                
         sd["elev_vibration"] = round(clamp(sim._elev_vibration, sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[0], sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[1]), 1)
 
     # ── Elevator motor current simulation ──────────────────────────────────
@@ -777,8 +797,8 @@ def _run_elevator_post_fsm(
             
             # Inrush current (pico de arranque) durante los primeros 0.5s de aceleración
             if current_state == "ACCELERATING" and sim._elev_timer < 0.5:
-                # Multiplicador que va de 5.0 a 1.0
-                inrush_multiplier = 1.0 + 4.0 * (1.0 - sim._elev_timer / 0.5)
+                # Multiplicador reducido para evitar saltos críticos en régimen normal
+                inrush_multiplier = 1.0 + 1.5 * (1.0 - sim._elev_timer / 0.5)
                 sim._elev_current *= inrush_multiplier
                 
             sim._elev_current += random.uniform(-0.5, 0.5) * dt
@@ -787,6 +807,15 @@ def _run_elevator_post_fsm(
             sim._elev_current = max(sim._elev_current, ELEVATOR_MOTOR_RATED_CURRENT * 0.15)
         else:
             sim._elev_current = ELEVATOR_MOTOR_RATED_CURRENT * 0.15 + random.uniform(-0.3, 0.3) * dt
+            
+        # Enforce safe normal regime if no fault
+        if "elevator" not in sim.sim_faults:
+            from apps.thresholds.services import get_thresholds
+            thresh = get_thresholds(sim.edificio_id)
+            current_high = thresh.get("elev_current", {}).get("high", 25.0)
+            safe_current_max = current_high * 0.95
+            sim._elev_current = min(sim._elev_current, safe_current_max)
+            
         sd["elev_current"] = round(clamp(sim._elev_current, sim.sensor_limits.get('elev_current', (0.0, 40.0))[0], sim.sensor_limits.get('elev_current', (0.0, 40.0))[1]), 1)
 
     # ── Synchronize elevator_state ─────────────────────────────────────────

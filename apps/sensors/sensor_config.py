@@ -113,7 +113,9 @@ BOOLEAN_VARS = set()
 ENUM_VARS = {"elev_door_status"}
 
 ENUM_RISK_VALUES = {
-    "elev_door_status": {"open"},
+    # La puerta abierta solo es un riesgo real si el elevador está en movimiento;
+    # en parada normal (DOORS_OPEN, DOOR_OPENING) es el estado esperado.
+    # Se elimina del dict para que no genere alertas automáticas.
 }
 
 PUMP_VARS = [
@@ -154,9 +156,9 @@ VALUE_DISPLAY_ES = {
 }
 
 DEFAULT_THRESHOLDS = {
-    # ── SISTEMA BOMBA ───────────────────────────────────────────────────────
-    # Normal: 0-15 | Alto: >15 | Crítico: >20
-    "pump_flow_rate":    {"direction": "higher", "high": 15.0,  "critic": 20.0},
+    # ── SISTEMA BOMBA ───────────────────────────────────────────────────────────
+    # Normal: 0-18 | Alto: >18 | Crítico: >22
+    "pump_flow_rate":    {"direction": "higher", "high": 18.0,  "critic": 22.0},
     # Normal: 1.0-6.0 | Alto: fuera del rango | Crítico: fuera del rango crítico
     "pump_pressure":     {"direction": "range",  "high": 1.0,   "critic": 6.0,
                           "crit_low": 0.5, "crit_high": 8.0},
@@ -164,8 +166,8 @@ DEFAULT_THRESHOLDS = {
     "pump_temperature":  {"direction": "higher", "high": 60.0,  "critic": 85.0},
     # Normal: 0-4.5 | Alto: >4.5 | Crítico: >7.1
     "pump_vibration":    {"direction": "higher", "high": 4.5,   "critic": 7.1},
-    # Normal: 20-85 | Alto: fuera del rango | Crítico: fuera del rango crítico
-    "pump_tank_level":   {"direction": "range",  "high": 20.0,  "critic": 85.0,
+    # Normal: 20-90 | Alto: fuera del rango | Crítico: fuera del rango crítico
+    "pump_tank_level":   {"direction": "range",  "high": 20.0,  "critic": 90.0,
                           "crit_low": 10.0, "crit_high": 95.0},
     # Normal: 210-230 | Alto: fuera del rango | Crítico: fuera del rango crítico
     "pump_voltage":      {"direction": "range",  "high": 210.0, "critic": 230.0,
@@ -174,17 +176,17 @@ DEFAULT_THRESHOLDS = {
     "pump_current":      {"direction": "higher", "high": 16.0,  "critic": 22.0},
     # Normal: 0-300 | Alto: >300 | Crítico: >500
     "pump_water_quality":{"direction": "higher", "high": 300.0, "critic": 500.0},
-    # ── SISTEMA ELEVADOR ────────────────────────────────────────────────────
+    # ── SISTEMA ELEVADOR ───────────────────────────────────────────────────
     # Normal: 0-1.2 | Alto: >1.2 | Crítico: >1.6
     "elev_speed":        {"direction": "higher", "high": 1.2,   "critic": 1.6},
     # Normal: 0-600 | Alto: >600 | Crítico: >800
     "elev_load":         {"direction": "higher", "high": 600.0, "critic": 800.0},
-    # Normal: 20-50 | Alto: >50 | Crítico: >75
-    "elev_temperature":  {"direction": "higher", "high": 50.0,  "critic": 75.0},
-    # Normal: 0-20 | Alto: >20 | Crítico: >30
-    "elev_current":      {"direction": "higher", "high": 20.0,  "critic": 30.0},
-    # Normal: 0-2.0 | Alto: >2.0 | Crítico: >5.0
-    "elev_vibration":    {"direction": "higher", "high": 2.0,   "critic": 5.0},
+    # Normal: 20-60 | Alto: >60 | Crítico: >80
+    "elev_temperature":  {"direction": "higher", "high": 60.0,  "critic": 80.0},
+    # Normal: 0-25 | Alto: >25 | Crítico: >35
+    "elev_current":      {"direction": "higher", "high": 25.0,  "critic": 35.0},
+    # Normal: 0-3.0 | Alto: >3.0 | Crítico: >5.0
+    "elev_vibration":    {"direction": "higher", "high": 3.0,   "critic": 5.0},
     # Normal: 360-400 V | Alto: fuera del rango | Crítico: fuera del rango crítico
     "elev_voltage":      {"direction": "range",  "high": 360.0, "critic": 400.0,
                           "crit_low": 342.0, "crit_high": 418.0},
@@ -366,7 +368,7 @@ SENSOR_RANGES = {
     # ── SISTEMA BOMBA — Límites físicos destructivos (simulator.md §2) ──────
     "pump_flow_rate":    (0.0, 999999.0),   # sin límite explícito (excluido de UI)
     "pump_pressure":     (0.0,   10.0),   # Límite Máx spec = 10.0 bar (antes 12)
-    "pump_temperature":  (-10.0, 100.0),  # Límite Mín=-10°C, Máx=100°C (antes 22.0, 130)
+    "pump_temperature":  (22.0, 100.0),  # Límite Mín=22°C (T_AMBIENT), Máx=100°C
     "pump_vibration":    (0.0,   15.0),   # sin cambio
     "pump_tank_level":   (0.0, 999999.0), # sin límite explícito (excluido de UI)
     "pump_voltage":      (0.0,  300.0),   # Límite Mín=0 (corte), Máx=300 V spec (antes 180-260)
@@ -376,7 +378,7 @@ SENSOR_RANGES = {
     "elev_speed":        (0.0,    3.0),   # Límite Máx spec = 3.0 m/s (antes 6)
     "elev_load":         (0.0, 1200.0),   # sin cambio
     "elev_position":     (0.0, 999999.0), # sin límite explícito (excluido de UI)
-    "elev_temperature":  (-10.0,  90.0),  # Límite Mín=-10°C, Máx=90°C (antes 25.0, 120)
+    "elev_temperature":  (22.0,  90.0),  # Límite Mín=22°C (T_AMBIENT), Máx=90°C
     "elev_current":      (0.0,   40.0),   # Límite Máx spec = 40.0 A (antes 80)
     "elev_vibration":    (0.0,   10.0),   # Límite Máx spec = 10.0 mm/s (antes 20)
     "elev_voltage":      (0.0,  500.0),   # Límite Máx spec = 500.0 V (antes 450)

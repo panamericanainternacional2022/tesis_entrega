@@ -35,14 +35,15 @@ Este documento constituye la única fuente de verdad (*Single Source of Truth*) 
 ### Sistema: BOMBA
 
 * **Arranque Seguro (Time Step 0):** `flow=0.0`, `pressure=1.0`, `temp=25.0`, `vibration=0.0`, `tank=50.0`, `voltage=220.0`, `current=0.0`, `water_quality=150.0`.
+* **Control de bomba:** La bomba se controla únicamente de forma manual. No existe float switch automático por nivel de tanque.
 
 | Sensor | Límite Mín | Límite Máx | Umbral Normal | Umbral Alto | Umbral Crítico |
 | --- | --- | --- | --- | --- | --- |
-| `pump_flow_rate` | — | — | 0.0 a 15.0 | > 15.0 | > 20.0 |
+| `pump_flow_rate` | — | — | 0.0 a 18.0 | > 18.0 | > 22.0 |
 | `pump_pressure` | 0.0 | 10.0 | 1.0 a 6.0 | > 6.0 | > 8.0 ó < 0.5 |
-| `pump_temperature` | -10.0 | 100.0 | 20.0 a 60.0 | > 60.0 | > 85.0 |
+| `pump_temperature` | 22.0 *(T\_AMB)* | 100.0 | 22.0 a 60.0 | > 60.0 | > 85.0 |
 | `pump_vibration` | 0.0 | 15.0 | 0.0 a 4.5 | > 4.5 | > 7.1 |
-| `pump_tank_level` | 0.0 | 100.0 | 20.0 a 85.0 | > 85.0 ó < 20.0 | > 95.0 ó < 10.0 |
+| `pump_tank_level` | 0.0 | 100.0 | 20.0 a 90.0 | > 90.0 ó < 20.0 | > 95.0 ó < 10.0 |
 | `pump_voltage` | 0.0 | 300.0 | 210.0 a 230.0 | Fuera de Normal | > 242.0 ó < 198.0 |
 | `pump_current` | 0.0 | 30.0 | 0.0 a 16.0 | > 16.0 | > 22.0 |
 | `pump_water_quality` | — | — | 0.0 a 300.0 | > 300.0 | > 500.0 |
@@ -56,18 +57,19 @@ Este documento constituye la única fuente de verdad (*Single Source of Truth*) 
 | `elev_position` | 0.0 | 5.0 | — | — | — |
 | `elev_speed` | 0.0 | 3.0 | 0.0 a 1.2 | > 1.2 | > 1.6 |
 | `elev_load` | 0.0 | 1200.0 | 0.0 a 600.0 | > 600.0 | > 800.0 *(Bloqueo)* |
-| `elev_door_status` | — | — | Lógica: Bloqueo de movimiento si es 1.0 (Abierta) | — | — |
-| `elev_temperature` | -10.0 | 90.0 | 20.0 a 50.0 | > 50.0 | > 75.0 |
-| `elev_vibration` | 0.0 | 10.0 | 0.0 a 2.0 | > 2.0 | > 5.0 |
+| `elev_door_status` | — | — | Abierta/Cerrando/Cerrada en parada son estados normales. Solo Crítico si abierta en movimiento. | — | — |
+| `elev_temperature` | 22.0 *(T\_AMB)* | 90.0 | 22.0 a 60.0 | > 60.0 | > 80.0 |
+| `elev_vibration` | 0.0 | 10.0 | 0.0 a 3.0 | > 3.0 | > 5.0 |
 | `elev_voltage` | 0.0 | 500.0 | 360.0 a 400.0 | Fuera de Normal | > 418.0 ó < 342.0 |
-| `elev_current` | 0.0 | 40.0 | 0.0 a 20.0 | > 20.0 | > 30.0 |
+| `elev_current` | 0.0 | 40.0 | 0.0 a 25.0 | > 25.0 | > 35.0 |
 
 ---
 
 ## 3. COMPORTAMIENTO DINÁMICO EN LÍNEA BASE (SIN FALLAS)
 
-* **Bomba Activa:** Caudal `~12.0 l/s`, presión `~3.5 bar`, corriente `~14.0 A`. La temperatura asciende paulatinamente hasta estabilizarse en `~45.0 °C`. Vibración residual de `~1.5 mm/s`.
-* **Elevador Activo:** Pico transitorio de corriente al arrancar (`~18.0 A`), estabilizándose en `~10.0 A` en régimen crucero (`1.0 m/s`). Cambios de posición continuos y lineales.
+* **Bomba Activa:** Caudal `~12.0–16.0 l/s`, presión `~3.5 bar`, corriente `~13.0 A`. La temperatura asciende paulatinamente hasta estabilizarse en `~45.0 °C`. Vibración residual de `~1.5 mm/s`.
+* **Bomba Apagada:** Todos los valores operativos caen a 0. Temperatura converge a `22.0 °C` (temperatura ambiente). Voltaje se mantiene en `~220 V` (red disponible).
+* **Elevador Activo:** Pico transitorio de corriente al arrancar, estabilizándose en `~12.0–18.0 A` en régimen crucero (`1.0 m/s`). Temperatura del motor `~40–50 °C`. Cambios de posición continuos y lineales.
 
 ---
 
