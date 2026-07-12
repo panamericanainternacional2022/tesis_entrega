@@ -79,12 +79,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
             _clear_alert(sim, var)
             continue
 
-        risk, _ = classify_risk(
-            var, value, thresholds,
-            pump_on=sim.pump_on,
-            speed=sim.sensor_data.get("elev_speed", 0.0),
-            pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
-            elevator_on=sim.elevator_on)
+        risk, _ = classify_risk(var, value, thresholds)
         risk_cache[var] = risk
 
         if risk in (RISK_ALTO, RISK_CRITICO):
@@ -154,12 +149,7 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
         if risk_cache and var in risk_cache:
             risk = risk_cache[var]
         else:
-            risk, _ = classify_risk(
-                var, value, thresholds,
-                pump_on=sim.pump_on,
-                speed=sim.sensor_data.get("elev_speed", 0.0),
-                pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
-                elevator_on=sim.elevator_on)
+            risk, _ = classify_risk(var, value, thresholds)
         color = RISK_COLORS.get(risk, {}).get("email", {}).get("text", "#475569")
         sensor_type = "Bomba" if var in PUMP_VARS else "Elevador"
         new_readings.append({

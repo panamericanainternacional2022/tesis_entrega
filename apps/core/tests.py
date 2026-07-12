@@ -56,6 +56,8 @@ class AdminRequiredDecoratorTests(TestCase):
 
 class ClassifyRiskTests(TestCase):
 
+    # ── Sensores sin clasificación de riesgo ────────────────────────────────
+
     def test_no_risk_vars_return_normal(self):
         from unittest.mock import patch
         with patch("apps.core.services.risk_service.NO_RISK_VARS", ["elev_position"]):
@@ -63,81 +65,140 @@ class ClassifyRiskTests(TestCase):
             self.assertEqual(risk, RISK_NORMAL)
             self.assertEqual(color, "green")
 
-    def test_zero_flow_rate_returns_critico_when_pump_on(self):
-        risk, color = classify_risk("pump_flow_rate", 0, pump_on=True)
-        self.assertEqual(risk, RISK_CRITICO)
-        self.assertEqual(color, "red")
-
-    def test_zero_flow_rate_returns_normal_when_pump_off(self):
-        risk, color = classify_risk("pump_flow_rate", 0, pump_on=False)
+    def test_variable_without_thresholds_returns_normal(self):
+        risk, color = classify_risk("pump_flow_rate", 99)
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
-    def test_zero_pressure_returns_critico_when_pump_on(self):
-        risk, color = classify_risk("pump_pressure", 0, pump_on=True)
+    # ── Sensores de enumeración (elev_door_status) ──────────────────────────
+
+    def test_door_status_open_is_critico(self):
+        """'open' siempre es Crítico, sin contexto de velocidad (Opción A)."""
+        risk, color = classify_risk("elev_door_status", "open")
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
-    def test_zero_pressure_returns_normal_when_pump_off(self):
-        risk, color = classify_risk("pump_pressure", 0, pump_on=False)
+    def test_door_status_closing_is_normal(self):
+        """'closing' ya no es riesgoso — estado transitorio normal per spec."""
+        risk, color = classify_risk("elev_door_status", "closing")
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
-    def test_door_status_returns_normal_when_idle_and_no_failures(self):
-        risk, color = classify_risk("elev_door_status", "open", speed=0.0)
+    def test_door_status_closed_is_normal(self):
+        risk, color = classify_risk("elev_door_status", "closed")
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
-    def test_door_status_returns_critico_when_moving(self):
-        risk, color = classify_risk("elev_door_status", "open", speed=1.5)
-        self.assertEqual(risk, RISK_CRITICO)
-        self.assertEqual(color, "red")
+    # ── direction == "higher" ───────────────────────────────────────────────
+    # Usando la estructura real: {"direction": "higher", "high": X, "critic": Y}
 
-    def test_door_status_returns_alto_when_failed_closing(self):
-        risk, color = classify_risk("elev_door_status", "closing", speed=0.0)
+    def test_higher_below_high_is_normal(self):
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 10.0, thresholds)
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    def test_higher_at_high_boundary_is_normal(self):
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 15.0, thresholds)
+        self.assertEqual(risk, RISK_NORMAL)
+
+    def test_higher_above_high_is_alto(self):
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 17.0, thresholds)
         self.assertEqual(risk, RISK_ALTO)
         self.assertEqual(color, "orange")
 
-    def test_range_direction(self):
-        thresholds = {
-            "pump_temperature": {"direction": "range", "low": 20, "high": 80},
-        }
-        risk, color = classify_risk("pump_temperature", 50, thresholds=thresholds)
+    def test_higher_above_critic_is_critico(self):
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 22.0, thresholds)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_flow_zero_is_normal_per_spec(self):
+        """spec: pump_flow_rate Normal = 0.0 a 15.0, así que 0 es Normal."""
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 0.0, thresholds)
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    # ── direction == "range" ────────────────────────────────────────────────
+    # Estructura real: {"direction": "range", "high": lo_normal, "critic": hi_normal,
+    #                   "crit_low": lo_critico, "crit_high": hi_critico}
+
+    def test_range_inside_normal_band_is_normal(self):
+        """Voltaje 220V dentro del rango normal 210-230 V → Normal."""
+        thresholds = {"pump_voltage": {
+            "direction": "range", "high": 210.0, "critic": 230.0,
+            "crit_low": 198.0, "crit_high": 242.0,
+        }}
+        risk, color = classify_risk("pump_voltage", 220.0, thresholds)
+        self.assertEqual(risk, RISK_NORMAL)
+        self.assertEqual(color, "green")
+
+    def test_range_outside_normal_but_inside_critical_is_alto(self):
+        """Voltaje 240V fuera de 210-230 pero dentro de 198-242 → Alto."""
+        thresholds = {"pump_voltage": {
+            "direction": "range", "high": 210.0, "critic": 230.0,
+            "crit_low": 198.0, "crit_high": 242.0,
+        }}
+        risk, color = classify_risk("pump_voltage", 240.0, thresholds)
+        self.assertEqual(risk, RISK_ALTO)
+        self.assertEqual(color, "orange")
+
+    def test_range_below_crit_low_is_critico(self):
+        """Voltaje 195V por debajo del límite crítico 198V → Crítico."""
+        thresholds = {"pump_voltage": {
+            "direction": "range", "high": 210.0, "critic": 230.0,
+            "crit_low": 198.0, "crit_high": 242.0,
+        }}
+        risk, color = classify_risk("pump_voltage", 195.0, thresholds)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_range_above_crit_high_is_critico(self):
+        """Voltaje 250V por encima del límite crítico 242V → Crítico."""
+        thresholds = {"pump_voltage": {
+            "direction": "range", "high": 210.0, "critic": 230.0,
+            "crit_low": 198.0, "crit_high": 242.0,
+        }}
+        risk, color = classify_risk("pump_voltage", 250.0, thresholds)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_pressure_zero_is_critico_via_range(self):
+        """Presión 0 bar < crit_low 0.5 → Crítico (spec: Crítico < 0.5 bar)."""
+        thresholds = {"pump_pressure": {
+            "direction": "range", "high": 1.0, "critic": 6.0,
+            "crit_low": 0.5, "crit_high": 8.0,
+        }}
+        risk, color = classify_risk("pump_pressure", 0.0, thresholds)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_tank_level_normal(self):
+        """Nivel tanque 50% dentro del rango 20-85% → Normal."""
+        thresholds = {"pump_tank_level": {
+            "direction": "range", "high": 20.0, "critic": 85.0,
+            "crit_low": 10.0, "crit_high": 95.0,
+        }}
+        risk, color = classify_risk("pump_tank_level", 50.0, thresholds)
         self.assertEqual(risk, RISK_NORMAL)
 
-    def test_range_direction_high(self):
-        thresholds = {
-            "pump_temperature": {"direction": "range", "low": 20, "high": 80},
-        }
-        risk, color = classify_risk("pump_temperature", 99, thresholds=thresholds)
+    def test_tank_level_low_is_alto(self):
+        """Nivel tanque 15% fuera de 20-85% pero dentro de 10-95% → Alto."""
+        thresholds = {"pump_tank_level": {
+            "direction": "range", "high": 20.0, "critic": 85.0,
+            "crit_low": 10.0, "crit_high": 95.0,
+        }}
+        risk, color = classify_risk("pump_tank_level", 15.0, thresholds)
         self.assertEqual(risk, RISK_ALTO)
 
-    def test_higher_direction(self):
-        thresholds = {
-            "pump_flow_rate": {"direction": "higher", "low": 10, "medium": 20, "high": 30},
-        }
-        test_cases = [
-            (5, RISK_NORMAL, "green"),
-            (15, RISK_ALTO, "orange"),
-            (25, RISK_ALTO, "orange"),
-            (35, RISK_CRITICO, "red"),
-        ]
-        for value, expected_risk, expected_color in test_cases:
-            risk, color = classify_risk("pump_flow_rate", value, thresholds=thresholds)
-            self.assertEqual(risk, expected_risk, f"pump_flow_rate={value}")
-            self.assertEqual(color, expected_color, f"pump_flow_rate={value}")
-
-    def test_lower_direction(self):
-        thresholds = {
-            "tank_level": {"direction": "lower", "low": 80, "medium": 60, "high": 40},
-        }
-        test_cases = [
-            (90, RISK_NORMAL, "green"),
-            (70, RISK_ALTO, "orange"),
-            (50, RISK_ALTO, "orange"),
-            (30, RISK_CRITICO, "red"),
-        ]
-        for value, expected_risk, expected_color in test_cases:
-            risk, color = classify_risk("tank_level", value, thresholds=thresholds)
-            self.assertEqual(risk, expected_risk, f"tank_level={value}")
-            self.assertEqual(color, expected_color, f"tank_level={value}")
+    def test_tank_level_critical_low(self):
+        """Nivel tanque 5% por debajo del crítico 10% → Crítico."""
+        thresholds = {"pump_tank_level": {
+            "direction": "range", "high": 20.0, "critic": 85.0,
+            "crit_low": 10.0, "crit_high": 95.0,
+        }}
+        risk, color = classify_risk("pump_tank_level", 5.0, thresholds)
+        self.assertEqual(risk, RISK_CRITICO)

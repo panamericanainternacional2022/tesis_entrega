@@ -49,10 +49,8 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     stats = _compute_stats(ctx.history)
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)
-    speed = ctx.sensor_data.get("elev_speed", 0.0)
     sensors = _build_sensors_list(
-        ctx.sensor_data, relevant_vars, thresholds,
-        pump_on=ctx.pump_on, speed=speed)
+        ctx.sensor_data, relevant_vars, thresholds)
     pump_status, elevator_status = _fetch_equipment_status(
         ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts
     )
@@ -88,21 +86,13 @@ def _build_relevant_vars(equipment_types: set) -> set[str]:
 def _build_sensors_list(
     sensor_data: dict,
     relevant_vars: set[str],
-    thresholds: dict,
-    pump_on: bool = True,
-    speed: float = 0.0) -> list[dict[str, Any]]:
+    thresholds: dict) -> list[dict[str, Any]]:
     from apps.core.services.risk_service import classify_risk
     sensors = []
     for var, value in sensor_data.items():
         if var not in relevant_vars:
             continue
-        risk, color = classify_risk(
-            var, value, thresholds,
-            pump_on=pump_on, speed=speed,
-            position=sensor_data.get("elev_position", 0.0),
-            load=sensor_data.get("elev_load", 0.0),
-            door_status=sensor_data.get("elev_door_status", "closed"),
-            elevator_state=sensor_data.get("elevator_state", "IDLE"))
+        risk, color = classify_risk(var, value, thresholds)
         sensors.append({
             "id": var,
             "nombre": VAR_NAMES.get(var, var),

@@ -143,23 +143,19 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # 7. Door status risk classification
     # -----------------------------------------------------------------------
     def test_door_status_alert_logic(self):
-        """Open door while stationary → Normal; while moving or repeated fails → Critical."""
-        risk, _ = classify_risk(
-            "elev_door_status", "open", {},
-            speed=0.0, position=0.0)
-        self.assertEqual(risk, RISK_NORMAL)
-
-        risk, _ = classify_risk(
-            "elev_door_status", "open", {},
-            speed=1.0, position=0.0)
+        """'open' siempre es Crítico (Opción A: sin contexto de velocidad).
+        'closing' es Normal — estado transitorio per spec."""
+        # open → Crítico independientemente del estado del elevador
+        risk, _ = classify_risk("elev_door_status", "open", {})
         self.assertEqual(risk, RISK_CRITICO)
 
+        # closing → Normal (ya no es riesgoso per spec)
+        risk, _ = classify_risk("elev_door_status", "closing", {})
+        self.assertEqual(risk, RISK_NORMAL)
 
-
-        risk, _ = classify_risk(
-            "elev_door_status", "closing", {},
-            speed=0.0, position=0.0)
-        self.assertEqual(risk, RISK_ALTO)
+        # closed → Normal
+        risk, _ = classify_risk("elev_door_status", "closed", {})
+        self.assertEqual(risk, RISK_NORMAL)
 
 
     # -----------------------------------------------------------------------
@@ -436,6 +432,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim.manual_overrides["elev_load"] = time.time() + 90.0
         sim.manual_targets["elev_load"] = 400.0
 
+        sim.elevator_on = True
         # Inject pos_sensor_fail (affects speed, position, door_status)
         inject_fault(self.building.id, "elevator", "pos_sensor_fail")
         sim.manual_overrides["elev_position"] = time.time() + 90.0

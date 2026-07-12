@@ -106,14 +106,14 @@ LIMITS_EXCLUDE_VARS = [
     "elev_position", "elev_door_status",
 ]
 
-ZERO_IS_CRITICAL_VARS = {"pump_flow_rate", "pump_pressure"}
+
 
 BOOLEAN_VARS = set()
 
 ENUM_VARS = {"elev_door_status"}
 
 ENUM_RISK_VALUES = {
-    "elev_door_status": {"open", "closing"},
+    "elev_door_status": {"open"},
 }
 
 PUMP_VARS = [

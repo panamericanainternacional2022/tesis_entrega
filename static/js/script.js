@@ -533,32 +533,13 @@
     }
 
     function getRiskClass(varName, value) {
-        if (varName === 'pump_flow_rate' || varName === 'pump_pressure') {
-            if (!currentPumpOn) {
-                const lowLimit = varName === 'pump_flow_rate' ? 8.0 : 2.0;
-                const cfg = currentThresholds[varName];
-                const finalLow = cfg ? cfg.low : lowLimit;
-                if (Number(value) <= finalLow) {
-                    return { badge: 'badge-normal', label: _RISK.normal };
-                }
-            } else if (Number(value) === 0) {
-                return { badge: 'badge-crit', label: _RISK.critico };
-            }
-        }
         if (_BOOLEAN_VARS.includes(varName)) {
             const crit = !!value;
             return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
         }
         if (_ENUM_VARS.includes(varName)) {
             const risky = _ENUM_RISK_VALUES[varName] || [];
-            let crit = risky.includes(String(value).toLowerCase());
-            if (varName === 'elev_door_status' && crit) {
-                const speed = Number(currentReadings['elev_speed'] || 0);
-                const isMoving = speed > 0.05;
-                if (!isMoving) {
-                    crit = false;
-                }
-            }
+            const crit = risky.includes(String(value).toLowerCase());
             return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
         }
         if (_NO_RISK_VARS.includes(varName)) {
@@ -568,20 +549,26 @@
         const cfg = currentThresholds[varName];
         if (!cfg) return { badge: 'badge-normal', label: _RISK.normal };
 
-        let risk = _RISK.normal, cls = 'normal';
+        const numVal = Number(value);
+
         if (cfg.direction === 'range') {
-            if (!(value >= cfg.low && value <= cfg.high)) { risk = _RISK.alto; cls = 'high'; }
-        } else {
-            const { direction: d, low, high } = cfg;
-            if (d === 'higher') {
-                if (value > high) { risk = _RISK.critico; cls = 'crit'; }
-                else if (value > low) { risk = _RISK.alto; cls = 'high'; }
-            } else {
-                if (value < high) { risk = _RISK.critico; cls = 'crit'; }
-                else if (value < low) { risk = _RISK.alto; cls = 'high'; }
-            }
+            // cfg.high   = límite INFERIOR del rango normal (ej: 210 V, 20% tank)
+            // cfg.critic = límite SUPERIOR del rango normal (ej: 230 V, 85% tank)
+            // cfg.crit_low / cfg.crit_high = límites críticos externos
+            const lo     = cfg.high;
+            const hi     = cfg.critic;
+            const critLo = cfg.crit_low;
+            const critHi = cfg.crit_high;
+            if (critLo !== undefined && numVal < critLo) return { badge: 'badge-crit', label: _RISK.critico };
+            if (critHi !== undefined && numVal > critHi) return { badge: 'badge-crit', label: _RISK.critico };
+            if (numVal >= lo && numVal <= hi) return { badge: 'badge-normal', label: _RISK.normal };
+            return { badge: 'badge-high', label: _RISK.alto };
         }
-        return { badge: `badge-${cls}`, label: risk };
+
+        // direction === 'higher': cfg.high = umbral Normal→Alto, cfg.critic = umbral Alto→Crítico
+        if (numVal > cfg.critic) return { badge: 'badge-crit', label: _RISK.critico };
+        if (numVal > cfg.high)   return { badge: 'badge-high', label: _RISK.alto };
+        return { badge: 'badge-normal', label: _RISK.normal };
     }
 
     const getCSSVar = (name) =>

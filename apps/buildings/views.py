@@ -264,20 +264,17 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
         ])
 
     _render_executive_summary(
-        pdf, sensor_data, thresholds, relevant_vars,
-        pump_on=pump_on, speed=speed)
+        pdf, sensor_data, thresholds, relevant_vars)
     _render_equipment_summary(pdf, equipment)
     render_severity_legend(pdf)
 
     critical_items = _get_critical_items(
-        sensor_data, thresholds, relevant_vars,
-        pump_on=pump_on, speed=speed)
+        sensor_data, thresholds, relevant_vars)
     if critical_items:
         _render_critical_section(pdf, critical_items, VAR_NAMES, UNITS, VALUE_DISPLAY_ES)
 
     _render_current_readings(
-        pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, VALUE_DISPLAY_ES,
-        pump_on=pump_on, speed=speed)
+        pdf, sensor_data, thresholds, relevant_vars, equip_types, VAR_NAMES, UNITS, VALUE_DISPLAY_ES)
 
     if stats:
         _render_stats_table(pdf, stats, relevant_vars, VAR_NAMES, UNITS)
@@ -335,16 +332,13 @@ def _compute_stats(history: list, stats_vars: list) -> dict:
 
 
 def _get_critical_items(
-    sensor_data: dict, thresholds: dict, relevant_vars: set,
-    pump_on: bool = True, speed: float = 0.0) -> list[dict]:
+    sensor_data: dict, thresholds: dict, relevant_vars: set) -> list[dict]:
     _CRITICAL_LEVELS = {RISK_ALTO, RISK_CRITICO}
     items = []
     for var in sorted(relevant_vars):
         if var not in sensor_data:
             continue
-        risk, _ = classify_risk(
-            var, sensor_data[var], thresholds,
-            pump_on=pump_on, speed=speed)
+        risk, _ = classify_risk(var, sensor_data[var], thresholds)
         if risk in _CRITICAL_LEVELS:
             items.append({"var": var, "value": sensor_data[var], "risk": risk})
     return items
@@ -365,16 +359,14 @@ def _format_value(var: str, value, units: dict, value_display_map: dict = None) 
 
 def _render_executive_summary(
     pdf: Any, sensor_data: dict, thresholds: dict,
-    relevant_vars: set, pump_on: bool = True, speed: float = 0.0) -> None:
+    relevant_vars: set) -> None:
 
     render_section_divider(pdf, "Resumen ejecutivo")
 
     counts = {rl: 0 for rl in list(SEVERITY_LEVELS) + [RISK_NORMAL]}
     for var in relevant_vars:
         if var in sensor_data:
-            risk, _ = classify_risk(
-                var, sensor_data[var], thresholds,
-                pump_on=pump_on, speed=speed)
+            risk, _ = classify_risk(var, sensor_data[var], thresholds)
             if risk in counts:
                 counts[risk] += 1
 
@@ -462,8 +454,7 @@ def _render_current_readings(
     pdf: Any, sensor_data: dict, thresholds: dict,
     relevant_vars: set, equip_types: set,
     _VAR_NAMES: dict, _UNITS: dict,
-    _VALUE_DISPLAY_ES: dict = None,
-    pump_on: bool = True, speed: float = 0.0) -> None:
+    _VALUE_DISPLAY_ES: dict = None) -> None:
     if pdf.get_y() > 230:
         pdf.add_page()
 
@@ -497,9 +488,7 @@ def _render_current_readings(
             if var not in sensor_data:
                 continue
             val = sensor_data[var]
-            risk, _ = classify_risk(
-                var, val, thresholds,
-                pump_on=pump_on, speed=speed)
+            risk, _ = classify_risk(var, val, thresholds)
             val_str = _format_value(var, val, _UNITS, _VALUE_DISPLAY_ES)
             var_name = _VAR_NAMES.get(var, var)
             fill_c, text_c = RISK_STYLES.get(risk, ((255, 255, 255), (26, 26, 26)))
