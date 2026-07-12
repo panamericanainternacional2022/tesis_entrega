@@ -10,7 +10,6 @@ VAR_NAMES = {
     "speed":        "Velocidad",
     "load":         "Carga",
     "energy":       "Consumo eléctrico",
-    "motor_stuck":  "Motor atascado",
     "trip_count":   "Conteo de viajes",
     "position":     "Posición",
     "door_status":  "Estado de puerta",
@@ -32,7 +31,6 @@ UNITS = {
     "trip_count":   "viajes",
     "position":     "piso",
     "door_status":  "",
-    "motor_stuck":  "",
     "door_close_attempts": "",
 }
 
@@ -131,7 +129,6 @@ ELEVATOR_VARS = [
     "trip_count",
     "door_status",
     "energy",
-    "motor_stuck",
     "door_close_attempts",
 ]
 

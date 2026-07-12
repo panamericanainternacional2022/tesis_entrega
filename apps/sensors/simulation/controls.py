@@ -93,7 +93,8 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         sim.last_email_sent_time_per_var.pop(fault_email_key, None)
         fault_alert_key = f"fault:{old_fault}"
         sim.active_alerts.pop(fault_alert_key, None)
-        sim._alert_consecutive.pop(fault_alert_key, None)
+        if hasattr(sim, "_alert_consecutive"):
+            sim._alert_consecutive.pop(fault_alert_key, None)
 
     if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, set):
         if device == "pump":
