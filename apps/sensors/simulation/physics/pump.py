@@ -121,78 +121,65 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _apply_dry_run(sim, sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 5.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], 0.5)          # converge a casi-cero (0.5 = techo de sequía)
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 2.0 * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], 0.5)          # idem
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.5 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])   # sube sin refrigeración
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.5 * dt, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    sd["pump_current"]     = clamp(sd["pump_current"]     - 2.0 * dt, sim.sensor_limits.get('pump_current', (0.0, 30.0))[0], sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])   # B-4: mín era 1.0 A → ahora 0.0
-    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  - 15.0 * dt, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], 10.0)        # 10% = umbral crítico-bajo del tanque
-
+    sd["pump_flow_rate"]   = 0.0
+    sd["pump_pressure"]    = 0.0
+    sd["pump_temperature"] = 90.0
+    sd["pump_vibration"]   = 10.0
+    sd["pump_current"]     = 0.0
+    sd["pump_tank_level"]  = 0.0
 
 def _apply_blocked_discharge(sim, sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 5.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], 0.5)          # flujo cae a casi-cero
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    + 1.5 * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1])   # presión sube a máx (descarga bloqueada)
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.8 * dt, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])   # fricción hidrodinámica interna
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 2.0 * dt, 10.0,      sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])   # 10.0 A = carga mínima con bloqueo
-    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  + 0.1 * dt, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1])
-
+    sd["pump_flow_rate"]   = 0.0
+    sd["pump_pressure"]    = 10.0
+    sd["pump_vibration"]   = 10.0
+    sd["pump_temperature"] = 90.0
+    sd["pump_current"]     = 25.0
+    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"] + 0.1 * dt, 0.0, 100.0)
 
 def _apply_pipe_burst(sim, sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   + 3.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1])
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 0.8 * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], 2.0)          # 2.0 = presión residual post-ruptura
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.6 * dt, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 8.0 * dt, sim.sensor_limits.get('pump_current', (0.0, 30.0))[0], sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.0 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])
-    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"]  - 5.0 * dt, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1])
-
+    sd["pump_flow_rate"]   = 50.0
+    sd["pump_pressure"]    = 0.0
+    sd["pump_vibration"]   = 10.0
+    sd["pump_current"]     = 25.0
+    sd["pump_temperature"] = 90.0
+    sd["pump_tank_level"]  = 0.0
 
 def _apply_cavitation(sim, sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   + random.uniform(-5, 5) * dt,      sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1])
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + random.uniform(0.5, 2.0) * dt,  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    # Oscilación brusca de presión — inestabilidad hidrodinámica real (±2.0 bar)
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    + random.uniform(-2.0, 2.0) * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1])
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 1.2 * dt,                      sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])
-    # Picos de corriente por variaciones de carga hidrodinámica
-    sd["pump_current"]     = clamp(sd["pump_current"]     + random.uniform(-3.0, 5.0) * dt, sim.sensor_limits.get('pump_current', (0.0, 30.0))[0], sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])
-
+    sd["pump_flow_rate"]   = random.uniform(25.0, 35.0)
+    sd["pump_vibration"]   = 10.0
+    sd["pump_pressure"]    = random.uniform(0.0, 0.5)
+    sd["pump_temperature"] = 90.0
+    sd["pump_current"]     = random.uniform(25.0, 30.0)
 
 def _apply_overheat(sim, sd: dict, dt: float) -> None:
-    # Spec: temp sube linealmente hasta rebasar el Límite Físico (100°C = sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 2.0 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])   # B-7: antes clampeaba a 130°C
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 0.3 * dt, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    # Resistencia eléctrica del bobinado aumenta con temperatura (R = R0 * (1 + α*ΔT))
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 0.5 * dt, sim.sensor_limits.get('pump_current', (0.0, 30.0))[0], sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])
-    # Viscosidad del fluido caliente reduce el caudal
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 0.3 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1])
-
+    sd["pump_temperature"] = 100.0
+    sd["pump_vibration"]   = 10.0
+    sd["pump_current"]     = 25.0
+    sd["pump_flow_rate"]   = 0.0
 
 def _apply_power_surge(sim, sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"]   = clamp(sd["pump_flow_rate"]   - 10.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], 0.5)         # converge a casi-cero durante sobrecarga
-    sd["pump_pressure"]    = clamp(sd["pump_pressure"]    - 5.0 * dt,  sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], 0.5)
-    sd["pump_voltage"]     = clamp(sd["pump_voltage"]     - 15.0 * dt, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[0], sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1])  # usa rango completo (0–300 V)
-    sd["pump_current"]     = clamp(sd["pump_current"]     + 12.0 * dt, sim.sensor_limits.get('pump_current', (0.0, 30.0))[0], sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])  # dispara a crítico (>22 A)
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt,  sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])  # Efecto Joule
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 1.5 * dt,  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-
+    sd["pump_flow_rate"]   = 0.0
+    sd["pump_pressure"]    = 0.0
+    sd["pump_voltage"]     = 300.0
+    sd["pump_current"]     = 30.0
+    sd["pump_temperature"] = 90.0
+    sd["pump_vibration"]   = 10.0
 
 def _apply_power_outage(sim, sd: dict, dt: float) -> None:
-    # Spec: voltage→0, current→0, flow y pressure→0.0 de forma INMEDIATA (B-3)
     sd["pump_voltage"]     = 0.0
     sd["pump_current"]     = 0.0
-    sd["pump_flow_rate"]   = 0.0                                                                 # B-3: inmediato (antes: rampa -20*dt)
-    sd["pump_pressure"]    = 0.0                                                                 # B-3: inmediato (antes: rampa -4*dt)
-    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   - 5.0 * dt, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    sd["pump_temperature"] = clamp(sd["pump_temperature"] - 0.5 * dt, T_AMBIENT, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])
+    sd["pump_flow_rate"]   = 0.0
+    sd["pump_pressure"]    = 0.0
+    sd["pump_vibration"]   = 0.0
+    sd["pump_temperature"] = T_AMBIENT
 
 def _apply_bearing_failure(sim, sd: dict, dt: float) -> None:
-    sd["pump_vibration"]     = clamp(sd["pump_vibration"]     + 1.5 * dt,  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],  sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1])
-    sd["pump_temperature"]   = clamp(sd["pump_temperature"]   + 3.0 * dt,  sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1])
-    sd["pump_current"]       = clamp(sd["pump_current"]       + 4.0 * dt,  10.0,      sim.sensor_limits.get('pump_current', (0.0, 30.0))[1])   # 10.0 A = carga mínima por fricción parásita
-    sd["pump_water_quality"] = clamp(sd.get("pump_water_quality", 200.0) + 15.0 * dt, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1])
-    # Pérdida de eficiencia mecánica → degradación progresiva de caudal y presión
-    sd["pump_flow_rate"]     = clamp(sd["pump_flow_rate"]     - 0.4 * dt,  sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1])
-    sd["pump_pressure"]      = clamp(sd["pump_pressure"]      - 0.2 * dt,  sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1])
+    sd["pump_vibration"]     = 10.0
+    sd["pump_temperature"]   = 90.0
+    sd["pump_current"]       = 25.0
+    sd["pump_water_quality"] = 600.0
+    sd["pump_flow_rate"]     = 0.0
+    sd["pump_pressure"]      = 0.0
 
 def _clamp_pump_values(sim, sd: dict) -> None:
     sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]),       1)

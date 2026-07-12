@@ -75,6 +75,8 @@ Este documento constituye la única fuente de verdad (*Single Source of Truth*) 
 
 ## 4. MATRIZ DE INYECCIÓN DE FALLAS (COMPORTAMIENTO EN CADENA)
 
+**NOTA IMPORTANTE SOBRE FÍSICAS DE FALLA:** Al inyectarse una falla, los sensores saltan de **forma directa e instantánea** a los valores anómalos o críticos correspondientes, sin pasar por rampas progresivas. Esto está diseñado así para facilitar pruebas y validación inmediata del sistema de alertas en el entorno de desarrollo y pruebas.
+
 ### Inyecciones en Bomba
 
 1. **Sequía (Dry Run):**
@@ -104,12 +106,12 @@ Este documento constituye la única fuente de verdad (*Single Source of Truth*) 
 
 
 5. **Sobrecalentamiento:**
-* `temperature` ➔ Sube linealmente continuo hasta rebasar el Límite Físico (destrucción térmica).
-
+* `temperature` ➔ Salta directamente a Límite Físico (100.0 °C).
 
 6. **Sobrecarga Eléctrica:**
-* `current` ➔ Dispara a Crítico
-* `temperature` ➔ Sube rápido por Efecto Joule.
+* `current` ➔ Salta directo a valor Crítico (30.0 A).
+* `voltage` ➔ Sube a valor anómalo (300.0 V).
+* `temperature` ➔ Sube de inmediato por Efecto Joule (90.0 °C).
 
 
 7. **Corte Eléctrico:**
@@ -119,9 +121,10 @@ Este documento constituye la única fuente de verdad (*Single Source of Truth*) 
 
 
 8. **Falla de Rodamientos:**
-* `vibration` ➔ Sube progresivamente
-* `temperature` motor ➔ Sube
-* `current` ➔ Incremento ligero por fricción parásita.
+* `vibration` ➔ Salta directo a Crítico (10.0 mm/s)
+* `temperature` motor ➔ Salta a Crítico (90.0 °C)
+* `current` ➔ Incremento por fricción parásita (25.0 A)
+* `water_quality` ➔ Sube por contaminación (600.0 ppm)
 
 
 
@@ -139,8 +142,8 @@ Este documento constituye la única fuente de verdad (*Single Source of Truth*) 
 
 
 3. **Exceso de Velocidad:**
-* `speed` ➔ Supera umbral Crítico (>1.6 m/s)
-* `vibration` ➔ Incrementa por descontrol cinético.
+* `speed` ➔ Supera umbral Crítico de inmediato (>1.6 m/s, ej. 2.0 m/s)
+* `vibration` ➔ Incrementa a Crítico (6.5 mm/s) por descontrol cinético.
 
 
 4. **Sobrecarga:**

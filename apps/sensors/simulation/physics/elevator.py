@@ -245,17 +245,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
             sd[var] = target
             continue
 
-        max_step = MAX_STEPS_PER_SECOND.get(var, 999999.0) * dt
-        if fault == "commercial_power_outage" and var == "elev_speed":
-            timer = getattr(sim, "_elev_power_outage_timer", 0.0)
-            complete = getattr(sim, "_elev_power_outage_complete", False)
-            if not complete and timer < POWER_OUTAGE_BRAKE_TIME:
-                max_step = 2.5 * dt
-
-        if abs(diff) <= max_step:
-            new_val = target
-        else:
-            new_val = float(current) + (max_step if diff > 0 else -max_step)
+        new_val = target
 
         bounds = sim.sensor_limits.get(var)
         if bounds:
