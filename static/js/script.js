@@ -466,7 +466,7 @@
 
     const CHART_PUMP_VARS = _BOMBA_VARS.filter(v => v !== 'tank_level');
     const CHART_ELEV_VARS = _ELEVADOR_VARS.filter(
-        v => v !== 'position' && v !== 'door_status' && v !== 'motor_stuck'
+        v => v !== 'elev_position' && v !== 'elev_door_status' && v !== 'motor_stuck'
     );
 
     let EDIFICIO_ID = _CONFIG.edificio_id || window.SELECTED_EDIFICIO_ID || 0;
@@ -507,7 +507,7 @@
 
     function formatNumeric(value, variable) {
         if (typeof value !== 'number') return safeText(value);
-        if (variable === 'trip_count' || variable === 'load') return Math.round(value).toString();
+        if (variable === 'elev_load') return Math.round(value).toString();
         return value.toFixed(2);
     }
 
@@ -517,9 +517,9 @@
     const getUnit = (variable) => _UNITS[variable] || '';
 
     function translateSensorValue(variable, value) {
-        if (variable === 'position') {
+        if (variable === 'elev_position') {
             const floor = Math.round(Number(value));
-            const posRange = _SENSOR_RANGES['position'];
+            const posRange = _SENSOR_RANGES['elev_position'];
             const maxFloor = posRange ? posRange[1] : null;
             if (floor === 0) return 'PB';
             if (maxFloor !== null && floor === maxFloor) return 'PH';
@@ -534,9 +534,9 @@
     }
 
     function getRiskClass(varName, value) {
-        if (varName === 'flow_rate' || varName === 'pressure') {
+        if (varName === 'pump_flow_rate' || varName === 'pump_pressure') {
             if (!currentPumpOn) {
-                const lowLimit = varName === 'flow_rate' ? 8.0 : 2.0;
+                const lowLimit = varName === 'pump_flow_rate' ? 8.0 : 2.0;
                 const cfg = currentThresholds[varName];
                 const finalLow = cfg ? cfg.low : lowLimit;
                 if (Number(value) <= finalLow) {
@@ -561,8 +561,8 @@
         if (_ENUM_VARS.includes(varName)) {
             const risky = _ENUM_RISK_VALUES[varName] || [];
             let crit = risky.includes(String(value).toLowerCase());
-            if (varName === 'door_status' && crit) {
-                const speed = Number(currentReadings['speed'] || 0);
+            if (varName === 'elev_door_status' && crit) {
+                const speed = Number(currentReadings['elev_speed'] || 0);
                 const isMoving = speed > 0.05;
                 const hasFailedToClose = currentDoorCloseAttempts >= 2;
                 if (!isMoving && !hasFailedToClose) {
@@ -599,7 +599,7 @@
 
 
     function _getMovementState(variable, value) {
-        if (variable !== 'position') return null;
+        if (variable !== 'elev_position') return null;
         if (typeof value !== 'number') return null;
 
         if (!currentElevOn) {
@@ -650,7 +650,7 @@
                 card.className = 'sensor-card';
                 const badgeHtml = isNoRisk ? '' : `<span class="badge ${ri.badge}">${ri.label}</span>`;
 
-                if (k === 'position') {
+                if (k === 'elev_position') {
                     const movementInfo = _getMovementState(k, v);
                     const movementHtml = movementInfo
                         ? `<span class="sensor-card-movement ${movementInfo.cls}"><i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}</span>`
@@ -678,7 +678,7 @@
                 const valEl = card.querySelector('[data-sensor-value], .sensor-card-value');
                 if (valEl && valEl.textContent !== displayValue) valEl.textContent = displayValue;
 
-                if (k === 'position') {
+                if (k === 'elev_position') {
                     const movementInfo = _getMovementState(k, v);
                     const movEl = card.querySelector('.sensor-card-movement');
                     if (movementInfo) {
@@ -1089,7 +1089,7 @@
     }
 
     function renderThresholdsPanel(th) {
-        const _THRESHOLDS_HIDDEN_VARS = ['position'];
+        const _THRESHOLDS_HIDDEN_VARS = ['elev_position'];
         const bombaVars = _BOMBA_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
         const elevadorVars = _ELEVADOR_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
         const otherVars = Object.keys(th).filter(k =>
@@ -1109,7 +1109,7 @@
             };
             const dirBadge = DIR_BADGE[cfg.direction] || '<span class="thresh-dir-badge" style="color:var(--state-info);" title="Rango válido"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> Rango válido</span>';
             const headerHtml = `<div class="thresh-card-header">
-                <span class="thresh-label">${name}${unit && k !== 'trip_count' ? ` (${unit})` : ''}</span>
+                <span class="thresh-label">${name}${unit ? ` (${unit})` : ''}</span>
                 ${dirBadge}
             </div>`;
 

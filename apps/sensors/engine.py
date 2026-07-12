@@ -83,7 +83,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         risk, _ = classify_risk(
             var, value, thresholds,
             pump_on=sim.pump_on,
-            speed=sim.sensor_data.get("speed", 0.0),
+            speed=sim.sensor_data.get("elev_speed", 0.0),
             door_close_attempts=sim.door_close_attempts,
             pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
             elevator_on=sim.elevator_on,
@@ -156,7 +156,7 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
             risk, _ = classify_risk(
                 var, value, thresholds,
                 pump_on=sim.pump_on,
-                speed=sim.sensor_data.get("speed", 0.0),
+                speed=sim.sensor_data.get("elev_speed", 0.0),
                 door_close_attempts=sim.door_close_attempts,
                 pos_stuck=getattr(sim, "_elev_pos_sensor_stuck", False),
                 elevator_on=sim.elevator_on,

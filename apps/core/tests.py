@@ -67,63 +67,63 @@ class ClassifyRiskTests(TestCase):
 
     def test_no_risk_vars_return_normal(self):
         from unittest.mock import patch
-        with patch("apps.core.services.risk_service.NO_RISK_VARS", ["position"]):
-            risk, color = classify_risk("position", 42)
+        with patch("apps.core.services.risk_service.NO_RISK_VARS", ["elev_position"]):
+            risk, color = classify_risk("elev_position", 42)
             self.assertEqual(risk, RISK_NORMAL)
             self.assertEqual(color, "green")
 
     def test_zero_flow_rate_returns_critico_when_pump_on(self):
-        risk, color = classify_risk("flow_rate", 0, pump_on=True)
+        risk, color = classify_risk("pump_flow_rate", 0, pump_on=True)
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
     def test_zero_flow_rate_returns_normal_when_pump_off(self):
-        risk, color = classify_risk("flow_rate", 0, pump_on=False)
+        risk, color = classify_risk("pump_flow_rate", 0, pump_on=False)
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
     def test_zero_pressure_returns_critico_when_pump_on(self):
-        risk, color = classify_risk("pressure", 0, pump_on=True)
+        risk, color = classify_risk("pump_pressure", 0, pump_on=True)
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
     def test_zero_pressure_returns_normal_when_pump_off(self):
-        risk, color = classify_risk("pressure", 0, pump_on=False)
+        risk, color = classify_risk("pump_pressure", 0, pump_on=False)
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
     def test_door_status_returns_normal_when_idle_and_no_failures(self):
-        risk, color = classify_risk("door_status", "open", speed=0.0, door_close_attempts=0)
+        risk, color = classify_risk("elev_door_status", "open", speed=0.0, door_close_attempts=0)
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
     def test_door_status_returns_critico_when_moving(self):
-        risk, color = classify_risk("door_status", "open", speed=1.5, door_close_attempts=0)
+        risk, color = classify_risk("elev_door_status", "open", speed=1.5, door_close_attempts=0)
         self.assertEqual(risk, RISK_CRITICO)
         self.assertEqual(color, "red")
 
     def test_door_status_returns_alto_when_failed_closing(self):
-        risk, color = classify_risk("door_status", "open", speed=0.0, door_close_attempts=2)
+        risk, color = classify_risk("elev_door_status", "open", speed=0.0, door_close_attempts=2)
         self.assertEqual(risk, RISK_ALTO)
         self.assertEqual(color, "orange")
 
     def test_range_direction(self):
         thresholds = {
-            "temperature": {"direction": "range", "low": 20, "high": 80},
+            "pump_temperature": {"direction": "range", "low": 20, "high": 80},
         }
-        risk, color = classify_risk("temperature", 50, thresholds=thresholds)
+        risk, color = classify_risk("pump_temperature", 50, thresholds=thresholds)
         self.assertEqual(risk, RISK_NORMAL)
 
     def test_range_direction_high(self):
         thresholds = {
-            "temperature": {"direction": "range", "low": 20, "high": 80},
+            "pump_temperature": {"direction": "range", "low": 20, "high": 80},
         }
-        risk, color = classify_risk("temperature", 99, thresholds=thresholds)
+        risk, color = classify_risk("pump_temperature", 99, thresholds=thresholds)
         self.assertEqual(risk, RISK_ALTO)
 
     def test_higher_direction(self):
         thresholds = {
-            "flow_rate": {"direction": "higher", "low": 10, "medium": 20, "high": 30},
+            "pump_flow_rate": {"direction": "higher", "low": 10, "medium": 20, "high": 30},
         }
         test_cases = [
             (5, RISK_NORMAL, "green"),
@@ -132,9 +132,9 @@ class ClassifyRiskTests(TestCase):
             (35, RISK_CRITICO, "red"),
         ]
         for value, expected_risk, expected_color in test_cases:
-            risk, color = classify_risk("flow_rate", value, thresholds=thresholds)
-            self.assertEqual(risk, expected_risk, f"flow_rate={value}")
-            self.assertEqual(color, expected_color, f"flow_rate={value}")
+            risk, color = classify_risk("pump_flow_rate", value, thresholds=thresholds)
+            self.assertEqual(risk, expected_risk, f"pump_flow_rate={value}")
+            self.assertEqual(color, expected_color, f"pump_flow_rate={value}")
 
     def test_lower_direction(self):
         thresholds = {

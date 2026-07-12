@@ -49,7 +49,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     stats = _compute_stats(ctx.history)
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)
-    speed = ctx.sensor_data.get("speed", 0.0)
+    speed = ctx.sensor_data.get("elev_speed", 0.0)
     sensors = _build_sensors_list(
         ctx.sensor_data, relevant_vars, thresholds,
         pump_on=ctx.pump_on, speed=speed,
@@ -104,9 +104,9 @@ def _build_sensors_list(
             var, value, thresholds,
             pump_on=pump_on, speed=speed,
             door_close_attempts=door_close_attempts,
-            position=sensor_data.get("position", 0.0),
-            load=sensor_data.get("load", 0.0),
-            door_status=sensor_data.get("door_status", "closed"),
+            position=sensor_data.get("elev_position", 0.0),
+            load=sensor_data.get("elev_load", 0.0),
+            door_status=sensor_data.get("elev_door_status", "closed"),
             elevator_state=sensor_data.get("elevator_state", "IDLE"),
         )
         sensors.append({
@@ -126,14 +126,14 @@ def _fetch_equipment_status(
 ) -> tuple:
     pump_status = None
     elevator_status = None
-    
+
     has_pump_fault = False
     if sim_faults and "pump" in sim_faults:
         has_pump_fault = True
     elif active_alerts:
         if any(var in PUMP_VARS for var in active_alerts):
             has_pump_fault = True
-            
+
     dynamic_pump = "falla" if has_pump_fault else "operativo"
 
     has_elev_fault = False
@@ -142,7 +142,7 @@ def _fetch_equipment_status(
     elif active_alerts:
         if any(var in ELEVATOR_VARS for var in active_alerts):
             has_elev_fault = True
-            
+
     dynamic_elev = "falla" if has_elev_fault else "operativo"
 
     if django_connected and active_edificio_id:
@@ -166,8 +166,5 @@ def _fetch_equipment_status(
     else:
         pump_status = dynamic_pump
         elevator_status = dynamic_elev
-        
+
     return pump_status, elevator_status
-
-
-

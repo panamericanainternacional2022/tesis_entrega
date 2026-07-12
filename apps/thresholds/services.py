@@ -23,8 +23,8 @@ def get_thresholds(building_id: int) -> dict:
 
     from apps.buildings.models import Building
     building = Building.objects.filter(id=building_id).first()
-    if building and building.floors > 0 and "position" in result:
-        result["position"]["high"] = float(building.floors)
+    if building and building.floors > 0 and "elev_position" in result:
+        result["elev_position"]["high"] = float(building.floors)
 
     return result
 

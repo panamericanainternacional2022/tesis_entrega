@@ -212,7 +212,7 @@ def reset_simulator(edificio_id: int) -> str:
     if sim.has_elevator:
         from apps.sensors.simulation.physics.elevator import _clear_elevator_fault_params
         _clear_elevator_fault_params(sim)
-        sim.sensor_data["position"] = 0
+        sim.sensor_data["elev_position"] = 0
         sim._elev_position_meters = 0.0
         sim._elev_target_floor = 0
     else:

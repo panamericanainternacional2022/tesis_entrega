@@ -27,7 +27,7 @@ def classify_risk(
         return (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
 
     # Reglas Contextuales del Elevador — door_status
-    if variable == "door_status":
+    if variable == "elev_door_status":
         str_val = str(value).lower() if value is not None else ""
         is_moving = speed > 0.05
         is_at_floor_zone = abs(position - round(position)) < 0.05
@@ -48,8 +48,8 @@ def classify_risk(
 
         return RISK_NORMAL, "green"
 
-    if variable == "load":
-        load_thresh = (thresholds or {}).get("load", {})
+    if variable == "elev_load":
+        load_thresh = (thresholds or {}).get("elev_load", {})
         crit = load_thresh.get("high", 900)
         alto = load_thresh.get("low", 600)
         if value > crit:
@@ -58,48 +58,54 @@ def classify_risk(
             return RISK_ALTO, "orange"
         return RISK_NORMAL, "green"
 
-    if variable in {"energy", "elev_current", "current"}:
-        # Energy = 0 during operation = critical (power outage)
-        if variable == "energy" and value == 0 and elevator_on:
-            return RISK_CRITICO, "red"
-
-        # Door blocked: forced closing consumes more energy
-        energy_high = SENSOR_RANGES.get("energy", (0, 20))[1]
-        if variable == "energy" and door_status == "closing" and door_close_attempts >= 1 and value > energy_high * 0.05:
+    if variable == "elev_current":
+        # Door blocked: forced closing consumes more current
+        current_high = SENSOR_RANGES.get("elev_current", (0, 70))[1]
+        if door_status == "closing" and door_close_attempts >= 1 and value > current_high * 0.07:
             return RISK_ALTO, "orange"
 
-        # Alta corriente/energía con velocidad cero mientras debería moverse (motor atascado)
+        # Alta corriente con velocidad cero mientras debería moverse (motor atascado)
         is_stuck_situation = elevator_state in {"ACCELERATING", "MOVING", "DECELERATING"} and speed < 0.05
         if is_stuck_situation:
             return RISK_CRITICO, "red"
 
         # Alto consumo en standby (IDLE)
         if speed < 0.05 and elevator_state == "IDLE":
-            if variable == "energy" and value > energy_high * 0.1:
-                return RISK_CRITICO, "red"
-            current_range = SENSOR_RANGES.get("current", (0, 70))
-            if variable in {"elev_current", "current"} and value > current_range[1] * 0.07:
+            if value > current_high * 0.07:
                 return RISK_CRITICO, "red"
 
-    if variable == "speed":
+    if variable == "elev_temperature":
+        # Motor stuck or overspeed → high temperature = critical
+        is_stuck_situation = elevator_state in {"ACCELERATING", "MOVING", "DECELERATING"} and speed < 0.05
+        if is_stuck_situation:
+            return RISK_CRITICO, "red"
+
+        # High temperature in any state = critical
+        temp_high = SENSOR_RANGES.get("elev_temperature", (25, 130))[1]
+        if value > temp_high * 0.8:
+            return RISK_CRITICO, "red"
+        if value > temp_high * 0.6:
+            return RISK_ALTO, "orange"
+
+    if variable == "elev_speed":
         if elevator_state in {"ACCELERATING", "MOVING", "DECELERATING"} and value < 0.05:
             return RISK_CRITICO, "red"
         if value > 0.05 and door_status != "closed":
             return RISK_CRITICO, "red"
-        speed_cfg = (thresholds or {}).get("speed", {})
+        speed_cfg = (thresholds or {}).get("elev_speed", {})
         if speed_cfg:
-            if value > speed_cfg.get("high", SENSOR_RANGES.get("speed", (0, 6))[1] * 0.67):
+            if value > speed_cfg.get("high", SENSOR_RANGES.get("elev_speed", (0, 6))[1] * 0.67):
                 return RISK_CRITICO, "red"
-            if value > speed_cfg.get("low", SENSOR_RANGES.get("speed", (0, 6))[1] * 0.42):
+            if value > speed_cfg.get("low", SENSOR_RANGES.get("elev_speed", (0, 6))[1] * 0.42):
                 return RISK_ALTO, "orange"
         else:
-            speed_high = SENSOR_RANGES.get("speed", (0, 6))[1]
+            speed_high = SENSOR_RANGES.get("elev_speed", (0, 6))[1]
             if value > speed_high * 0.67:
                 return RISK_CRITICO, "red"
             if value > speed_high * 0.42:
                 return RISK_ALTO, "orange"
 
-    if variable == "position":
+    if variable == "elev_position":
         if value is None:
             return RISK_CRITICO, "red"
         if abs(value - round(value)) > 0.05:
@@ -107,12 +113,9 @@ def classify_risk(
         if pos_stuck and speed > 0.05:
             return RISK_CRITICO, "red"
 
-    if variable == "door_close_attempts":
+    if variable == "elev_door_close_attempts":
         if value >= 2:
             return RISK_ALTO, "orange"
-        return RISK_NORMAL, "green"
-
-    if variable == "trip_count":
         return RISK_NORMAL, "green"
 
     if variable in ENUM_VARS:
@@ -124,10 +127,10 @@ def classify_risk(
         return RISK_NORMAL, "green"
 
     # Corrección para bomba apagada
-    if variable in {"flow_rate", "pressure"} and not pump_on:
-        flow_range = SENSOR_RANGES.get("flow_rate", (0, 60))
-        press_range = SENSOR_RANGES.get("pressure", (0, 12))
-        low_val = flow_range[1] * 0.13 if variable == "flow_rate" else press_range[1] * 0.17
+    if variable in {"pump_flow_rate", "pump_pressure"} and not pump_on:
+        flow_range = SENSOR_RANGES.get("pump_flow_rate", (0, 60))
+        press_range = SENSOR_RANGES.get("pump_pressure", (0, 12))
+        low_val = flow_range[1] * 0.13 if variable == "pump_flow_rate" else press_range[1] * 0.17
         if thresholds and variable in thresholds:
             low_val = thresholds[variable].get("low", low_val)
         if value <= low_val:

@@ -40,7 +40,7 @@ class BuildingSimulator:
         self._elev_current_accel: float = 0.0    # Actual acceleration (for S-curve)
         self._elev_stuck_timer: float = 0.0      # Consecutive stall ticks
         if self.has_elevator:
-            self.sensor_data["position"] = 0
+            self.sensor_data["elev_position"] = 0
             self._elev_position_meters = 0.0
             self._elev_target_floor = 0
         else:
@@ -48,6 +48,10 @@ class BuildingSimulator:
             self._elev_position_meters = 0.0
         self._elev_direction: int = 1
         self._elev_prev_position: float = 0
+
+        # Elevator motor thermal & electrical state
+        self._elev_motor_temp: float = 25.0
+        self._elev_current: float = 0.0
 
         # Fault physical parameters (mutated by fault handlers, consumed by FSM)
         self._elev_motor_torque_factor: float = 1.0     # 0.0 = motor stuck

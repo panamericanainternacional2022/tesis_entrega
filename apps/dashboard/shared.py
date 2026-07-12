@@ -18,7 +18,7 @@ def build_monitoring_config(building_id: int) -> dict:
     ranges = get_sensor_limits(building_id)
     try:
         building = Building.objects.get(id=building_id)
-        ranges["position"] = (0, building.floors)
+        ranges["elev_position"] = (0, building.floors)
     except Building.DoesNotExist:
         pass
     return {

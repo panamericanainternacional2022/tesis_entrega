@@ -1,37 +1,33 @@
 VAR_NAMES = {
-    "flow_rate":    "Caudal",
-    "pressure":     "Presión",
-    "temperature":  "Temperatura",
-    "vibration":    "Vibración",
-    "tank_level":   "Nivel de tanque",
-    "voltage":      "Voltaje",
-    "current":      "Corriente",
-    "pump_energy":  "Consumo eléctrico",
-    "speed":        "Velocidad",
-    "load":         "Carga",
-    "energy":       "Consumo eléctrico",
-    "trip_count":   "Conteo de viajes",
-    "position":     "Posición",
-    "door_status":  "Estado de puerta",
-    "door_close_attempts": "Intentos de cierre de puerta",
+    "pump_flow_rate":      "Caudal",
+    "pump_pressure":       "Presión",
+    "pump_temperature":    "Temperatura",
+    "pump_vibration":      "Vibración",
+    "pump_tank_level":     "Nivel de tanque",
+    "pump_voltage":        "Voltaje",
+    "pump_current":        "Corriente",
+    "elev_position":       "Posición",
+    "elev_speed":          "Velocidad",
+    "elev_load":           "Carga",
+    "elev_door_status":    "Estado de puerta",
+    "elev_temperature":    "Temperatura",
+    "elev_current":        "Corriente",
 }
 
 UNITS = {
-    "flow_rate":    "l/s",
-    "pressure":     "bar",
-    "temperature":  "°C",
-    "vibration":    "mm/s",
-    "tank_level":   "%",
-    "speed":        "m/s",
-    "load":         "kg",
-    "energy":       "kW",
-    "voltage":      "V",
-    "current":      "A",
-    "pump_energy":  "kW",
-    "trip_count":   "viajes",
-    "position":     "piso",
-    "door_status":  "",
-    "door_close_attempts": "",
+    "pump_flow_rate":    "l/s",
+    "pump_pressure":     "bar",
+    "pump_temperature":  "°C",
+    "pump_vibration":    "mm/s",
+    "pump_tank_level":   "%",
+    "pump_voltage":      "V",
+    "pump_current":      "A",
+    "elev_position":     "piso",
+    "elev_speed":        "m/s",
+    "elev_load":         "kg",
+    "elev_door_status":  "",
+    "elev_temperature":  "°C",
+    "elev_current":      "A",
 }
 
 RISK_NORMAL      = "Normal"
@@ -99,37 +95,38 @@ USER_STATS_COLORS = {
 
 NO_RISK_VARS = []
 
-LIMITS_EXCLUDE_VARS = ["tank_level", "trip_count", "flow_rate", "position", "door_close_attempts", "door_status", "motor_stuck"]
+LIMITS_EXCLUDE_VARS = [
+    "pump_tank_level", "pump_flow_rate",
+    "elev_position", "elev_door_close_attempts", "elev_door_status", "motor_stuck",
+]
 
-ZERO_IS_CRITICAL_VARS = {"flow_rate", "pressure"}
+ZERO_IS_CRITICAL_VARS = {"pump_flow_rate", "pump_pressure"}
 
 BOOLEAN_VARS = {"motor_stuck", "limit_switch_top", "limit_switch_bottom"}
 
-ENUM_VARS = {"door_status"}
+ENUM_VARS = {"elev_door_status"}
 
 ENUM_RISK_VALUES = {
-    "door_status": {"open", "closing"},
+    "elev_door_status": {"open", "closing"},
 }
 
 PUMP_VARS = [
-    "flow_rate",
-    "pressure",
-    "temperature",
-    "vibration",
-    "tank_level",
-    "voltage",
-    "current",
-    "pump_energy",
+    "pump_flow_rate",
+    "pump_pressure",
+    "pump_temperature",
+    "pump_vibration",
+    "pump_tank_level",
+    "pump_voltage",
+    "pump_current",
 ]
 
 ELEVATOR_VARS = [
-    "position",
-    "speed",
-    "load",
-    "trip_count",
-    "door_status",
-    "energy",
-    "door_close_attempts",
+    "elev_position",
+    "elev_speed",
+    "elev_load",
+    "elev_door_status",
+    "elev_temperature",
+    "elev_current",
 ]
 
 _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not in BOOLEAN_VARS and v not in ENUM_VARS]
@@ -137,7 +134,7 @@ _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not
 STATS_VARS = PUMP_VARS + _ELEVATOR_NUMERIC
 
 VALUE_DISPLAY_ES = {
-    "door_status": {
+    "elev_door_status": {
         "open":     "Abierta",
         "closed":   "Cerrada",
         "opening":  "Abriendo",
@@ -151,7 +148,7 @@ VALUE_DISPLAY_ES = {
         "1":     "Sí",
         "0":     "No",
     },
-    "door_close_attempts": {
+    "elev_door_close_attempts": {
         "0": "Sin intentos",
         "1": "1 intento",
         "2": "2 intentos",
@@ -162,76 +159,53 @@ VALUE_DISPLAY_ES = {
 }
 
 DEFAULT_THRESHOLDS = {
-    "flow_rate":   {"direction": "lower",  "low": 8.0,  "medium": 5.0, "high": 2.0},
-    "pressure":    {"direction": "range",  "low": 2.0,  "high": 8.0},
-    "temperature": {"direction": "higher", "low": 70,   "medium": 85,  "high": 100},
-    "vibration":   {"direction": "higher", "low": 4,    "medium": 7,   "high": 10},
-    "tank_level":  {"direction": "lower",  "low": 30,   "medium": 15,  "high": 5},
-    "speed":       {"direction": "higher", "low": 2.5,  "medium": 3.0, "high": 4.0},
-    "load":        {"direction": "higher", "low": 600,  "medium": 800, "high": 900},
-    "trip_count":  {"direction": "higher", "low": 10000,"medium": 20000,"high": 30000},
-    "energy":      {"direction": "higher", "low": 8,    "medium": 12,  "high": 15},
-    "pump_energy": {"direction": "higher", "low": 8,    "medium": 12,  "high": 15},
-    "voltage":     {"direction": "range",  "low": 200,  "high": 240},
-    "current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
-    "position":    {"direction": "range",  "low": 0.0,  "high": 20.0},
-    "door_close_attempts": {"direction": "higher", "low": 0, "medium": 1, "high": 3},
+    "pump_flow_rate":   {"direction": "lower",  "low": 8.0,  "medium": 5.0, "high": 2.0},
+    "pump_pressure":    {"direction": "range",  "low": 2.0,  "high": 8.0},
+    "pump_temperature": {"direction": "higher", "low": 70,   "medium": 85,  "high": 100},
+    "pump_vibration":   {"direction": "higher", "low": 4,    "medium": 7,   "high": 10},
+    "pump_tank_level":  {"direction": "lower",  "low": 30,   "medium": 15,  "high": 5},
+    "pump_voltage":     {"direction": "range",  "low": 200,  "high": 240},
+    "pump_current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
+    "elev_speed":       {"direction": "higher", "low": 2.5,  "medium": 3.0, "high": 4.0},
+    "elev_load":        {"direction": "higher", "low": 600,  "medium": 800, "high": 900},
+    "elev_temperature": {"direction": "higher", "low": 70,   "medium": 85,  "high": 90},
+    "elev_current":     {"direction": "higher", "low": 32,   "medium": 40,  "high": 45},
 }
 
 FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."
 
 ACTIONS: dict[str, dict[str, str]] = {
-    "flow_rate": {
+    "pump_flow_rate": {
         RISK_NORMAL: "Caudal dentro del rango normal. Monitoreo rutinario activo.",
         RISK_ALTO: "Caudal significativamente bajo. Verifica posibles fugas o fallas parciales en la bomba.",
         RISK_CRITICO: "Caudal crítico bajo (flujo casi nulo). Parada preventiva de bomba activada. Inspecciona la tubería de succión y la bomba.",
     },
-    "pressure": {
+    "pump_pressure": {
         RISK_NORMAL: "Presión dentro del rango normal. Monitoreo rutinario activo.",
         RISK_ALTO: "Presión fuera del rango operativo seguro (2.0 - 8.0 bar). Verifica posibles fugas (presión baja) o bloqueos (presión alta).",
         RISK_CRITICO: "Presión en nivel crítico (flujo nulo o sobrepresión extrema). Detén la bomba de inmediato y verifique la tubería.",
     },
-    "temperature": {
+    "pump_temperature": {
         RISK_NORMAL: "Temperatura normal. Ventilación adecuada.",
         RISK_ALTO: "Temperatura alta del motor de bomba. Aumenta la ventilación de la sala de máquinas.",
         RISK_CRITICO: "Temperatura crítica del motor. Riesgo de sobrecalentamiento y fusión. Apagado de emergencia y verificación del sistema de enfriamiento.",
     },
-    "vibration": {
+    "pump_vibration": {
         RISK_NORMAL: "Vibración normal. Alineación mecánica correcta.",
         RISK_ALTO: "Vibración por encima del estándar. Programa mantenimiento mecánico.",
         RISK_CRITICO: "Vibración mecánica severa. Desalineación grave o falla de rodamiento. Detén el equipo inmediatamente.",
     },
-    "tank_level": {
+    "pump_tank_level": {
         RISK_NORMAL: "Nivel de tanque bajo. Monitorea el reabastecimiento.",
         RISK_ALTO: "Nivel de tanque alto. Monitorea el llenado automático.",
         RISK_CRITICO: "Nivel de tanque crítico. Riesgo de cavitación de bomba. Detén succión y rellena el tanque urgentemente.",
     },
-    "speed": {
-        RISK_NORMAL: "Velocidad de elevador normal.",
-        RISK_ALTO: "Velocidad de elevador por encima del límite seguro. Programa inspección del VFD.",
-        RISK_CRITICO: "Sobrepaso de velocidad crítico. Frenado de emergencia activado. Inspección de seguridad obligatoria.",
-    },
-    "load": {
-        RISK_NORMAL: "Carga de cabina normal.",
-        RISK_ALTO: "Carga de cabina cerca del límite de diseño. Monitorea el comportamiento del motor.",
-        RISK_CRITICO: "Sobrecarga de cabina de elevador. Retira el exceso de peso para reanudar operación.",
-    },
-    "energy": {
-        RISK_NORMAL: "Consumo de energía normal.",
-        RISK_ALTO: "Consumo de energía inusualmente alto. Monitorea la eficiencia.",
-        RISK_CRITICO: "Pico de energía crítico. Posible cortocircuito o sobreesfuerzo del motor. Verifica protecciones eléctricas.",
-    },
-    "pump_energy": {
-        RISK_NORMAL: "Consumo de energía normal de la bomba.",
-        RISK_ALTO: "Consumo de energía de la bomba inusualmente alto. Monitorea la eficiencia del motor.",
-        RISK_CRITICO: "Pico de energía crítico en la bomba. Posible sobreesfuerzo del motor. Verifica protecciones eléctricas.",
-    },
-    "voltage": {
+    "pump_voltage": {
         RISK_NORMAL: "Voltaje dentro del rango nominal (200-240 V).",
         RISK_ALTO: "Inestabilidad de voltaje (fuera del rango 200 V - 240 V). Riesgo para componentes electrónicos.",
         RISK_CRITICO: "Fluctuación crítica de voltaje. Desconecta el equipo para evitar daños.",
     },
-    "current": {
+    "pump_current": {
         RISK_NORMAL: "Corriente del motor dentro del rango operativo.",
         RISK_ALTO: "Corriente del motor por encima del límite recomendado. Verifica carga y estado del bobinado.",
         RISK_CRITICO: "Amperaje crítico (sobrecarga eléctrica). Apagado automático por protección activo.",
@@ -239,20 +213,30 @@ ACTIONS: dict[str, dict[str, str]] = {
     "motor_stuck": {
         RISK_CRITICO: "Eje del motor del elevador atascado/bloqueado. Detén la cabina y realiza liberación de emergencia de pasajeros.",
     },
-    "trip_count": {
-        RISK_NORMAL: "Conteo de viajes dentro del rango normal.",
-        RISK_ALTO: "Conteo de viajes alto. Verifica desgaste en componentes mecánicos del elevador.",
-        RISK_CRITICO: "Conteo de viajes crítico. Inspección técnica obligatoria antes de continuar operación.",
+    "elev_speed": {
+        RISK_NORMAL: "Velocidad de elevador normal.",
+        RISK_ALTO: "Velocidad de elevador por encima del límite seguro. Programa inspección del VFD.",
+        RISK_CRITICO: "Sobrepaso de velocidad crítico. Frenado de emergencia activado. Inspección de seguridad obligatoria.",
     },
-    "position": {
-        RISK_NORMAL: "Posición del elevador dentro del rango operativo normal.",
-        RISK_ALTO: "Posición del elevador fuera del rango seguro. Verifica el sistema de límites.",
-        RISK_CRITICO: "Posición crítica detectada. Detén el elevador y verifique el sistema de guía.",
+    "elev_load": {
+        RISK_NORMAL: "Carga de cabina normal.",
+        RISK_ALTO: "Carga de cabina cerca del límite de diseño. Monitorea el comportamiento del motor.",
+        RISK_CRITICO: "Sobrecarga de cabina de elevador. Retira el exceso de peso para reanudar operación.",
     },
-    "door_status": {
+    "elev_door_status": {
         RISK_NORMAL: "Estado de puerta normal.",
         RISK_ALTO: "Fallo de cierre de puerta. Verifica mecanismo de enclavamiento.",
         RISK_CRITICO: "Puerta sin respuesta. Detén operación e inspeccione el sistema de puerta.",
+    },
+    "elev_temperature": {
+        RISK_NORMAL: "Temperatura del motor de tracción normal.",
+        RISK_ALTO: "Temperatura del motor de tracción alta. Monitorea el sistema de ventilación de la sala de máquinas.",
+        RISK_CRITICO: "Temperatura crítica del motor de tracción. Riesgo de daño a bobinas. Parada de emergencia y verificación del enfriamiento.",
+    },
+    "elev_current": {
+        RISK_NORMAL: "Corriente del motor de tracción normal.",
+        RISK_ALTO: "Corriente del motor de tracción elevada. Verifica carga de cabina y estado del variador.",
+        RISK_CRITICO: "Corriente crítica del motor de tracción. Posible rotor bloqueado o sobrecarga severa. Apagado de emergencia.",
     },
 }
 
@@ -266,20 +250,18 @@ API_HISTORY_LIMIT: int = 50
 PAYLOAD_HISTORY_SLICE: int = 200
 
 SENSOR_RANGES = {
-    "flow_rate":   (0, 60),
-    "pressure":    (0, 12),
-    "temperature": (22.0, 130),
-    "vibration":   (0, 15),
-    "tank_level":  (0, 100),
-    "voltage":     (180, 260),
-    "current":     (0, 70),
-    "speed":       (0, 6),
-    "load":        (0, 1200),
-    "energy":      (0, 20),
-    "pump_energy": (0, 20),
-    "trip_count":  (0, 100000),
-    "position":    (0, 100),
-    "door_close_attempts": (0, 5),
+    "pump_flow_rate":   (0, 60),
+    "pump_pressure":    (0, 12),
+    "pump_temperature": (22.0, 130),
+    "pump_vibration":   (0, 15),
+    "pump_tank_level":  (0, 100),
+    "pump_voltage":     (180, 260),
+    "pump_current":     (0, 70),
+    "elev_speed":       (0, 6),
+    "elev_load":        (0, 1200),
+    "elev_position":    (0, 100),
+    "elev_temperature": (25.0, 120),
+    "elev_current":     (0, 80),
 }
 
 FAULT_NAMES_ES = {
@@ -302,19 +284,19 @@ PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "
 ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "pos_sensor_fail", "commercial_power_outage")
 
 FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
-    "dry_run":               ["flow_rate", "pressure", "temperature", "vibration", "tank_level", "current"],
-    "blocked_discharge":     ["flow_rate", "pressure", "vibration", "temperature", "current"],
-    "pipe_burst":            ["flow_rate", "pressure", "vibration", "temperature", "current", "tank_level"],
-    "cavitation":            ["flow_rate", "vibration", "pressure", "temperature"],
-    "overheat":              ["temperature", "vibration"],
-    "power_surge":           ["flow_rate", "pressure", "voltage", "current", "temperature", "vibration"],
-    "power_outage":          ["voltage", "current", "flow_rate", "pressure", "vibration", "temperature"],
-    "motor_stuck":           ["motor_stuck", "speed", "energy", "door_status"],
-    "door_blocked":          ["door_status", "speed", "energy", "door_close_attempts"],
-    "overspeed":             ["speed", "energy", "door_status"],
-    "overload":              ["load", "door_status", "speed", "energy", "door_close_attempts"],
-    "pos_sensor_fail":       ["position", "speed", "door_status"],
-    "commercial_power_outage": ["energy", "speed", "door_status"],
+    "dry_run":               ["pump_flow_rate", "pump_pressure", "pump_temperature", "pump_vibration", "pump_tank_level", "pump_current"],
+    "blocked_discharge":     ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current"],
+    "pipe_burst":            ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current", "pump_tank_level"],
+    "cavitation":            ["pump_flow_rate", "pump_vibration", "pump_pressure", "pump_temperature"],
+    "overheat":              ["pump_temperature", "pump_vibration"],
+    "power_surge":           ["pump_flow_rate", "pump_pressure", "pump_voltage", "pump_current", "pump_temperature", "pump_vibration"],
+    "power_outage":          ["pump_voltage", "pump_current", "pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature"],
+    "motor_stuck":           ["motor_stuck", "elev_speed", "elev_current", "elev_door_status"],
+    "door_blocked":          ["elev_door_status", "elev_speed", "elev_door_close_attempts"],
+    "overspeed":             ["elev_speed", "elev_current", "elev_door_status"],
+    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_door_close_attempts", "elev_current"],
+    "pos_sensor_fail":       ["elev_position", "elev_speed", "elev_door_status"],
+    "commercial_power_outage": ["elev_current", "elev_speed", "elev_door_status", "elev_temperature"],
 }
 
 UNKNOWN_PERSON_NAME: str = "Sin nombre"

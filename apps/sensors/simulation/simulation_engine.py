@@ -174,14 +174,14 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
         if bounds:
             new_val = max(bounds[0], min(bounds[1], new_val))
 
-        if var in ("load", "trip_count"):
+        if var in ("elev_load",):
             new_val = int(round(new_val))
         else:
             new_val = round(new_val, 1)
 
         sim.sensor_data[var] = new_val
 
-        if var == "position":
+        if var == "elev_position":
             sim._elev_position_meters = float(new_val * FLOOR_HEIGHT)
             sim._elev_target_floor = round(new_val)
             sim._elev_state = "IDLE"
@@ -208,10 +208,10 @@ def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
 
     # ── Pump: voltage forced to ~0 → activate power_outage physics ─────
     has_volt_override = (
-        "voltage" in sim.manual_overrides
-        and now < sim.manual_overrides.get("voltage", 0)
+        "pump_voltage" in sim.manual_overrides
+        and now < sim.manual_overrides.get("pump_voltage", 0)
     )
-    if has_volt_override and sd.get("voltage", 220) < 10.0:
+    if has_volt_override and sd.get("pump_voltage", 220) < 10.0:
         if "pump" not in sim.sim_faults:
             sim.sim_faults["pump"] = "power_outage"
             sim.fault_injected_at["pump"] = now + FAULT_AUTO_CLEAR_SECONDS * 2
@@ -238,10 +238,10 @@ def _bridge_manual_overrides_to_faults(sim: BuildingSimulator) -> None:
 
     # ── Elevator: load > 900 (Critico) via manual → activate overload physics ──
     has_load_override = (
-        "load" in sim.manual_overrides
-        and now < sim.manual_overrides.get("load", 0)
+        "elev_load" in sim.manual_overrides
+        and now < sim.manual_overrides.get("elev_load", 0)
     )
-    if has_load_override and sd.get("load", 0) > 900:
+    if has_load_override and sd.get("elev_load", 0) > 900:
         if "elevator" not in sim.sim_faults:
             sim.sim_faults["elevator"] = "overload"
             sim.fault_injected_at["elevator"] = now + FAULT_AUTO_CLEAR_SECONDS * 2

@@ -251,7 +251,7 @@ def generate_building_report_bytes(edificio_id: int, request: Any = None) -> tup
     stats = _compute_stats(history, STATS_VARS)
 
     pump_on = sim.pump_on if sim else False
-    speed = sensor_data.get("speed", 0.0)
+    speed = sensor_data.get("elev_speed", 0.0)
     door_close_attempts = sim.door_close_attempts if sim else 0
 
     relevant_vars = set()
