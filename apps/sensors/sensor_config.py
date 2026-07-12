@@ -12,6 +12,9 @@ VAR_NAMES = {
     "elev_door_status":    "Estado de puerta",
     "elev_temperature":    "Temperatura",
     "elev_current":        "Corriente",
+    "elev_vibration":      "Vibración",
+    "elev_voltage":        "Voltaje",
+    "pump_water_quality":  "Calidad de agua",
 }
 
 UNITS = {
@@ -28,6 +31,9 @@ UNITS = {
     "elev_door_status":  "",
     "elev_temperature":  "°C",
     "elev_current":      "A",
+    "elev_vibration":    "mm/s",
+    "elev_voltage":      "V",
+    "pump_water_quality":"ppm",
 }
 
 RISK_NORMAL      = "Normal"
@@ -118,6 +124,7 @@ PUMP_VARS = [
     "pump_tank_level",
     "pump_voltage",
     "pump_current",
+    "pump_water_quality",
 ]
 
 ELEVATOR_VARS = [
@@ -127,6 +134,8 @@ ELEVATOR_VARS = [
     "elev_door_status",
     "elev_temperature",
     "elev_current",
+    "elev_vibration",
+    "elev_voltage",
 ]
 
 _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not in BOOLEAN_VARS and v not in ENUM_VARS]
@@ -152,10 +161,13 @@ DEFAULT_THRESHOLDS = {
     "pump_tank_level":  {"direction": "lower",  "low": 30,   "medium": 15,  "high": 5},
     "pump_voltage":     {"direction": "range",  "low": 200,  "high": 240},
     "pump_current":     {"direction": "higher", "low": 30,   "medium": 40,  "high": 50},
+    "pump_water_quality":{"direction": "higher", "low": 300,  "medium": 500, "high": 800},
     "elev_speed":       {"direction": "higher", "low": 2.5,  "medium": 3.0, "high": 4.0},
     "elev_load":        {"direction": "higher", "low": 600,  "medium": 800, "high": 900},
     "elev_temperature": {"direction": "higher", "low": 70,   "medium": 85,  "high": 90},
     "elev_current":     {"direction": "higher", "low": 32,   "medium": 40,  "high": 45},
+    "elev_vibration":   {"direction": "higher", "low": 4.0,  "medium": 7.0, "high": 10.0},
+    "elev_voltage":     {"direction": "range",  "low": 360,  "high": 400},
 }
 
 FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."
@@ -196,6 +208,11 @@ ACTIONS: dict[str, dict[str, str]] = {
         RISK_ALTO: "Corriente del motor por encima del límite recomendado. Verifica carga y estado del bobinado.",
         RISK_CRITICO: "Amperaje crítico (sobrecarga eléctrica). Apagado automático por protección activo.",
     },
+    "pump_water_quality": {
+        RISK_NORMAL: "Calidad del agua normal (TDS/Conductividad).",
+        RISK_ALTO: "Incremento en sedimentos o conductividad. Verifica los filtros de succión.",
+        RISK_CRITICO: "Calidad del agua crítica. Riesgo de daño en el impulsor por sedimentos o contaminación severa.",
+    },
     "elev_speed": {
         RISK_NORMAL: "Velocidad de elevador normal.",
         RISK_ALTO: "Velocidad de elevador por encima del límite seguro. Programa inspección del VFD.",
@@ -221,6 +238,16 @@ ACTIONS: dict[str, dict[str, str]] = {
         RISK_ALTO: "Corriente del motor de tracción elevada. Verifica carga de cabina y estado del variador.",
         RISK_CRITICO: "Corriente crítica del motor de tracción. Posible rotor bloqueado o sobrecarga severa. Apagado de emergencia.",
     },
+    "elev_vibration": {
+        RISK_NORMAL: "Vibración de cabina dentro del rango normal. Viaje confortable.",
+        RISK_ALTO: "Vibración anómala. Verifica desgaste en guías, zapatas o desbalance de tracción.",
+        RISK_CRITICO: "Vibración severa en cabina. Detén el equipo e inspecciona integridad mecánica y tracción.",
+    },
+    "elev_voltage": {
+        RISK_NORMAL: "Voltaje trifásico dentro del rango operativo normal (380V aprox).",
+        RISK_ALTO: "Inestabilidad de voltaje. Revisa el suministro general o variador.",
+        RISK_CRITICO: "Voltaje crítico (pérdida de fase o caída severa). Apagado preventivo.",
+    },
 }
 
 SIM_TICK_INTERVAL = 1
@@ -240,11 +267,14 @@ SENSOR_RANGES = {
     "pump_tank_level":  (0, 100),
     "pump_voltage":     (180, 260),
     "pump_current":     (0, 70),
+    "pump_water_quality": (0, 1000),
     "elev_speed":       (0, 6),
     "elev_load":        (0, 1200),
     "elev_position":    (0, 100),
     "elev_temperature": (25.0, 120),
     "elev_current":     (0, 80),
+    "elev_vibration":   (0, 20),
+    "elev_voltage":     (0, 450),
 }
 
 FAULT_NAMES_ES = {
@@ -255,16 +285,18 @@ FAULT_NAMES_ES = {
     "overheat":            "Sobrecalentamiento",
     "power_surge":         "Sobrecarga eléctrica",
     "power_outage":        "Corte eléctrico",
+    "bearing_failure":     "Falla de rodamientos",
     "motor_stuck":         "Motor atascado",
     "door_blocked":        "Puerta bloqueada",
     "overspeed":           "Exceso de velocidad",
     "overload":            "Sobrecarga",
     "pos_sensor_fail":     "Fallo del sensor de posición",
     "commercial_power_outage": "Corte de energía comercial",
+    "traction_loss":       "Pérdida de tracción",
 }
 
-PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "overheat", "power_surge", "power_outage")
-ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "pos_sensor_fail", "commercial_power_outage")
+PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "overheat", "power_surge", "power_outage", "bearing_failure")
+ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "pos_sensor_fail", "commercial_power_outage", "traction_loss")
 
 FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "dry_run":               ["pump_flow_rate", "pump_pressure", "pump_temperature", "pump_vibration", "pump_tank_level", "pump_current"],
@@ -274,12 +306,14 @@ FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "overheat":              ["pump_temperature", "pump_vibration"],
     "power_surge":           ["pump_flow_rate", "pump_pressure", "pump_voltage", "pump_current", "pump_temperature", "pump_vibration"],
     "power_outage":          ["pump_voltage", "pump_current", "pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature"],
-    "motor_stuck":           ["elev_temperature", "elev_speed", "elev_current", "elev_door_status"],
+    "bearing_failure":       ["pump_vibration", "pump_temperature", "pump_current", "pump_water_quality"],
+    "motor_stuck":           ["elev_temperature", "elev_speed", "elev_current", "elev_door_status", "elev_voltage", "elev_vibration"],
     "door_blocked":          ["elev_door_status", "elev_speed"],
-    "overspeed":             ["elev_speed", "elev_current", "elev_door_status"],
-    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current"],
+    "overspeed":             ["elev_speed", "elev_current", "elev_door_status", "elev_vibration"],
+    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current", "elev_vibration"],
     "pos_sensor_fail":       ["elev_position", "elev_speed", "elev_door_status"],
-    "commercial_power_outage": ["elev_current", "elev_speed", "elev_door_status", "elev_temperature"],
+    "commercial_power_outage": ["elev_voltage", "elev_current", "elev_speed", "elev_door_status", "elev_temperature"],
+    "traction_loss":         ["elev_position", "elev_speed", "elev_current", "elev_vibration", "elev_temperature"],
 }
 
 UNKNOWN_PERSON_NAME: str = "Sin nombre"

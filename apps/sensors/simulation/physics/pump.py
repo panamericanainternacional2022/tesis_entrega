@@ -14,6 +14,7 @@ _VIB_LOW, _VIB_HIGH = SENSOR_RANGES["pump_vibration"]
 _TANK_LOW, _TANK_HIGH = SENSOR_RANGES["pump_tank_level"]
 _VOLT_LOW, _VOLT_HIGH = SENSOR_RANGES["pump_voltage"]
 _CURR_LOW, _CURR_HIGH = SENSOR_RANGES["pump_current"]
+_QUAL_LOW, _QUAL_HIGH = SENSOR_RANGES["pump_water_quality"]
 
 # Tank physics constants
 _TANK_BUILDING_DEMAND = 12.0    # l/s constant building water consumption
@@ -86,6 +87,10 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
                 _VOLT_LOW, _VOLT_HIGH,
             ), 1
         )
+    if not is_locked(sim, "pump_water_quality"):
+        sd["pump_water_quality"] = round(
+            clamp(sd.get("pump_water_quality", 200.0) + random.uniform(-1.0, 1.0) * dt, _QUAL_LOW, _QUAL_HIGH), 1
+        )
 
 
 def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -101,6 +106,7 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         "overheat":          _apply_overheat,
         "power_surge":       _apply_power_surge,
         "power_outage":      _apply_power_outage,
+        "bearing_failure":   _apply_bearing_failure,
     }
     handler = _PUMP_FAULT_HANDLERS.get(fault_type)
     if handler:
@@ -169,6 +175,11 @@ def _apply_power_outage(sd: dict, dt: float) -> None:
     sd["pump_vibration"]   = clamp(sd["pump_vibration"]   - 5.0 * dt, 0, 15)
     sd["pump_temperature"] = clamp(sd["pump_temperature"] - 0.5 * dt, T_AMBIENT, _TEMP_HIGH)
 
+def _apply_bearing_failure(sd: dict, dt: float) -> None:
+    sd["pump_vibration"]   = clamp(sd["pump_vibration"]   + 1.5 * dt, 0, 15)
+    sd["pump_temperature"] = clamp(sd["pump_temperature"] + 3.0 * dt, 0, 130)
+    sd["pump_current"]     = clamp(sd["pump_current"]     + 4.0 * dt, 10.0, 70)
+    sd["pump_water_quality"] = clamp(sd.get("pump_water_quality", 200.0) + 15.0 * dt, 0, 1000)
 
 def _clamp_pump_values(sd: dict) -> None:
     sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   _FLOW_LOW,       _FLOW_HIGH),       1)
@@ -177,6 +188,7 @@ def _clamp_pump_values(sd: dict) -> None:
     sd["pump_vibration"]   = round(clamp(sd["pump_vibration"],   _VIB_LOW,        _VIB_HIGH),        1)
     sd["pump_voltage"]     = round(clamp(sd["pump_voltage"],     _VOLT_LOW,       _VOLT_HIGH),       1)
     sd["pump_current"]     = round(clamp(sd["pump_current"],     _CURR_LOW,       _CURR_HIGH),       1)
+    sd["pump_water_quality"] = round(clamp(sd.get("pump_water_quality", 200.0), _QUAL_LOW, _QUAL_HIGH), 1)
 
 
 def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -261,3 +273,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sd["pump_vibration"]   = round(clamp(vib,      _VIB_LOW,        _VIB_HIGH),        1)
     if not is_locked(sim, "pump_current"):
         sd["pump_current"]     = round(clamp(curr,     _CURR_LOW,       _CURR_HIGH),       1)
+    if not is_locked(sim, "pump_water_quality"):
+        qual = sd.get("pump_water_quality", 200.0)
+        qual += (200.0 - qual) * 0.05 * dt + random.uniform(-2.0, 2.0) * dt
+        sd["pump_water_quality"] = round(clamp(qual, _QUAL_LOW, _QUAL_HIGH), 1)

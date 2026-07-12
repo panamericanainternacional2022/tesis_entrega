@@ -22,6 +22,8 @@ _LOAD_LOW, _LOAD_HIGH = SENSOR_RANGES["elev_load"]
 _SPEED_LOW, _SPEED_HIGH = SENSOR_RANGES["elev_speed"]
 _TEMP_LOW, _TEMP_HIGH = SENSOR_RANGES["elev_temperature"]
 _CURR_LOW, _CURR_HIGH = SENSOR_RANGES["elev_current"]
+_VIB_LOW, _VIB_HIGH = SENSOR_RANGES["elev_vibration"]
+_VOLT_LOW, _VOLT_HIGH = SENSOR_RANGES["elev_voltage"]
 
 
 def _effective_load(sim: BuildingSimulator, base_load: float) -> float:
@@ -43,6 +45,7 @@ def _clear_elevator_fault_params(sim: BuildingSimulator) -> None:
     sim._elev_power_outage_timer = 0.0
     sim._elev_power_outage_complete = False
     sim._elev_pos_sensor_mismatch_timer = 0.0
+    sim._elev_traction_loss = False
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +78,10 @@ def _set_pos_sensor_fail_params(sim: BuildingSimulator, sd: dict, dt: float) -> 
 def _set_power_outage_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sim._elev_power_available = False
     sim._elev_motor_torque_factor = 0.0
+
+
+def _set_traction_loss_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
+    sim._elev_traction_loss = True
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +172,11 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_door_status": "closed",
             "elevator_state": "MOVING",
         },
+        "traction_loss": {
+            "elev_vibration": 12.0,
+            "elev_current": _CURR_HIGH * 0.8,
+            "elev_temperature": 95.0,
+        }
     }
     if fault == "commercial_power_outage":
         timer = getattr(sim, "_elev_power_outage_timer", 0.0)
@@ -256,6 +268,10 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sd["elev_speed"] = 0.0
     if not is_locked(sim, "elev_load"):
         sd["elev_load"] = int(max(0, sd["elev_load"] - 50 * dt))
+    if not is_locked(sim, "elev_voltage"):
+        sd["elev_voltage"] = 380.0
+    if not is_locked(sim, "elev_vibration"):
+        sd["elev_vibration"] = 0.5
     sim._elev_state = "IDLE"
     sim._elev_stuck_timer = 0.0
     sim._elev_current_accel = 0.0
@@ -275,6 +291,7 @@ def _apply_elevator_fault_params(sim: BuildingSimulator, sd: dict, dt: float) ->
         "overload":                _set_overload_params,
         "pos_sensor_fail":         _set_pos_sensor_fail_params,
         "commercial_power_outage": _set_power_outage_params,
+        "traction_loss":           _set_traction_loss_params,
     }
     handler = _ELEV_FAULT_PARAM_SETTERS.get(fault_type)
     if handler:
@@ -523,7 +540,10 @@ def _handle_elev_accelerating(
     speed_cap = CRUISING_SPEED if not sim._elev_speed_governor_failed else CRUISING_SPEED * 3
     spd = clamp(spd + sim._elev_current_accel * dt, 0, speed_cap)
     door = "closed"
-    pos += (prev_spd + spd) / 2 * direction * dt
+    
+    pos_change_factor = 0.1 if getattr(sim, "_elev_traction_loss", False) else 1.0
+    pos += (prev_spd + spd) / 2 * direction * dt * pos_change_factor
+    
     if spd >= CRUISING_SPEED * 0.9 and not sim._elev_speed_governor_failed:
         sim._elev_state = "MOVING"
         sim._elev_current_accel = 0.0
@@ -562,7 +582,8 @@ def _handle_elev_moving(
     else:
         spd = CRUISING_SPEED + random.uniform(-0.1, 0.1) * dt
 
-    pos += spd * direction * dt
+    pos_change_factor = 0.1 if getattr(sim, "_elev_traction_loss", False) else 1.0
+    pos += spd * direction * dt * pos_change_factor
     stopping_distance = (spd ** 2) / (2 * ACCELERATION) + 0.5
     if direction > 0 and pos >= target - stopping_distance:
         sim._elev_state = "DECELERATING"
@@ -594,7 +615,8 @@ def _handle_elev_decelerating(
     else:
         spd = clamp(spd + sim._elev_current_accel * dt, 0, CRUISING_SPEED)
     door = "closed"
-    pos += (prev_spd + spd) / 2 * direction * dt
+    pos_change_factor = 0.1 if getattr(sim, "_elev_traction_loss", False) else 1.0
+    pos += (prev_spd + spd) / 2 * direction * dt * pos_change_factor
     if spd <= 0.05:
         spd = 0.0
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
@@ -686,6 +708,29 @@ def _run_elevator_post_fsm(
     elif sim._elev_power_outage_complete or not sim._elev_power_available:
         sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
         sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, _TEMP_HIGH), 1)
+
+    # ── Elevator voltage simulation ────────────────────────────────────────
+    if not is_locked(sim, "elev_voltage"):
+        if not sim._elev_power_available:
+            sim._elev_voltage = 0.0
+        else:
+            sim._elev_voltage = 380.0 + random.uniform(-5.0, 5.0)
+            if current_state == "ACCELERATING":
+                sim._elev_voltage -= 12.0
+            if getattr(sim, "_elev_traction_loss", False):
+                sim._elev_voltage -= 8.0
+        sd["elev_voltage"] = round(clamp(sim._elev_voltage, _VOLT_LOW, _VOLT_HIGH), 1)
+
+    # ── Elevator vibration simulation ──────────────────────────────────────
+    if not is_locked(sim, "elev_vibration"):
+        if not sim._elev_power_available and spd == 0:
+            sim._elev_vibration = 0.0
+        else:
+            base_vib = 0.5 if current_state == "IDLE" else 1.0 + abs(spd) * 0.8
+            sim._elev_vibration = base_vib + random.uniform(0.0, 0.4)
+            if getattr(sim, "_elev_traction_loss", False):
+                sim._elev_vibration += 8.5 + random.uniform(0.0, 2.0)
+        sd["elev_vibration"] = round(clamp(sim._elev_vibration, _VIB_LOW, _VIB_HIGH), 1)
 
     # ── Elevator motor current simulation ──────────────────────────────────
     if not is_locked(sim, "elev_current"):
