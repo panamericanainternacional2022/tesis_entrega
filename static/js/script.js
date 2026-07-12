@@ -1597,15 +1597,15 @@
                 const varsHtml = (alert.variables_detail || []).map(v => {
                     const name = v.display_name || v.variable;
                     const val = v.value != null ? ` ${v.value}${v.unit ? ' ' + v.unit : ''}` : '';
-                    const risk = v.risk ? ` <span style="font-size:11px;color:var(--color-text-secondary);">(${safeText(v.risk)})</span>` : '';
-                    return `<li style="padding:2px 0;font-size:12px;"><strong>${safeText(name)}</strong>${val}${risk}</li>`;
+                    const risk = v.risk ? ` <span class="compound-var-risk">(${safeText(v.risk)})</span>` : '';
+                    return `<li class="compound-var-item"><strong>${safeText(name)}</strong>${val}${risk}</li>`;
                 }).join('');
                 return `
                     <div class="hist-item">
-                        <div class="hist-icon"><i class="fa-solid fa-triangle-exclamation" style="color:var(--color-warning,#d97706);"></i></div>
+                        <div class="hist-icon"><i class="fa-solid fa-bell"></i></div>
                         <div class="hist-body">
-                            <p><strong>${safeText(faultName)}</strong> — ${safeText(alert.message)}</p>
-                            <ul style="list-style:none;padding:4px 0 0 12px;margin:0;border-left:2px solid var(--color-accent,#2563eb);">
+                            <p class="compound-action"><strong>${safeText(faultName)}</strong> — ${safeText(alert.message)}</p>
+                            <ul class="compound-vars-list">
                                 ${varsHtml}
                             </ul>
                             <div class="hist-meta">
@@ -1656,18 +1656,18 @@
                 const varName = typeof v === 'string' ? v : (v.display_name || v.variable);
                 const varValue = typeof v === 'string' ? '' : (v.value != null ? ` ${v.value}${v.unit ? ' ' + v.unit : ''}` : '');
                 const varRisk = typeof v === 'string' ? '' : v.risk;
-                const varBadge = varRisk ? ` <span class="sensor-badge ${(BADGE_MAP[varRisk] || '').replace('sensor-', 'sensor-')}">${safeText(varRisk)}</span>` : '';
-                return `<li style="padding:2px 0;font-size:12px;"><strong>${safeText(varName)}</strong>${varValue}${varBadge}</li>`;
+                const riskSpan = varRisk ? ` <span class="compound-var-risk">(${safeText(varRisk)})</span>` : '';
+                return `<li class="compound-var-item"><strong>${safeText(varName)}</strong>${varValue}${riskSpan}</li>`;
             }).join('');
 
             li.innerHTML = `
                 <div class="hist-body">
                     <div class="flex-wrap mb-1">
                         <span class="sensor-badge ${badgeClass}">${safeText(data.risk)}</span>
-                        <span class="value-bold"><i class="fa-solid fa-triangle-exclamation" style="color:var(--color-warning,#d97706);margin-right:4px;"></i>${safeText(faultName)}</span>
+                        <span class="value-bold">${safeText(faultName)}</span>
                     </div>
-                    <p class="hist-meta-text">${safeText(data.message)}</p>
-                    <ul style="list-style:none;padding:4px 0 0 12px;margin:0;border-left:2px solid var(--color-accent,#2563eb);">
+                    <p class="hist-meta-text compound-action">${safeText(data.message)}</p>
+                    <ul class="compound-vars-list">
                         ${varsList}
                     </ul>
                     <div class="hist-meta" style="margin-top:8px;">
