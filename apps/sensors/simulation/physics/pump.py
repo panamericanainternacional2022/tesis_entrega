@@ -237,12 +237,10 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         return
 
     # ── Normal operating regime ────────────────────────────────────────────
-    _DEMAND_MAX = 16.0
     if is_locked(sim, "pump_flow_rate"):
-        flow = sd["pump_flow_rate"]
-        sim._pump_demand = clamp(flow, 8.0, _DEMAND_MAX)
+        sim._pump_demand = sd["pump_flow_rate"]
     else:
-        sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, 10.0, _DEMAND_MAX)
+        sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, 10.0, 16.0)
         flow = sim._pump_demand
         current_flow = sd.get("pump_flow_rate", 0)
         max_flow_ramp = 3.0 * dt
