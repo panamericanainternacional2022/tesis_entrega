@@ -32,6 +32,9 @@ def update_sensor_limit(variable: str, max_value: float, building_id: int) -> No
                 "max_value": float(max_value),
             },
         )
+        from apps.sensors.simulation.globals import simulators
+        if building_id in simulators:
+            simulators[building_id].refresh_limits()
     except IntegrityError:
         raise LimitPersistenceError(f"Could not persist limit {variable}: integrity error")
     except Exception as e:

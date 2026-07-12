@@ -134,7 +134,7 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
     if not hasattr(sim, "manual_targets") or not isinstance(sim.manual_targets, dict):
         sim.manual_targets = {}
 
-    from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS
+    from apps.sensors.sensor_config import BOOLEAN_VARS, ENUM_VARS
 
     for var, expiration in list(sim.manual_overrides.items()):
         if now >= expiration:
@@ -174,7 +174,7 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
         else:
             new_val = current_f + (max_step if diff > 0 else -max_step)
 
-        bounds = SENSOR_RANGES.get(var)
+        bounds = sim.sensor_limits.get(var)
         if bounds:
             new_val = max(bounds[0], min(bounds[1], new_val))
 

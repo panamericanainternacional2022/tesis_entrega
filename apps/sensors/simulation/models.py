@@ -1,6 +1,7 @@
 from collections import deque
 
 from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA
+from apps.limits.services import get_sensor_limits
 
 
 class BuildingSimulator:
@@ -20,6 +21,8 @@ class BuildingSimulator:
         self.last_email_sent_time_per_var: dict = {}
         self.manual_overrides: dict = {}
         self.manual_targets: dict = {}
+
+        self.sensor_limits: dict[str, tuple[float, float]] = get_sensor_limits(self.edificio_id)
 
         self.manual_pump_override: bool = False
 
@@ -72,3 +75,6 @@ class BuildingSimulator:
             f"<BuildingSimulator edificio_id={self.edificio_id} "
             f"nombre={self.nombre!r} eq_types={self.equipment_types}>"
         )
+
+    def refresh_limits(self) -> None:
+        self.sensor_limits = get_sensor_limits(self.edificio_id)

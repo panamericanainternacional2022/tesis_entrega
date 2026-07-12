@@ -18,16 +18,9 @@ from apps.sensors.simulation.constants import (
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.utils import clamp, is_locked
 
-_LOAD_LOW, _LOAD_HIGH = SENSOR_RANGES["elev_load"]
-_SPEED_LOW, _SPEED_HIGH = SENSOR_RANGES["elev_speed"]
-_TEMP_LOW, _TEMP_HIGH = SENSOR_RANGES["elev_temperature"]
-_CURR_LOW, _CURR_HIGH = SENSOR_RANGES["elev_current"]
-_VIB_LOW, _VIB_HIGH = SENSOR_RANGES["elev_vibration"]
-_VOLT_LOW, _VOLT_HIGH = SENSOR_RANGES["elev_voltage"]
 
 # Umbral de bloqueo físico por sobrecarga — derivado de DEFAULT_THRESHOLDS para
 # que cada edificio con sus propios umbrales refleje el bloqueo correcto (spec: >800 kg)
-_OVERLOAD_BLOCK_KG: float = DEFAULT_THRESHOLDS["elev_load"]["critic"]  # 800.0 kg
 
 
 def _effective_load(sim: BuildingSimulator, base_load: float) -> float:
@@ -146,7 +139,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
     targets = {
         "motor_stuck": {
             "elev_speed": 0.0,
-            "elev_current": _CURR_HIGH,
+            "elev_current": sim.sensor_limits.get('elev_current', (0.0, 40.0))[1],
             "elev_door_status": "closed",
             "elev_temperature": 110.0,
             "elevator_state": "STUCK",
@@ -161,7 +154,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         },
         "overspeed": {
             # Spec: speed > 1.6 m/s (crítico), dentro del límite físico 3.0 m/s
-            # Se usa valor fijo 2.0 m/s en vez de _SPEED_HIGH * 0.75 para
+            # Se usa valor fijo 2.0 m/s en vez de sim.sensor_limits.get('elev_speed', (0.0, 3.0))[1] * 0.75 para
             # garantizar que siempre caiga en zona crítica independiente del rango configurado
             "elev_speed": 2.0,
             "elev_current": 5.0,
@@ -171,7 +164,7 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elevator_state": "MOVING",
         },
         "overload": {
-            "elev_load": _LOAD_HIGH * 0.85,  # ~1020 kg (>800 = crítico)
+            "elev_load": sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1] * 0.85,  # ~1020 kg (>800 = crítico)
             "elev_door_status": "open",
             "elev_speed": 0.0,
             "elev_current": 0.0,              # Spec: motor bloqueado físicamente → current = 0.0
@@ -264,7 +257,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
         else:
             new_val = float(current) + (max_step if diff > 0 else -max_step)
 
-        bounds = SENSOR_RANGES.get(var)
+        bounds = sim.sensor_limits.get(var)
         if bounds:
             new_val = max(bounds[0], min(bounds[1], new_val))
 
@@ -483,8 +476,8 @@ def _handle_elev_door_closing(
 ) -> None:
 
     total_load = _effective_load(sim, load)
-    # Spec: bloqueo físico cuando load > _OVERLOAD_BLOCK_KG (umbral crítico derivado de DEFAULT_THRESHOLDS)
-    if total_load > _OVERLOAD_BLOCK_KG:
+    # Spec: bloqueo físico cuando load > sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1] (umbral crítico derivado de DEFAULT_THRESHOLDS)
+    if total_load > sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1]:
         sim._elev_state = "DOOR_OPENING"
         sim._elev_timer = 0
         sd["elev_door_status"] = "open"
@@ -720,11 +713,11 @@ def _run_elevator_post_fsm(
             target_temp += 5.0
         temp_diff = target_temp - sim._elev_motor_temp
         sim._elev_motor_temp += temp_diff * 0.03 * dt + random.uniform(-0.2, 0.2) * dt
-        sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, _TEMP_HIGH)
+        sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (-10.0, 90.0))[1])
         sd["elev_temperature"] = round(sim._elev_motor_temp, 1)
     elif sim._elev_power_outage_complete or not sim._elev_power_available:
         sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
-        sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, _TEMP_HIGH), 1)
+        sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (-10.0, 90.0))[1]), 1)
 
     # ── Elevator voltage simulation ────────────────────────────────────────
     if not is_locked(sim, "elev_voltage"):
@@ -736,7 +729,7 @@ def _run_elevator_post_fsm(
                 sim._elev_voltage -= 12.0
             if getattr(sim, "_elev_traction_loss", False):
                 sim._elev_voltage -= 8.0
-        sd["elev_voltage"] = round(clamp(sim._elev_voltage, _VOLT_LOW, _VOLT_HIGH), 1)
+        sd["elev_voltage"] = round(clamp(sim._elev_voltage, sim.sensor_limits.get('elev_voltage', (0.0, 500.0))[0], sim.sensor_limits.get('elev_voltage', (0.0, 500.0))[1]), 1)
 
     # ── Elevator vibration simulation ──────────────────────────────────────
     if not is_locked(sim, "elev_vibration"):
@@ -747,7 +740,7 @@ def _run_elevator_post_fsm(
             sim._elev_vibration = base_vib + random.uniform(0.0, 0.4)
             if getattr(sim, "_elev_traction_loss", False):
                 sim._elev_vibration += 8.5 + random.uniform(0.0, 2.0)
-        sd["elev_vibration"] = round(clamp(sim._elev_vibration, _VIB_LOW, _VIB_HIGH), 1)
+        sd["elev_vibration"] = round(clamp(sim._elev_vibration, sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[0], sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[1]), 1)
 
     # ── Elevator motor current simulation ──────────────────────────────────
     if not is_locked(sim, "elev_current"):
@@ -794,7 +787,7 @@ def _run_elevator_post_fsm(
             sim._elev_current = max(sim._elev_current, ELEVATOR_MOTOR_RATED_CURRENT * 0.15)
         else:
             sim._elev_current = ELEVATOR_MOTOR_RATED_CURRENT * 0.15 + random.uniform(-0.3, 0.3) * dt
-        sd["elev_current"] = round(clamp(sim._elev_current, _CURR_LOW, _CURR_HIGH), 1)
+        sd["elev_current"] = round(clamp(sim._elev_current, sim.sensor_limits.get('elev_current', (0.0, 40.0))[0], sim.sensor_limits.get('elev_current', (0.0, 40.0))[1]), 1)
 
     # ── Synchronize elevator_state ─────────────────────────────────────────
     sd["elevator_state"] = current_state
