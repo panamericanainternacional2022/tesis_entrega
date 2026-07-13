@@ -9,8 +9,8 @@ from apps.core.auth_decorators import login_required, admin_required
 from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_error, json_ok
 from apps.dashboard.shared import build_monitoring_config
-from apps.limits.services import get_sensor_limits, bulk_update_limits
-from apps.sensors.sensor_config import SENSOR_RANGES, LIMITS_EXCLUDE_VARS
+from apps.limits.services import get_sensor_limits, bulk_update_limits, LimitPersistenceError
+from apps.sensors.sensor_config import SENSOR_RANGES
 from apps.thresholds.services import get_thresholds
 
 
@@ -54,9 +54,7 @@ def view_get_sensor_limits(request: HttpRequest) -> JsonResponse:
         return json_error("edificio_id requerido", status=400)
 
     limits = get_sensor_limits(building_id)
-    limits = {k: v for k, v in limits.items() if k not in LIMITS_EXCLUDE_VARS}
-    thresholds = get_thresholds(building_id)
-    return json_ok({"limits": limits, "thresholds": thresholds})
+    return json_ok({"limits": limits})
 
 
 def _validate_limit_input(
@@ -120,18 +118,16 @@ def view_update_sensor_limits(request: HttpRequest) -> JsonResponse:
         return json_error("edificio_id requerido")
 
     thresholds = get_thresholds(building_id)
-    data = {k: v for k, v in raw.items() if k not in LIMITS_EXCLUDE_VARS}
-    cleaned_data, errors = _validate_limit_input(data, thresholds)
+    cleaned_data, errors = _validate_limit_input(raw, thresholds)
 
     if errors:
         return json_error(f"Validation errors: {errors}")
 
     try:
         bulk_update_limits(cleaned_data, building_id)
-    except Exception as e:
+    except LimitPersistenceError as e:
         return json_error(str(e), status=500)
 
     return json_ok({
         "sensor_ranges": get_sensor_limits(building_id),
-        "thresholds": thresholds,
     })

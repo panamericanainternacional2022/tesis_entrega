@@ -23,7 +23,7 @@ class LimitPersistenceError(Exception):
     pass
 
 
-def update_sensor_limit(variable: str, max_value: float, building_id: int) -> None:
+def _update_sensor_limit(variable: str, max_value: float, building_id: int) -> None:
     try:
         SensorLimitConfig.objects.update_or_create(
             building_id=building_id,
@@ -45,7 +45,7 @@ def bulk_update_limits(limits_dict: dict[str, float], building_id: int) -> None:
     errors: list[str] = []
     for var, max_val in limits_dict.items():
         try:
-            update_sensor_limit(var, max_val, building_id)
+            _update_sensor_limit(var, max_val, building_id)
         except LimitPersistenceError as e:
             errors.append(str(e))
     if errors:

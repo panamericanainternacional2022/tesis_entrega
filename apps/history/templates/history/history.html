@@ -216,6 +216,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/monitoring.js' %}" defer></script>
 <script>
     window.SELECTED_EDIFICIO_ID = {% if selected_edificio_id %}{{ selected_edificio_id }}{% else %}null{% endif %};
     window.CSRF_TOKEN = "{{ csrf_token|escapejs }}";

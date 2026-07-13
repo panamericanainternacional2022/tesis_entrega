@@ -48,3 +48,7 @@
 {% block config_extra_js_flags %}
 window.IS_LIMITS_PAGE = true;
 {% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/limits.js' %}" defer></script>
+{% endblock %}

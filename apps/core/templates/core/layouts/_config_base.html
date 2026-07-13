@@ -61,4 +61,5 @@
         window.IS_ADMIN = {{ request.session.usuario_es_admin|lower }};
         {% block config_extra_js_flags %}{% endblock %}
     </script>
+    {% block page_js %}{% endblock %}
 {% endblock %}

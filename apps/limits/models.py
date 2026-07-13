@@ -6,7 +6,6 @@ class SensorLimitConfig(models.Model):
         "buildings.Building",
         on_delete=models.CASCADE,
         db_column="id_edificio",
-        related_name="sensor_limits",
     )
     variable = models.CharField(max_length=50)
     max_value = models.FloatField()

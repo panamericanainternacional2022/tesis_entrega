@@ -1,0 +1,233 @@
+// =============================================================================
+// limits.js — Lógica específica de la página de límites de sensores
+// =============================================================================
+
+(function (window, document) {
+    'use strict';
+
+    // References globals from shared.js: EDIFICIO_ID, API, _SENSOR_RANGES,
+    // _BOMBA_VARS, _ELEVADOR_VARS, _NO_RISK_VARS, _LIMITS_EXCLUDE_VARS,
+    // currentThresholds, _originalLimits, _limitsDirtyKeys
+
+    function renderLimitsPanel(ranges) {
+        const bombaVars = _BOMBA_VARS.filter(k => ranges[k] && !_NO_RISK_VARS.includes(k) && !_LIMITS_EXCLUDE_VARS.includes(k));
+        const elevadorVars = _ELEVADOR_VARS.filter(k => ranges[k] && !_NO_RISK_VARS.includes(k) && !_LIMITS_EXCLUDE_VARS.includes(k));
+
+        function buildLimitCard(k, r) {
+            const div = document.createElement('div');
+            div.className = 'thresh-card';
+            const name = getVariableName(k);
+            const unit = getUnit(k);
+            const maxVal = r[1];
+            const thresh = currentThresholds[k];
+            let refText = '';
+            if (thresh?.high !== undefined) {
+                const label = thresh.direction === 'range' ? 'Máximo aceptable' : 'Crítico';
+                refText = `${label}: ${thresh.high}${unit ? ' ' + unit : ''}`;
+            }
+            const headerHtml = `<div class="thresh-card-header">
+                <span class="thresh-label">${name}${unit ? ` (${unit})` : ''}</span>
+                ${refText ? `<span class="thresh-hint">${refText}</span>` : ''}
+            </div>`;
+            div.innerHTML = headerHtml + `
+                <div class="form-group">
+                    <input type="number" step="any" data-var="${k}" data-level="max" value="${maxVal}" class="form-input">
+                    <div class="error-msg"></div>
+                </div>`;
+            return div;
+        }
+
+        function buildLimitSection(containerId, vars) {
+            const panel = document.getElementById(containerId);
+            if (!panel) return;
+            const section = panel.closest('section');
+            if (vars.length === 0) {
+                if (section) section.style.display = 'none';
+                panel.innerHTML = '';
+                return;
+            }
+            if (section) section.style.display = '';
+            panel.innerHTML = '';
+            vars.forEach(k => panel.appendChild(buildLimitCard(k, ranges[k])));
+        }
+
+        buildLimitSection('limitsBombaPanel', bombaVars);
+        buildLimitSection('limitsElevadorPanel', elevadorVars);
+        _originalLimits = JSON.parse(JSON.stringify(ranges));
+        _limitsDirtyKeys.clear();
+        updateLimitsDirtyBadge();
+        validateLimitInputs('bomba');
+        validateLimitInputs('elevador');
+    }
+
+    function validateLimitInputs(scope) {
+        const bomba = scope === 'bomba';
+        const PANEL_IDS = bomba ? ['limitsBombaPanel'] : ['limitsElevadorPanel'];
+        const btn = document.getElementById(bomba ? 'saveLimitsBombaBtn' : 'saveLimitsElevadorBtn');
+        let hasError = false, hasChanges = false;
+
+        PANEL_IDS.forEach(panelId => {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            panel.querySelectorAll('input[type="number"]').forEach(inp => {
+                const v = inp.dataset.var;
+                const val = parseFloat(inp.value);
+                inp.classList.remove('input-error-state');
+                inp.removeAttribute('aria-invalid');
+                const errorMsgEl = inp.closest('.form-group')?.querySelector('.error-msg');
+                if (errorMsgEl) { errorMsgEl.textContent = ''; errorMsgEl.style.visibility = 'hidden'; }
+
+                const showError = (text) => {
+                    hasError = true;
+                    inp.classList.add('input-error-state');
+                    inp.setAttribute('aria-invalid', 'true');
+                    if (errorMsgEl) { errorMsgEl.textContent = text; errorMsgEl.style.visibility = 'visible'; }
+                };
+
+                if (isNaN(val)) return showError('Introduzca un número válido.');
+                const defaultMin = _originalLimits[v]?.[0];
+                if (defaultMin === undefined) return showError('Variable sin rango configurado.');
+                if (val <= defaultMin) return showError(`Debe ser mayor que el mínimo (${defaultMin}).`);
+                const thresh = currentThresholds[v];
+                if (thresh?.high !== undefined && val < thresh.high) {
+                    const label = thresh.direction === 'range' ? 'máximo aceptable' : 'crítico';
+                    const unitStr = getUnit(v) ? ` ${getUnit(v)}` : '';
+                    return showError(`No puede ser menor al umbral ${label} (${thresh.high}${unitStr}).`);
+                }
+                if (_originalLimits[v] && val !== _originalLimits[v][1]) hasChanges = true;
+            });
+        });
+
+        if (btn) btn.disabled = hasError || !hasChanges;
+        updateLimitsDirtyState(scope);
+    }
+
+    async function saveLimits(scope) {
+        const bomba = scope === 'bomba';
+        const PANEL_IDS = bomba ? ['limitsBombaPanel'] : ['limitsElevadorPanel'];
+        const newLimits = { edificio_id: EDIFICIO_ID };
+        PANEL_IDS.forEach(panelId => {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            panel.querySelectorAll('input[type="number"]').forEach(inp => {
+                newLimits[inp.dataset.var] = parseFloat(inp.value);
+            });
+        });
+        try {
+            const resp = await csrfFetch(API.limitsUpdate, { method: 'POST', body: JSON.stringify(newLimits) });
+            const res = await resp.json();
+            if (res.status === 'ok') {
+                _SENSOR_RANGES = res.sensor_ranges;
+                renderLimitsPanel(res.sensor_ranges);
+            } else {
+                showToast(`Error al guardar: ${res.message || 'Inténtelo de nuevo.'}`, 'error');
+            }
+        } catch (_) {
+            showToast('Error de conexión. Inténtelo de nuevo.', 'error');
+        }
+    }
+
+    function updateLimitsDirtyState(scope) {
+        const bomba = scope === 'bomba';
+        const PANEL_IDS = bomba ? ['limitsBombaPanel'] : ['limitsElevadorPanel'];
+        const panelVars = bomba ? _BOMBA_VARS : _ELEVADOR_VARS;
+        const panelKeys = new Set();
+        PANEL_IDS.forEach(panelId => {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            panel.querySelectorAll('input[type="number"]').forEach(inp => {
+                const varKey = inp.dataset.var;
+                if (!varKey) return;
+                const orig = _originalLimits[varKey]?.[1];
+                const val = parseFloat(inp.value);
+                if (orig !== undefined && val !== orig) {
+                    inp.classList.add('is-dirty');
+                    inp.title = `Valor original: ${orig}${getUnit(varKey) ? ' ' + getUnit(varKey) : ''}`;
+                    panelKeys.add(varKey);
+                } else {
+                    inp.classList.remove('is-dirty');
+                    inp.title = '';
+                }
+            });
+        });
+        for (const k of panelVars) {
+            if (!_LIMITS_EXCLUDE_VARS.includes(k)) {
+                if (panelKeys.has(k)) _limitsDirtyKeys.add(k);
+                else _limitsDirtyKeys.delete(k);
+            }
+        }
+        updateLimitsDirtyBadge();
+    }
+
+    function updateLimitsDirtyBadge() {
+        const badge = document.getElementById('globalLimitsDirtyBadge');
+        const resetBtn = document.getElementById('resetAllLimitsBtn');
+        const totalDirty = _limitsDirtyKeys.size;
+        if (badge) {
+            if (!totalDirty) {
+                badge.classList.add('d-none');
+            } else {
+                badge.classList.remove('d-none');
+                badge.textContent = `${totalDirty} sensor(es) modificado(s)`;
+            }
+        }
+        if (resetBtn) resetBtn.disabled = !totalDirty;
+    }
+
+    function resetPanelLimits(scope) {
+        const bomba = scope === 'bomba';
+        const PANEL_IDS = bomba ? ['limitsBombaPanel'] : ['limitsElevadorPanel'];
+        PANEL_IDS.forEach(panelId => {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            panel.querySelectorAll('input[type="number"]').forEach(inp => {
+                const varKey = inp.dataset.var;
+                if (!varKey) return;
+                const orig = _originalLimits[varKey]?.[1];
+                if (orig !== undefined) inp.value = orig;
+            });
+        });
+        validateLimitInputs(scope);
+    }
+
+    async function resetAllLimits() {
+        if (!await showConfirm('¿Restablecer todos los límites a sus valores originales (último guardado)?')) return;
+        resetPanelLimits('bomba');
+        resetPanelLimits('elevador');
+    }
+
+    // Public init function called by the dispatcher
+    window.AppLimitsInit = function initLimitsPage() {
+        // Fetch thresholds for cross-reference validation (Fase 2: endpoints separated)
+        // Use _SENSOR_RANGES from config_json (Fase 3: no double fetch)
+        (async function() {
+            try {
+                hideAllStates();
+                // Fetch thresholds from their dedicated endpoint
+                const resp = await fetch(API.thresholds(EDIFICIO_ID));
+                if (resp.ok) {
+                    const raw = await resp.json();
+                    delete raw.status;
+                    currentThresholds = raw;
+                }
+                // Use pre-loaded sensor ranges from config_json
+                renderLimitsPanel(_SENSOR_RANGES);
+            } catch (_) { showState('stateOffline'); }
+        })();
+    };
+
+    // Admin event setup for limits
+    window.AppLimitsSetupEvents = function setupLimitsAdminEvents() {
+        const saveLimitsBombaBtn = document.getElementById('saveLimitsBombaBtn');
+        const limitsBombaPanel = document.getElementById('limitsBombaPanel');
+        const saveLimitsElevadorBtn = document.getElementById('saveLimitsElevadorBtn');
+        const limitsElevadorPanel = document.getElementById('limitsElevadorPanel');
+        if (saveLimitsBombaBtn) saveLimitsBombaBtn.addEventListener('click', () => saveLimits('bomba'));
+        if (limitsBombaPanel) limitsBombaPanel.addEventListener('input', () => validateLimitInputs('bomba'));
+        if (saveLimitsElevadorBtn) saveLimitsElevadorBtn.addEventListener('click', () => saveLimits('elevador'));
+        if (limitsElevadorPanel) limitsElevadorPanel.addEventListener('input', () => validateLimitInputs('elevador'));
+        const resetAllLimitsBtn = document.getElementById('resetAllLimitsBtn');
+        if (resetAllLimitsBtn) resetAllLimitsBtn.addEventListener('click', resetAllLimits);
+    };
+
+})(window, document);

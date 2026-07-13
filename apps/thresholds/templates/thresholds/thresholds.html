@@ -48,3 +48,7 @@
 {% block config_extra_js_flags %}
 window.IS_THRESHOLDS_PAGE = true;
 {% endblock %}
+
+{% block page_js %}
+<script src="{% static 'js/thresholds.js' %}" defer></script>
+{% endblock %}

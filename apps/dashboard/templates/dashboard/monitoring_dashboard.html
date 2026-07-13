@@ -199,6 +199,7 @@
     <script>
         window.IS_ADMIN = {{ request.session.usuario_es_admin|lower }};
     </script>
+    <script src="{% static 'js/monitoring.js' %}" defer></script>
     <script>
     (function () {
         'use strict';
