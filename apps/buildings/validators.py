@@ -19,18 +19,9 @@ def validate_unique_rif(rif: str, exclude_building_id: Optional[int] = None) -> 
         raise ValidationError("El RIF ya está registrado en otro edificio.")
 
 
-def _validate_floors_elevator(floors: str, has_elevator: bool) -> str | None:
-    try:
-        floors_val = int(floors)
-        if has_elevator and floors_val <= 1:
-            return "Un edificio de 1 piso no puede tener elevador."
-    except (ValueError, TypeError):
-        return "La cantidad de pisos debe ser un número entero."
-    return None
-
-
 def validate_building_form(
-    data: dict, exclude_building_id: Optional[int] = None
+    data: dict, exclude_building_id: Optional[int] = None,
+    has_elevator: bool = False,
 ) -> dict[str, str]:
     errors: dict[str, str] = {}
 
@@ -99,5 +90,12 @@ def validate_building_form(
                 errors["cantidadPisos"] = f"La cantidad de pisos no puede exceder {MAX_FLOORS}."
         except (ValueError, TypeError):
             errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
+
+    if not errors.get("cantidadPisos") and has_elevator:
+        try:
+            if int(data.get("cantidadPisos", 0)) <= 1:
+                errors["cantidadPisos"] = "Un edificio de 1 piso no puede tener elevador."
+        except (ValueError, TypeError):
+            pass
 
     return errors

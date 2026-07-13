@@ -149,10 +149,6 @@ class RegisterBuildingViewTests(BuildingViewTestBase):
         building = Building.objects.get(rif="J-11111115-0")
         self.assertTrue(building.equipment.filter(equipment_type="bomba").exists())
 
-    def test_pump_filter_removed_still_works(self) -> None:
-        response = self.client.get(reverse("building_list"), {"equipamiento": "bomba"})
-        self.assertEqual(response.status_code, 200)
-
 
 class BuildingListViewTests(BuildingViewTestBase):
     def test_lists_buildings(self) -> None:

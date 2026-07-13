@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_http_methods
 
 from apps.core.auth_decorators import login_required, admin_required
 from apps.core.services.http_response import json_ok
@@ -14,7 +15,7 @@ from apps.buildings.models import Building, MonitoringEquipment
 from apps.buildings.services import (
     sync_equipment_for_building, EquipmentConfig)
 from apps.buildings.validators import (
-    validate_building_form, validate_unique_rif, _validate_floors_elevator)
+    validate_building_form, validate_unique_rif)
 from apps.users.validators import normalize_rif
 from apps.buildings.shared import (
     extract_building_data,
@@ -68,11 +69,7 @@ def register_building_view(request: HttpRequest) -> HttpResponse:
             "direccion": data["address"],
             "rif": data["rif"],
             "cantidadPisos": data.get("floors"),
-        })
-        if not form_errors:
-            error = _validate_floors_elevator(data.get("floors"), config.has_elevator)
-            if error:
-                form_errors["cantidadPisos"] = error
+        }, has_elevator=config.has_elevator)
         if form_errors:
             messages.error(request, "Corrija los errores indicados en el formulario.")
         else:
@@ -119,11 +116,8 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
                 "rif": data["rif"],
                 "cantidadPisos": data.get("floors"),
             },
-            exclude_building_id=building.id)
-        if not form_errors:
-            error = _validate_floors_elevator(data.get("floors"), config.has_elevator)
-            if error:
-                form_errors["cantidadPisos"] = error
+            exclude_building_id=building.id,
+            has_elevator=config.has_elevator)
         if form_errors:
             messages.error(request, "Corrija los errores indicados en el formulario.")
         else:
@@ -150,6 +144,7 @@ def edit_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
 
 @login_required
 @admin_required
+@require_http_methods(["POST"])
 def delete_building_view(request: HttpRequest, building_id: int) -> HttpResponse:
     building = get_object_or_404(Building, id=building_id)
     building.delete()

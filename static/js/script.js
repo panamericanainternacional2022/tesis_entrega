@@ -366,7 +366,14 @@
                 message: link.getAttribute('data-confirm'),
                 type: 'confirm',
                 showCancel: true,
-            }).then(confirmed => { if (confirmed) window.location.href = link.getAttribute('href'); });
+            }).then(confirmed => {
+                if (!confirmed) return;
+                if (link.tagName === 'FORM') {
+                    link.submit();
+                } else {
+                    window.location.href = link.getAttribute('href');
+                }
+            });
         });
     };
 
