@@ -12,13 +12,13 @@ from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_ok, json_error
 from apps.buildings.models import Building
 from apps.history.models import History
-from apps.history.shared import _build_history_query
-from apps.sensors.sensor_config import PAGE_SIZE
-from apps.dashboard.shared import (
+from apps.history.shared import (
+    _build_history_query,
     filter_date_range, build_query_string,
     parse_history, extract_variables,
     extract_severities, filter_severity_python, filter_by_variable,
 )
+from apps.sensors.sensor_config import PAGE_SIZE
 from apps.core.services.pdf_shared import _pdf_font, safe_text, _get_period_label, draw_row
 from apps.core.services.pdf_rendering import (
     _create_report_pdf,

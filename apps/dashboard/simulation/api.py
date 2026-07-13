@@ -4,10 +4,6 @@ from typing import Any
 
 from django.http import JsonResponse
 
-from apps.buildings.models import MonitoringEquipment, UserBuilding
-from apps.history.models import History
-from apps.sensors.sensor_config import UNKNOWN_PERSON_NAME, UNKNOWN_EMAIL_LABEL
-
 from .shared import get_simulator, get_first_simulator
 from apps.core.services.http_response import json_error
 
@@ -33,73 +29,3 @@ def api_status(request) -> JsonResponse:
 
     from apps.sensors.payload import build_live_payload_for_sim
     return JsonResponse(build_live_payload_for_sim(sim))
-
-
-def api_buildings(request) -> JsonResponse:
-    data: list[dict[str, Any]] = []
-
-    for equipment in MonitoringEquipment.objects.select_related("building").all():
-        if not equipment.building:
-            continue
-        building = equipment.building
-        try:
-            sim = get_simulator(building.pk)
-        except Exception:
-            sim = None
-
-        data.append({
-            "id": building.pk,
-            "nombre": building.name,
-            "direccion": building.address or "",
-            "rif": building.rif or "",
-            "tipo": equipment.equipment_type,
-            "simulador_activo": sim is not None,
-            "sim_paused": sim.sim_paused if sim else False,
-        })
-    return JsonResponse(data, safe=False)
-
-
-def api_building_users(request, building_id: int) -> JsonResponse:
-    user_buildings = UserBuilding.objects.filter(
-        building_id=building_id
-    ).select_related("user__id_persona")
-
-    data: list[dict[str, Any]] = []
-    for ub in user_buildings:
-        person = ub.user.id_persona if ub.user else None
-        data.append({
-            "id": ub.user.pk if ub.user else None,
-            "nombre": " ".join(x for x in [person.first_name, person.middle_name, person.first_last_name, person.second_last_name] if x) if person else UNKNOWN_PERSON_NAME,
-            "email": person.email if person else UNKNOWN_EMAIL_LABEL,
-        })
-    return JsonResponse(data, safe=False)
-
-
-def api_history(request) -> JsonResponse:
-    from apps.sensors.sensor_config import API_HISTORY_LIMIT
-    qs = History.objects.select_related(
-        "monitoring_equipment__building"
-    ).order_by("-date")[:API_HISTORY_LIMIT]
-
-    data: list[dict[str, Any]] = []
-    for record in qs:
-        msg = record.message or {}
-        if isinstance(msg, str):
-            try:
-                msg = json.loads(msg)
-            except (json.JSONDecodeError, TypeError):
-                msg = {"raw": msg}
-        elif not isinstance(msg, dict):
-            msg = {"raw": str(msg)}
-        data.append({
-            "id": record.id,
-            "timestamp": record.date.isoformat() if record.date else "",
-            "variable": msg.get("variable", ""),
-            "value": msg.get("value"),
-            "risk": msg.get("risk", ""),
-            "message": msg.get("action", msg.get("raw", json.dumps(msg, ensure_ascii=False))),
-            "edificio": record.monitoring_equipment.building.name
-            if record.monitoring_equipment and record.monitoring_equipment.building
-            else None,
-        })
-    return JsonResponse(data, safe=False)

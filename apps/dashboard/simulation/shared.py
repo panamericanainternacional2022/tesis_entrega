@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 def get_simulator(building_id: int) -> BuildingSimulator | None:
     from apps.sensors.simulation.globals import simulators
-    from apps.sensors.simulation.models import BuildingSimulator
 
     sim = simulators.get(building_id)
     if sim:

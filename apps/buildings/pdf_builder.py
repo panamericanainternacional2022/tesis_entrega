@@ -301,7 +301,7 @@ def _render_history_section(
     usuario_id: int | None = None,
     usuario_rol: str = "US") -> None:
     from apps.history.shared import _build_history_query
-    from apps.dashboard.shared import parse_history
+    from apps.history.shared import parse_history
 
     if pdf.get_y() > 230:
         pdf.add_page()

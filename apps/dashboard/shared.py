@@ -1,10 +1,4 @@
-import datetime as dt
-
-from django.db.models import QuerySet
-from django.utils import timezone as tz
-
 from apps.buildings.models import UserBuilding
-from apps.sensors.sensor_config import SEVERITY_LEVELS
 
 
 def build_monitoring_config(building_id: int) -> dict:
@@ -42,72 +36,5 @@ def build_monitoring_config(building_id: int) -> dict:
     }
 
 
-def filter_date_range(queryset: QuerySet, period: str, date_from: str, date_to: str) -> QuerySet:
-    if period == "custom":
-        if date_from:
-            try:
-                naive = dt.datetime.strptime(date_from, "%Y-%m-%d")
-                queryset = queryset.filter(date__gte=tz.make_aware(naive))
-            except ValueError:
-                pass
-        if date_to:
-            try:
-                naive = dt.datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-                queryset = queryset.filter(date__lte=tz.make_aware(naive))
-            except ValueError:
-                pass
-    return queryset
-
-
-def build_query_string(**params: str) -> str:
-    return "&".join(f"{k}={v}" for k, v in params.items() if v)
-
-
 def get_user_building_ids(user_id: int) -> list[int]:
     return list(UserBuilding.objects.filter(user_id=user_id).values_list("building_id", flat=True))
-
-
-def parse_history(records: QuerySet) -> list:
-    from apps.history.shared import parse_history_record_for_display
-    parsed = []
-    for record in records:
-        parsed.append(parse_history_record_for_display(record))
-    return parsed
-
-
-def extract_variables(parsed_list: list) -> list[str]:
-    return sorted({
-        n.parsed_data["variable"]
-        for n in parsed_list
-        if n.parsed_data.get("parsed") and n.parsed_data.get("variable")
-    })
-
-
-def extract_severities(parsed_list: list) -> list[str]:
-    present = {
-        n.parsed_data["risk"]
-        for n in parsed_list
-        if n.parsed_data.get("parsed") and n.parsed_data.get("risk")
-    }
-    result = [s for s in SEVERITY_LEVELS if s in present]
-    if "Resuelta" in present:
-        result.append("Resuelta")
-    return result
-
-
-def filter_severity_python(parsed_list: list, severity: str) -> list:
-    if not severity:
-        return parsed_list
-    return [
-        n for n in parsed_list
-        if n.parsed_data.get("parsed") and n.parsed_data.get("risk") == severity
-    ]
-
-
-def filter_by_variable(parsed_list: list, variable: str) -> list:
-    if not variable:
-        return parsed_list
-    return [
-        n for n in parsed_list
-        if n.parsed_data.get("parsed") and n.parsed_data.get("variable") == variable
-    ]

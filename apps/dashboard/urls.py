@@ -1,16 +1,9 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from .views import (
-    monitoring_view,
-    building_monitoring_view,
-    simulator_status_view,
-    simulator_start_view,
-    simulator_stop_view,
-    simulator_restart_view,
-)
+from .views import monitoring_view
 from .simulation.streaming import sse_stream
-from .simulation.api import api_status, api_buildings, api_building_users, api_history
+from .simulation.api import api_status
 from .simulation.controls import (
     sim_status,
     sim_pause,
@@ -25,40 +18,8 @@ from .simulation.controls import (
 urlpatterns = [
     path("", RedirectView.as_view(url="/login/", permanent=False), name="home"),
     path("monitor/", monitoring_view, name="monitor"),
-    path(
-        "monitor/building/<int:building_id>/",
-        building_monitoring_view,
-        name="monitor_building",
-    ),
-    path(
-        "monitor/simulator/status/",
-        simulator_status_view,
-        name="simulator_status",
-    ),
-    path(
-        "monitor/simulator/start/",
-        simulator_start_view,
-        name="simulator_start",
-    ),
-    path(
-        "monitor/simulator/stop/",
-        simulator_stop_view,
-        name="simulator_stop",
-    ),
-    path(
-        "monitor/simulator/restart/",
-        simulator_restart_view,
-        name="simulator_restart",
-    ),
     path("sse/<int:building_id>/", sse_stream, name="sse_stream"),
     path("api/status/", api_status, name="api_status"),
-    path("api/edificios/", api_buildings, name="api_buildings"),
-    path(
-        "api/usuarios_edificio/<int:building_id>/",
-        api_building_users,
-        name="api_building_users",
-    ),
-    path("api/history/", api_history, name="api_history"),
     path(
         "api/sim/<int:building_id>/status/",
         sim_status,
