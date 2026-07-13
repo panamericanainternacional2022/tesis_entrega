@@ -6,10 +6,9 @@ from .views import (
     user_update_view,
     user_delete_view,
     check_cedula_uniqueness_view,
-    send_test_email,
-    send_all_subscribers,
-    user_pdf_view,
 )
+from .emails import send_test_email, send_all_subscribers
+from .reports import user_pdf_view
 
 urlpatterns = [
     path("users/", user_list_view, name="user_list"),

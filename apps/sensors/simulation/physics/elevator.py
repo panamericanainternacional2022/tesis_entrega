@@ -465,8 +465,9 @@ def _handle_elev_door_closing(
 ) -> None:
 
     total_load = _effective_load(sim, load)
-    # Spec: bloqueo físico cuando load > sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1] (umbral crítico derivado de DEFAULT_THRESHOLDS)
-    if total_load > sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1]:
+    # Spec: bloqueo físico quando load > umbral crítico de DEFAULT_THRESHOLDS (800 kg)
+    critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
+    if total_load > critic_load:
         sim._elev_state = "DOOR_OPENING"
         sim._elev_timer = 0
         sd["elev_door_status"] = "open"

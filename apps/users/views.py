@@ -1,74 +1,29 @@
-from apps.core.services.pdf_shared import safe_text
-import datetime as dt
-import json
-import logging
-import smtplib
-import time as time_module
-from collections import OrderedDict
 from typing import Any
 from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core import signing
 from django.db import transaction
-from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods
 
 from apps.buildings.models import Building, UserBuilding
-from apps.buildings.pdf_builder import generate_building_report_bytes
-from apps.core.auth_decorators import ADMIN_ROLES, login_required, admin_required
-from apps.core.services.http_response import json_error, json_ok
-from apps.core.services.pdf_shared import _pdf_font, draw_row
-from apps.core.services.pdf_rendering import (
-    _create_report_pdf,
-    make_pdf_response,
-    render_pdf_header,
-    render_section_divider,
-    render_summary_box,
-    render_table_header,
-)
-from apps.history.services.email_sender import get_building_emails, build_report_email_html, send_email_raw
-from apps.sensors.sensor_config import USER_STATS_COLORS
-from apps.sensors.simulation.globals import simulators
+from apps.core.auth_decorators import login_required, admin_required
+from apps.core.services.http_response import json_ok
 from apps.users.models import Usuario, Persona
 from apps.users.services import (
     build_user_data,
     generate_random_password,
     send_activation_email,
-)
-from apps.users.validators import validate_user_form, _validate_unique_ci
-from .shared import (
     extract_post_data,
     has_required_fields,
     build_required_field_errors,
     create_user_with_retry,
     build_edit_initial_data,
+    _filter_users_query,
 )
-
-
-def _filter_users_query(
-    query: str = "", building_id: str = "", estado: str = "", extra_fields: bool = False
-):
-    qs = (
-        Usuario.objects.select_related("id_persona")
-        .prefetch_related("building_assignments__building")
-        .exclude(rol__in=ADMIN_ROLES)
-    )
-    if building_id:
-        qs = qs.filter(building_assignments__building_id=building_id)
-    if estado == "registrado":
-        qs = qs.filter(registered=True)
-    elif estado == "por_registrar":
-        qs = qs.filter(registered=False)
-    if query:
-        q = Q(id_persona__ci__icontains=query) | Q(id_persona__first_name__icontains=query) | Q(id_persona__middle_name__icontains=query) | Q(id_persona__first_last_name__icontains=query) | Q(id_persona__second_last_name__icontains=query)
-        if extra_fields:
-            q |= Q(id_persona__email__icontains=query) | Q(username__icontains=query) | Q(building_assignments__building__name__icontains=query)
-        qs = qs.filter(q).distinct()
-    return qs
+from apps.users.validators import validate_user_form, _validate_unique_ci
 
 
 @login_required
@@ -297,250 +252,3 @@ def check_cedula_uniqueness_view(request: HttpRequest) -> JsonResponse:
 
     error = _validate_unique_ci(ci, exclude_persona_id)
     return json_ok({"exists": bool(error), "error": error})
-
-
-# ── Email views (moved from events.views) ──────────────────────────────────
-
-logger_email = logging.getLogger(__name__)
-
-
-def _build_report_email_body(sim) -> tuple[str, str]:
-    timestamp = time_module.strftime("%d/%m/%Y %H:%M:%S")
-    edificio = getattr(sim, "nombre", "") or ""
-    subject = f"Reporte de monitoreo: {edificio} — {timestamp}" if edificio else f"Reporte de monitoreo — {timestamp}"
-    body = build_report_email_html(edificio=edificio)
-    return subject, body
-
-
-def _smtp_error_message(exc: Exception) -> str:
-    if isinstance(exc, smtplib.SMTPDataError):
-        code = exc.args[0]
-        raw = exc.args[1]
-        msg = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
-        if code == 550 and "limit" in msg.lower():
-            return "Límite diario de envío de Gmail excedido. Intente mañana o reduzca la frecuencia de notificaciones."
-        return f"Error SMTP ({code}): {msg[:200]}"
-    if isinstance(exc, smtplib.SMTPAuthenticationError):
-        return "Error de autenticación SMTP. Verifique las credenciales en el archivo .env."
-    if isinstance(exc, smtplib.SMTPConnectError):
-        return "No se pudo conectar al servidor SMTP. Verifique SMTP_SERVER y SMTP_PORT."
-    return f"Error al enviar correo: {type(exc).__name__}: {exc}"
-
-
-def _parse_json_body(request: HttpRequest) -> dict | None:
-    try:
-        return json.loads(request.body)
-    except json.JSONDecodeError:
-        return None
-
-
-def _safe_int(value: Any, default: int | None = None) -> int | None:
-    try:
-        return int(value) if value is not None else default
-    except (ValueError, TypeError):
-        return default
-
-
-def _send_report_to_recipients(
-    to_addrs: list[str], edificio_id: int | None, request: HttpRequest
-) -> JsonResponse | None:
-    sim = simulators.get(edificio_id) if edificio_id else next(iter(simulators.values()), None)
-    if not sim:
-        return json_error("No hay un simulador activo. Inicie la simulación primero.", 503)
-
-    actual_eid = sim.edificio_id
-    subject, html_body = _build_report_email_body(sim)
-
-    pdf_bytes = None
-    pdf_name = "reporte.pdf"
-    try:
-        pdf_bytes, pdf_name = generate_building_report_bytes(actual_eid)
-    except Exception as e:
-        logger_email.warning("Could not generate building report PDF: %s", e)
-
-    try:
-        send_email_raw(
-            to_addrs=to_addrs,
-            subject=subject,
-            html_body=html_body,
-            attachment_pdf=pdf_bytes,
-            attachment_name=pdf_name,
-        )
-    except Exception as exc:
-        logger_email.error("send report failed: %s", exc)
-        return json_error(_smtp_error_message(exc), 502)
-
-    return None
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def send_test_email(request: HttpRequest) -> JsonResponse:
-    data = _parse_json_body(request)
-    if data is None:
-        return json_error("Invalid JSON")
-
-    email = data.get("email", "")
-    if not email:
-        return json_error("Missing field 'email'")
-
-    error = _send_report_to_recipients([email], None, request)
-    return error if error else json_ok({"message": f"Reporte enviado a {email}"})
-
-
-@require_http_methods(["POST"])
-@login_required
-@admin_required
-def send_all_subscribers(request: HttpRequest) -> JsonResponse:
-    data = _parse_json_body(request)
-    if data is None:
-        return json_error("Invalid JSON")
-
-    eid = _safe_int(data.get("edificio_id"))
-    emails = get_building_emails(eid)
-    if not emails:
-        return json_error("No subscribers for this building")
-
-    error = _send_report_to_recipients(emails, eid, request)
-    return error if error else json_ok({"message": f"Reporte enviado a {len(emails)} suscriptores"})
-
-
-# ── User PDF Report (moved from reports.views.users) ───────────────────────
-
-@login_required
-def user_pdf_view(request: Any) -> HttpResponse:
-    try:
-        query     = request.GET.get("q", "").strip()
-        building_id = request.GET.get("edificio", "").strip()
-        estado    = request.GET.get("estado", "").strip()
-
-        usuarios = _filter_users_query(query, building_id, estado, extra_fields=True)
-
-        users = [{"rol": u.rol, **build_user_data(u)} for u in usuarios]
-
-        groups: OrderedDict[str, list[Any]] = OrderedDict()
-        for b in users:
-            key = b["edificio_nombre"] or "Sin edificio"
-            groups.setdefault(key, []).append(b)
-
-        now = dt.datetime.now()
-        pdf = _create_report_pdf("Reporte de usuarios")
-
-        filtros: list[str] = []
-        if query:
-            filtros.append(f"Búsqueda: «{query}»")
-        if estado:
-            estado_labels = {
-                "registrado":    "Registrados",
-                "por_registrar": "Pendientes de registro",
-            }
-            filtros.append(f"Estado: {estado_labels.get(estado, estado)}")
-
-        total_registrados = sum(1 for u in users if u["registered"])
-        total_pendientes  = len(users) - total_registrados
-
-        render_pdf_header(
-            pdf,
-            title="Reporte de usuarios",
-            now=now,
-            meta_lines=[
-                f"Generado: {now.strftime('%d/%m/%Y %H:%M:%S')}",
-                f"Total de usuarios: {len(users)}",
-                f"Edificios: {len(groups)}",
-                *filtros,
-            ],
-        )
-
-        render_section_divider(pdf, "Resumen de usuarios")
-        render_summary_box(
-            pdf,
-            items=[
-                {
-                    "label": "Total de usuarios",
-                    "value": len(users),
-                    "fill":  USER_STATS_COLORS["total"]["fill"],
-                    "text":  USER_STATS_COLORS["total"]["text"],
-                },
-                {
-                    "label": "Registrados",
-                    "value": total_registrados,
-                    "fill":  USER_STATS_COLORS["registrados"]["fill"],
-                    "text":  USER_STATS_COLORS["registrados"]["text"],
-                },
-                {
-                    "label": "Pendientes",
-                    "value": total_pendientes,
-                    "fill":  USER_STATS_COLORS["pendientes"]["fill"],
-                    "text":  USER_STATS_COLORS["pendientes"]["text"],
-                },
-                {
-                    "label": "Edificios",
-                    "value": len(groups),
-                    "fill":  USER_STATS_COLORS["edificios"]["fill"],
-                    "text":  USER_STATS_COLORS["edificios"]["text"],
-                },
-            ],
-        )
-
-        if not groups:
-            _pdf_font(pdf, "I", 10)
-            pdf.set_text_color(95, 95, 95)
-            pdf.cell(0, 9, safe_text("No se encontraron usuarios con los filtros aplicados."), ln=1)
-
-        col_widths  = [28, 32, 32, 70, 28]
-        col_headers = ["Cédula", "Nombre", "Apellido", "Correo electrónico", "Estado"]
-        col_aligns  = ["C", "L", "L", "L", "C"]
-
-        for building_name, members in groups.items():
-            if pdf.get_y() > 230:
-                pdf.add_page()
-
-            render_section_divider(pdf, f"{building_name} ({len(members)} usuario(s))")
-            render_table_header(pdf, col_widths, col_aligns, col_headers)
-
-            _pdf_font(pdf, "", 9)
-            pdf.set_draw_color(10, 10, 10)
-            for idx, b in enumerate(members):
-                estado_str = "Registrado" if b["registered"] else "Pendiente"
-
-                if b["registered"]:
-                    est_fill = USER_STATS_COLORS["registrados"]["fill"]
-                    est_text = USER_STATS_COLORS["registrados"]["text"]
-                else:
-                    est_fill = USER_STATS_COLORS["pendientes"]["fill"]
-                    est_text = USER_STATS_COLORS["pendientes"]["text"]
-
-                draw_row(
-                    pdf,
-                    col_widths,
-                    col_aligns,
-                    [
-                        str(b["cedula"]),
-                        b["nombre"][:22],
-                        b["last_name"][:22],
-                        b["email"][:60],
-                        estado_str,
-                    ],
-                    [None, None, None, None, est_fill],
-                    [None, None, None, None, est_text],
-                    row_index=idx,
-                )
-
-            pdf.ln(4)
-
-        return make_pdf_response(pdf, "reporte_usuarios.pdf")
-
-    except ImportError:
-        return HttpResponse(
-            "Error: fpdf2 no está instalado. Ejecute: pip install fpdf2",
-            content_type="text/plain",
-            status=500,
-        )
-    except Exception as e:
-        logger_email.warning("User PDF generation failed: %s", e)
-        return HttpResponse(
-            f"Error generando PDF: {e}",
-            content_type="text/plain",
-            status=500,
-        )
