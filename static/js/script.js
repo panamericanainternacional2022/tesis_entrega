@@ -1575,59 +1575,6 @@
     // 11. HISTORIAL EN VIVO
     // =============================================================================
 
-    function renderHistoryList(alerts) {
-        const container = document.getElementById('live-history-list');
-        if (!container) return;
-        document.getElementById('live-no-history')?.remove();
-
-        const filtered = alerts || [];
-        if (!filtered.length) {
-            unreadHistoryCount = 0;
-            setHistoryBadge(0);
-            container.innerHTML = `<div class="no-history" id="live-no-history"><i class="fa-solid fa-bell-slash"></i><p>No hay historial pendiente.</p></div>`;
-            return;
-        }
-        unreadHistoryCount = filtered.length;
-        setHistoryBadge(unreadHistoryCount);
-        container.innerHTML = filtered.map(alert => {
-            if (alert.fault_type) {
-                const faultName = alert.fault_name || alert.fault_type;
-                const varsHtml = (alert.variables_detail || []).map(v => {
-                    const name = v.display_name || v.variable;
-                    const val = v.value != null ? ` ${v.value}${v.unit ? ' ' + v.unit : ''}` : '';
-                    const risk = v.risk ? ` <span class="compound-var-risk">(${safeText(v.risk)})</span>` : '';
-                    return `<li class="compound-var-item"><strong>${safeText(name)}</strong>${val}${risk}</li>`;
-                }).join('');
-                return `
-                    <div class="hist-item">
-                        <div class="hist-icon"><i class="fa-solid fa-bell"></i></div>
-                        <div class="hist-body">
-                            <p class="compound-action"><strong>${safeText(faultName)}</strong> — ${safeText(alert.message)}</p>
-                            <ul class="compound-vars-list">
-                                ${varsHtml}
-                            </ul>
-                            <div class="hist-meta">
-                                <span><i class="fa-solid fa-clock"></i> ${new Date(alert.timestamp).toLocaleString()}</span>
-                                <span><strong>Riesgo:</strong> ${safeText(alert.risk)}</span>
-                            </div>
-                        </div>
-                    </div>`;
-            }
-            return `
-            <div class="hist-item">
-                <div class="hist-icon"><i class="fa-solid fa-bell"></i></div>
-                <div class="hist-body">
-                    <p>${safeText(alert.message)}</p>
-                    <div class="hist-meta">
-                        <span><i class="fa-solid fa-clock"></i> ${new Date(alert.timestamp).toLocaleString()}</span>
-                        <span><strong>Variable:</strong> ${safeText(getVariableName(alert.variable))}</span>
-                        <span><strong>Riesgo:</strong> ${safeText(alert.risk)}</span>
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
     function _parseTimestamp(ts) {
         if (!ts) return '';
         const d = new Date(ts.replace(' ', 'T') + 'Z');

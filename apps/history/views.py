@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def history_view(request: HttpRequest):
-    from apps.core.auth_decorators import is_admin_role
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
         return render(request, "history/history.html", {
@@ -126,12 +125,10 @@ def history_view(request: HttpRequest):
     )
 
 
+@login_required
 @require_http_methods(["GET"])
 def view_unread_count(request: HttpRequest) -> JsonResponse:
     usuario_id = request.session.get("usuario_id")
-    if not usuario_id:
-        return json_ok({"count": 0})
-
     rol = request.session.get("usuario_rol", "US")
     records, _ = _build_history_query(usuario_id, rol)
 
@@ -142,8 +139,15 @@ def view_unread_count(request: HttpRequest) -> JsonResponse:
 @require_http_methods(["POST"])
 def clear_history_view(request: HttpRequest) -> JsonResponse:
     usuario_id = request.session.get("usuario_id")
-    if usuario_id:
+    if not usuario_id:
+        return json_error("Sesión inválida", status=401)
+
+    rol = request.session.get("usuario_rol", "US")
+    if is_admin_role(rol):
+        History.objects.all().delete()
+    else:
         History.objects.filter(user_id=usuario_id).delete()
+
     return json_ok({"message": "History cleared successfully"})
 
 
