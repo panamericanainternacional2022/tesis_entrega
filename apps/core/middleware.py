@@ -16,7 +16,6 @@ class AuthMiddleware:
         now = time.time()
         if self._admin_paths_cache is None or now - self._admin_paths_ts > self._admin_paths_ttl:
             paths = [
-                reverse("user_register"),
                 reverse("user_list"),
                 reverse("user_create"),
                 reverse("building_list"),

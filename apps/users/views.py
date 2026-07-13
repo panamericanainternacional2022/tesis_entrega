@@ -168,7 +168,6 @@ def user_create_view(request: HttpRequest) -> HttpResponse:
                     token = signing.dumps({"user_id": created_user.id_usuario, "email": post_data["email"]})
                     activation_link = f"{'https' if request.is_secure() else 'http'}://{request.get_host()}{reverse('complete_registration')}?token={token}"
 
-                person_name = person.get_full_name()
                 if email_sent:
                     messages.success(request, f"Se envió el correo de activación a {post_data['email']}.")
                 else:
