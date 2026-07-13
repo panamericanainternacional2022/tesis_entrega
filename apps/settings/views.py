@@ -1,4 +1,4 @@
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from typing import Any
 
 from apps.core.auth_decorators import login_required
+from apps.core.utils import verify_password
 from apps.users.models import Usuario
 
 
@@ -65,7 +66,6 @@ def _handle_config_post(
                 user.username = username
             person.save()
             user.save()
-            request.session["usuario_username"] = user.username
             messages.success(request, "Datos de perfil actualizados correctamente.")
             return redirect("configuration")
 
@@ -93,7 +93,7 @@ def _handle_config_post(
                 },
             )
 
-        if not _verify_password(user, current_password):
+        if not verify_password(current_password, user):
             messages.error(request, "La contraseña actual no es correcta.")
             form_errors["current_password"] = "La contraseña actual no es correcta."
             return render(
@@ -126,22 +126,6 @@ def _handle_config_post(
         )
 
     return redirect("configuration")
-
-
-def _verify_password(user: Usuario, current_password: str) -> bool:
-    if not current_password:
-        return False
-    if check_password(current_password, user.password):
-        return True
-    return _migrate_plaintext_password(user, current_password)
-
-
-def _migrate_plaintext_password(user: Usuario, plaintext: str) -> bool:
-    if user.password == plaintext:
-        user.password = make_password(plaintext)
-        user.save(update_fields=["password"])
-        return True
-    return False
 
 
 def _validate_config_email(

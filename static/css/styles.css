@@ -2130,6 +2130,11 @@ input.is-dirty.input-error-state:active {
     color: var(--state-critical);
 }
 
+.alert.alert-success {
+    background: var(--state-normal-bg);
+    color: var(--state-normal);
+}
+
 .sys-alert {
     padding: var(--sp-3) var(--sp-4);
     margin-bottom: var(--sp-4);

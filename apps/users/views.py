@@ -1,3 +1,4 @@
+from apps.core.services.pdf_shared import safe_text
 import datetime as dt
 import json
 import logging
@@ -169,9 +170,9 @@ def user_create_view(request: HttpRequest) -> HttpResponse:
 
                 person_name = person.get_full_name()
                 if email_sent:
-                    messages.success(request, f"{person_name} registrado. Se envió el correo de activación a {post_data['email']}.")
+                    messages.success(request, f"Se envió el correo de activación a {post_data['email']}.")
                 else:
-                    messages.warning(request, f"{person_name} registrado. No se pudo enviar el correo; entregue el enlace de activación manualmente: {activation_link}")
+                    messages.warning(request, f"No se pudo enviar el correo; entregue el enlace de activación manualmente: {activation_link}")
 
                 return redirect("user_list")
 

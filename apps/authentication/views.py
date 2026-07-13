@@ -1,10 +1,11 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.hashers import make_password
 from django.core import signing
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
+from apps.core.utils import verify_password
 from apps.users.models import Usuario
 from apps.users.validators import REGEX_USERNAME
 
@@ -27,7 +28,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 .filter(username=username_val)
                 .first()
             )
-            if user and _verify_password(password, user):
+            if user and verify_password(password, user):
                 _setup_session(request, user)
                 return redirect("monitor")
             form_error = ERROR_INVALID_CREDENTIALS
@@ -93,7 +94,6 @@ def complete_registration_view(request: HttpRequest) -> HttpResponse:
         request,
         "authentication/complete_registration.html",
         {
-            "usuario": user,
             "token": token,
             "username_val": username_val,
             "form_error": _first_error(form_errors),
@@ -107,19 +107,8 @@ def complete_registration_view(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 
-def _verify_password(raw_password: str, user: Usuario) -> bool:
-    if check_password(raw_password, user.password):
-        return True
-    if user.password == raw_password:
-        user.password = make_password(raw_password)
-        user.save(update_fields=["password"])
-        return True
-    return False
-
-
 def _setup_session(request: HttpRequest, user: Usuario) -> None:
     request.session["usuario_id"] = user.id_usuario
-    request.session["usuario_username"] = user.username
     request.session["usuario_rol"] = user.rol or "US"
     request.session["usuario_es_admin"] = user.rol == "SA"
 
