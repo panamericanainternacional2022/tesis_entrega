@@ -17,6 +17,13 @@ def login_view(request: HttpRequest) -> HttpResponse:
     form_errors: dict[str, str] = {}
     username_val = request.POST.get("username", "").strip()
 
+    success = None
+    storage = messages.get_messages(request)
+    for msg in storage:
+        if msg.level_tag == "success":
+            success = str(msg)
+            break
+
     if request.method == "POST":
         password = request.POST.get("password", "").strip()
 
@@ -37,6 +44,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         "form_error": form_error,
         "form_errors": form_errors,
         "username_val": username_val,
+        "success": success,
     })
 
 

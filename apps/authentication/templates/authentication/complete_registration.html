@@ -13,6 +13,9 @@
         <div class="alert alert-error">
             {{ error }}
         </div>
+        <div style="text-align: center;">
+            {% include 'core/components/button.html' with url='/login/' class='btn btn-primary' text='Ir al inicio de sesión' icon='fa-solid fa-right-to-bracket' %}
+        </div>
     {% else %}
         <h1 style="margin-bottom: 1.5rem;">Configurar credenciales</h1>
  
