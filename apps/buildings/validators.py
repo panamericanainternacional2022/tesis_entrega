@@ -19,6 +19,16 @@ def validate_unique_rif(rif: str, exclude_building_id: Optional[int] = None) -> 
         raise ValidationError("El RIF ya está registrado en otro edificio.")
 
 
+def _validate_floors_elevator(floors: str, has_elevator: bool) -> str | None:
+    try:
+        floors_val = int(floors)
+        if has_elevator and floors_val <= 1:
+            return "Un edificio de 1 piso no puede tener elevador."
+    except (ValueError, TypeError):
+        return "La cantidad de pisos debe ser un número entero."
+    return None
+
+
 def validate_building_form(
     data: dict, exclude_building_id: Optional[int] = None
 ) -> dict[str, str]:
@@ -35,24 +45,49 @@ def validate_building_form(
     if errors:
         return errors
 
-    from apps.users.validators import REGEX_ADDRESS
+    from apps.users.validators import (
+        REGEX_ADDRESS, _validate_field, _validate_min_length,
+        _validate_max_length, _validate_rif,
+    )
 
-    _check_field(data, "nombreEdificio", REGEX_BUILDING_NAME,
-                 "El nombre del edificio solo acepta letras y números.", errors, "nombreEdificio")
-    _check_min_length(data, "nombreEdificio", 3, "El nombre del edificio",
-                      errors, "nombreEdificio_min")
-    _check_max_length(data, "nombreEdificio", 40, "El nombre del edificio",
-                      errors, "nombreEdificio_long")
-    _check_field(data, "direccion", REGEX_ADDRESS,
-                 "La dirección contiene caracteres no válidos.", errors, "direccion")
-    _check_min_length(data, "direccion", 8, "La dirección",
-                      errors, "direccion_min")
-    _check_max_length(data, "direccion", 100, "La dirección",
-                      errors, "direccion_long")
-    _check_max_length(data, "rif", 16, "El RIF",
-                      errors, "rif_long")
-    _check_rif(data, errors)
-    _check_unique_rif(data, exclude_building_id, errors)
+    error = _validate_field(data.get("nombreEdificio", ""), REGEX_BUILDING_NAME,
+                            "El nombre del edificio solo acepta letras y números.")
+    if error:
+        errors["nombreEdificio"] = error
+
+    error = _validate_min_length(data.get("nombreEdificio", ""), 3, "El nombre del edificio")
+    if error:
+        errors["nombreEdificio_min"] = error
+
+    error = _validate_max_length(data.get("nombreEdificio", ""), 40, "El nombre del edificio")
+    if error:
+        errors["nombreEdificio_long"] = error
+
+    error = _validate_field(data.get("direccion", ""), REGEX_ADDRESS,
+                            "La dirección contiene caracteres no válidos.")
+    if error:
+        errors["direccion"] = error
+
+    error = _validate_min_length(data.get("direccion", ""), 8, "La dirección")
+    if error:
+        errors["direccion_min"] = error
+
+    error = _validate_max_length(data.get("direccion", ""), 100, "La dirección")
+    if error:
+        errors["direccion_long"] = error
+
+    error = _validate_max_length(data.get("rif", ""), 16, "El RIF")
+    if error:
+        errors["rif_long"] = error
+
+    error = _validate_rif(data.get("rif", ""))
+    if error:
+        errors["rif"] = error
+
+    try:
+        validate_unique_rif(data.get("rif", ""), exclude_building_id)
+    except ValidationError as e:
+        errors["rif_unico"] = e.messages[0]
 
     floors_val = data.get("cantidadPisos")
     if floors_val:
@@ -66,50 +101,3 @@ def validate_building_form(
             errors["cantidadPisos"] = "La cantidad de pisos debe ser un número entero."
 
     return errors
-
-
-def _check_field(
-    data: dict, key: str, regex: re.Pattern, msg: str,
-    errors: dict[str, str], error_key: str,
-) -> None:
-    from apps.users.validators import _validate_field
-    error = _validate_field(data.get(key, ""), regex, msg)
-    if error:
-        errors[error_key] = error
-
-
-def _check_min_length(
-    data: dict, key: str, minimum: int, label: str,
-    errors: dict[str, str], error_key: str,
-) -> None:
-    from apps.users.validators import _validate_min_length
-    error = _validate_min_length(data.get(key, ""), minimum, label)
-    if error:
-        errors[error_key] = error
-
-
-def _check_max_length(
-    data: dict, key: str, maximum: int, label: str,
-    errors: dict[str, str], error_key: str,
-) -> None:
-    from apps.users.validators import _validate_max_length
-    error = _validate_max_length(data.get(key, ""), maximum, label)
-    if error:
-        errors[error_key] = error
-
-
-def _check_rif(data: dict, errors: dict[str, str]) -> None:
-    from apps.users.validators import _validate_rif
-    error = _validate_rif(data.get("rif", ""))
-    if error:
-        errors["rif"] = error
-
-
-def _check_unique_rif(
-    data: dict, exclude_building_id: Optional[int],
-    errors: dict[str, str],
-) -> None:
-    try:
-        validate_unique_rif(data.get("rif", ""), exclude_building_id)
-    except ValidationError as e:
-        errors["rif_unico"] = e.messages[0]

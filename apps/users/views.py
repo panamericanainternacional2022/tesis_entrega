@@ -18,7 +18,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from apps.buildings.models import Building, UserBuilding
-from apps.buildings.views import generate_building_report_bytes
+from apps.buildings.pdf_builder import generate_building_report_bytes
 from apps.core.auth_decorators import ADMIN_ROLES, login_required, admin_required
 from apps.core.services.http_response import json_error, json_ok
 from apps.core.services.pdf_shared import _pdf_font, draw_row
