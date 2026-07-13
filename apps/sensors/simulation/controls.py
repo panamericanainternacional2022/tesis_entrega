@@ -1,6 +1,5 @@
 import time
 import logging
-import threading
 from typing import Optional
 
 from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_ALTO, RISK_CRITICO

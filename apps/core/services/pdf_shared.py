@@ -3,7 +3,10 @@ import os
 from typing import Any
 
 
-from apps.core.date_utils import PERIOD_LABEL_MAP
+PERIOD_LABEL_MAP: dict[str, str] = {
+    "reciente": "Más reciente",
+    "antiguo": "Más antiguo",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -124,12 +127,7 @@ def draw_row(
             txt = lines[i] if i < len(lines) else ""
             text_c = colors[j] if (colors and colors[j]) else (26, 26, 26)
             pdf.set_text_color(*text_c)
-            if align == "L":
-                text_x = curr_x + _CELL_PAD_H
-            elif align == "R":
-                text_x = curr_x + _CELL_PAD_H
-            else:
-                text_x = curr_x + _CELL_PAD_H
+            text_x = curr_x + _CELL_PAD_H
             text_y = start_y + _CELL_PAD_V + i * line_height
             pdf.set_xy(text_x, text_y)
             pdf.cell(iw, line_height, txt, border=0, align=align, fill=False)

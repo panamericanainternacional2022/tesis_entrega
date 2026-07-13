@@ -5,7 +5,6 @@ from django.http import HttpResponse
 
 from apps.sensors.sensor_config import (
     MAX_PDF_EVENTS,
-    RISK_COLORS,
     RISK_STYLES,
     SEVERITY_DISPLAY_LEVELS,
 )
@@ -123,75 +122,6 @@ def render_summary_box(pdf: Any, items: list) -> None:
         pdf.cell(cell_w - 3, 7, safe_text(value), ln=0)
 
     pdf.set_xy(start_x, start_y + box_h + 4)
-
-
-def render_text_progress_bar(
-    pdf: Any,
-    label: str,
-    value: float,
-    max_value: float,
-    threshold: float | None = None,
-    unit: str = "",
-) -> None:
-
-    if max_value <= 0:
-        return
-
-    ratio = min(1.0, max(0.0, value / max_value))
-    pct = ratio * 100
-
-    if threshold is not None and value < threshold:
-        bar_fill = RISK_COLORS["Crítico"]["pdf"]["bg"]
-        bar_text = RISK_COLORS["Crítico"]["pdf"]["text"]
-        estado = "⚠ Por debajo del umbral"
-    else:
-        bar_fill = RISK_COLORS["Normal"]["pdf"]["bg"]
-        bar_text = RISK_COLORS["Normal"]["pdf"]["text"]
-        estado = "✓ Dentro del rango"
-
-    if pdf.get_y() + 28 > 270:
-        pdf.add_page()
-
-    _pdf_font(pdf, "B", 11)
-    pdf.set_text_color(55, 65, 81)
-    pdf.cell(0, 7, safe_text(label), ln=1)
-
-    start_x = pdf.get_x()
-    start_y = pdf.get_y()
-
-    pdf.set_fill_color(*bar_fill)
-    pdf.set_draw_color(*HEADER_BG)
-    pdf.set_line_width(0.5)
-    pdf.cell(0, 16, "", 1, 1, "L", True)
-
-    bar_x = start_x + 5
-    bar_y = start_y + 4
-    bar_w = 130
-    bar_h = 8
-
-    pdf.set_fill_color(229, 231, 235)
-    pdf.rect(bar_x, bar_y, bar_w, bar_h, "F")
-
-    fill_color = RISK_COLORS["Normal"]["pdf"]["text"] if (threshold is None or value >= threshold) else RISK_COLORS["Crítico"]["pdf"]["text"]
-    pdf.set_fill_color(*fill_color)
-    pdf.rect(bar_x, bar_y, bar_w * ratio, bar_h, "F")
-
-    text_x = bar_x + bar_w + 6
-    pdf.set_xy(text_x, start_y + 4)
-    _pdf_font(pdf, "B", 11)
-    pdf.set_text_color(*bar_text)
-
-    safe_unit = safe_text(unit)
-    info_text = f"{pct:.0f}%   ({value:.1f} / {max_value:.1f} {safe_unit})"
-    pdf.cell(0, 8, info_text, 0, 0, "L")
-
-    pdf.set_xy(start_x, start_y + 16)
-    pdf.set_line_width(0.6)
-
-    _pdf_font(pdf, "", 10)
-    pdf.set_text_color(95, 95, 95)
-    pdf.cell(0, 6, f"  {safe_text(estado)}", ln=1)
-    pdf.ln(3)
 
 
 def render_severity_legend(pdf: Any, severity_levels=None) -> None:

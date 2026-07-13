@@ -23,15 +23,6 @@ _RISK_CSS = {
 }
 
 
-def _build_severity_q(severity: str) -> Q:
-    return (
-        Q(**{"message__risk": severity})
-        | Q(**{"message__contains": f'"risk": "{severity}"'})
-        | Q(**{"message__contains": f'"risk":"{severity}"'})
-    )
-
-
-
 
 def _build_history_query(
     user_id: int,
