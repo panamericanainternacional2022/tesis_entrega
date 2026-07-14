@@ -7,7 +7,8 @@ from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS,
     RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
     SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
-    DAILY_PERSIST_INTERVAL, DAILY_RETENTION_DAYS)
+    DAILY_PERSIST_INTERVAL, DAILY_RETENTION_DAYS,
+    ENUM_VARS)
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
@@ -84,7 +85,7 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         risk_cache[var] = risk
 
         if risk in (RISK_ALTO, RISK_CRITICO):
-            consecutive = sim._alert_consecutive.get(var, 0) + 1
+            consecutive = sim._alert_consecutive.get(var, 0) + sim.sim_speed
             sim._alert_consecutive[var] = consecutive
             if consecutive >= ALERT_DEBOUNCE_TICKS and not has_active_fault:
                 action = get_professional_action(var, risk, value)
@@ -124,7 +125,7 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
             continue
 
         _ensure_debounce_counter(sim)
-        consecutive = sim._alert_consecutive.get(fault_key, 0) + 1
+        consecutive = sim._alert_consecutive.get(fault_key, 0) + sim.sim_speed
         sim._alert_consecutive[fault_key] = consecutive
         if consecutive < ALERT_DEBOUNCE_TICKS:
             continue
@@ -145,6 +146,8 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
             continue
         if _should_skip(sim, var):
             continue
+        if var in ENUM_VARS:
+            continue
         if risk_cache and var in risk_cache:
             risk = risk_cache[var]
         else:
@@ -163,7 +166,7 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
     if len(sim.history) > MAX_HISTORY_SIZE:
         sim.history = sim.history[-MAX_HISTORY_SIZE:]
 
-    sim._persist_tick = getattr(sim, "_persist_tick", 0) + 1
+    sim._persist_tick = getattr(sim, "_persist_tick", 0) + sim.sim_speed
     if sim._persist_tick >= DAILY_PERSIST_INTERVAL:
         sim._persist_tick = 0
         _persist_readings(sim, new_readings)

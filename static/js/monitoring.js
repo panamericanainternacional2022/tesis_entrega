@@ -13,6 +13,9 @@
     // chart1, chart2, sseSource, monitorConnectionTimeout, unreadHistoryCount
     // CHART_PUMP_VARS, CHART_ELEV_VARS
 
+    let _persistCounter = 0;
+    const _PERSIST_INTERVAL = 150;
+
     function updateCards(data) {
         const bombaContainer = document.getElementById('bombaCards');
         const elevadorContainer = document.getElementById('elevadorCards');
@@ -388,6 +391,14 @@
             SimulationController.syncFromPayload(data);
         }
 
+        if (!simPaused && data.sim_speed) {
+            _persistCounter += data.sim_speed;
+            if (_persistCounter >= _PERSIST_INTERVAL) {
+                _persistCounter = 0;
+                fetchDailyData();
+            }
+        }
+
         if (simPaused && !isFirstLoad) return;
 
         if (data.current) { currentReadings = data.current; updateCards(data.current); }
@@ -650,6 +661,7 @@
 
         var _origClear = window.clearCurrentReadings || function () {};
         window.clearCurrentReadings = function () {
+            _persistCounter = 0;
             _origClear();
             [chart1, chart2].forEach(function (c) {
                 if (!c) return;

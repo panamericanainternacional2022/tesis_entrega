@@ -168,13 +168,16 @@
 
     function updateLimitsDirtyBadge() {
         const badge = document.getElementById('globalLimitsDirtyBadge');
+        const divider = document.getElementById('globalLimitsDirtyDivider');
         const resetBtn = document.getElementById('resetAllLimitsBtn');
         const totalDirty = _limitsDirtyKeys.size;
-        if (badge) {
+        if (badge && divider) {
             if (!totalDirty) {
                 badge.classList.add('d-none');
+                divider.classList.add('d-none');
             } else {
                 badge.classList.remove('d-none');
+                divider.classList.remove('d-none');
                 badge.textContent = `${totalDirty} sensor(es) modificado(s)`;
             }
         }

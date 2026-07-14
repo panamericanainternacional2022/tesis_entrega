@@ -139,14 +139,17 @@
 
     function updateGlobalDirtyBadge() {
         const badge = document.getElementById('globalDirtyBadge');
+        const divider = document.getElementById('globalDirtyDivider');
         const resetBtn = document.getElementById('resetAllThresholdsBtn');
         const saveAllBtn = document.getElementById('saveAllThresholdsBtn');
         const totalDirty = _dirtySensorKeys.size;
-        if (badge) {
+        if (badge && divider) {
             if (!totalDirty) {
                 badge.classList.add('d-none');
+                divider.classList.add('d-none');
             } else {
                 badge.classList.remove('d-none');
+                divider.classList.remove('d-none');
                 badge.textContent = `${totalDirty} sensor(es) modificado(s)`;
             }
         }
