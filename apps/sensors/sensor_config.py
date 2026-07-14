@@ -117,25 +117,25 @@ FAULT_FORCED_RISK = {
 }
 
 PUMP_VARS = [
-    "pump_flow_rate",
     "pump_pressure",
     "pump_temperature",
     "pump_vibration",
-    "pump_tank_level",
     "pump_voltage",
     "pump_current",
     "pump_water_quality",
+    "pump_flow_rate",
+    "pump_tank_level",
 ]
 
 ELEVATOR_VARS = [
-    "elev_position",
     "elev_speed",
     "elev_load",
-    "elev_door_status",
     "elev_temperature",
     "elev_current",
     "elev_vibration",
     "elev_voltage",
+    "elev_door_status",
+    "elev_position",
 ]
 
 _ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in ENUM_VARS]

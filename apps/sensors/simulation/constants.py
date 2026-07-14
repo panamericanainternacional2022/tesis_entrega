@@ -44,23 +44,23 @@ ELEVATOR_MOTOR_RATED_CURRENT: float = 28.0
 
 DEFAULT_SENSOR_DATA: dict = {
     # ── SISTEMA BOMBA — Reposo Seguro ──────────────────────────────────────
-    "pump_flow_rate":    0.0,      # Apagada
     "pump_pressure":     1.0,      # Presión atmosférica base (bar)
     "pump_temperature":  25.0,     # Temperatura ambiente (°C)
     "pump_vibration":    0.0,      # Detenida (mm/s)
-    "pump_tank_level":   50.0,     # Nivel medio seguro (%)
     "pump_voltage":      220.0,    # Tensión de red disponible en reposo seguro (220 V monofásico)
     "pump_current":      0.0,      # Sin consumo (A)
     "pump_water_quality": 150.0,   # Calidad de agua estándar (ppm)
+    "pump_flow_rate":    0.0,      # Apagada
+    "pump_tank_level":   50.0,     # Nivel medio seguro (%)
     # ── SISTEMA ELEVADOR — Reposo Seguro ───────────────────────────────────
-    "elev_position":     0,        # Planta baja (piso)
     "elev_speed":        0.0,      # Detenido (m/s)
     "elev_load":         0,        # Vacío (kg)
-    "elev_door_status":  "closed", # Puerta cerrada
     "elev_temperature":  25.0,     # Temperatura ambiente (°C)
     "elev_current":      0.0,      # Sin consumo (A)
     "elev_vibration":    0.0,      # Detenido (mm/s)
     "elev_voltage":      380.0,    # Tensión trifásica nominal lista (V)
+    "elev_door_status":  "closed", # Puerta cerrada
+    "elev_position":     0,        # Planta baja (piso)
     "elevator_state":    "IDLE",
 }
 
