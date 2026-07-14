@@ -688,7 +688,9 @@ button {
 }
 
 .form-input:disabled,
-.search-input:disabled {
+.search-input:disabled,
+.form-input:disabled:hover,
+.search-input:disabled:hover {
     background: var(--color-bg) !important;
     border: var(--border-disabled) !important;
     color: var(--color-text-secondary) !important;
@@ -2110,19 +2112,10 @@ input.is-dirty.input-error-state:active {
 
 /* Badge de cambios sin guardar */
 .changes-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: 0 var(--sp-4);
-    border: 3px solid var(--color-accent);
-    background: var(--color-accent-bg);
     color: var(--color-accent);
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     white-space: nowrap;
-    height: var(--control-height);
-    box-shadow: 3px 3px 0px var(--color-accent);
 }
 
 
