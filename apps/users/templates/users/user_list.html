@@ -38,7 +38,7 @@
     </button>
     <div class="dropdown-menu">
         <a href="{% url 'user_pdf' %}?{{ filter_query_string }}" class="dropdown-item"{% if not usuarios %} aria-disabled="true"{% endif %}>
-            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar PDF
+            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar reporte de usuarios
         </a>
         <button type="button" class="dropdown-item" id="sendAllEmailBtn" data-edificio-id="{{ selected_edificio_id|default:'' }}"{% if not usuarios %} disabled{% endif %}>
             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar a todos

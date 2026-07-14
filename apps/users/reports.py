@@ -140,7 +140,7 @@ def user_pdf_view(request: HttpRequest) -> HttpResponse:
 
             pdf.ln(4)
 
-        return make_pdf_response(pdf, "reporte_usuarios.pdf")
+        return make_pdf_response(pdf, f"reporte_usuarios_{now.strftime('%Y%m%d_%H%M%S')}.pdf")
 
     except ImportError:
         return HttpResponse(

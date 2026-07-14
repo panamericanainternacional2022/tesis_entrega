@@ -267,7 +267,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
         building_name = building_id_raw or "Todos los edificios"
 
     try:
-        pdf = _create_report_pdf("Historial")
+        pdf = _create_report_pdf("Historial de eventos")
         now = dt.datetime.now()
 
         sim_snapshot_lines: list = []
@@ -289,7 +289,7 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
         render_pdf_header(
             pdf,
-            title="Historial de Alertas",
+            title="Historial de eventos",
             now=now,
             meta_lines=[
                 f"Generado: {now.strftime('%d/%m/%Y %H:%M:%S')}",
@@ -303,7 +303,6 @@ def history_pdf_view(request: Any) -> HttpResponse:
                     else None
                 ),
                 f"Total de eventos: {len(parsed_list)}",
-                "Nota: Este reporte incluye únicamente eventos Alto o Crítico.",
                 *sim_snapshot_lines,
             ],
         )

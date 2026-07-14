@@ -14,7 +14,7 @@
     // CHART_PUMP_VARS, CHART_ELEV_VARS
 
     let _persistCounter = 0;
-    const _PERSIST_INTERVAL = 150;
+    const _PERSIST_INTERVAL = 30;
 
     function updateCards(data) {
         const bombaContainer = document.getElementById('bombaCards');
