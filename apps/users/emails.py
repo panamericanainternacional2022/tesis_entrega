@@ -10,7 +10,9 @@ from django.views.decorators.http import require_http_methods
 from apps.buildings.pdf_builder import generate_building_report_bytes
 from apps.core.auth_decorators import login_required, admin_required
 from apps.core.services.http_response import json_error, json_ok
-from apps.history.services.email_sender import get_building_emails, build_report_email_html, send_email_raw
+from apps.history.services.email_recipients import get_building_emails
+from apps.history.services.email_templates import build_report_email_html
+from apps.history.services.email_sender import send_email_raw
 from apps.sensors.simulation.globals import simulators
 
 logger_email = logging.getLogger(__name__)

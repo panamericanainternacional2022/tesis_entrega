@@ -5,6 +5,7 @@ from django.core import signing
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
+from apps.core.constants import MIN_PASSWORD_LENGTH
 from apps.core.utils import verify_password
 from apps.users.models import Usuario
 from apps.users.validators import REGEX_USERNAME
@@ -162,8 +163,8 @@ def _validate_registration_form(
 
     if password != confirm_password:
         errors["confirm_password"] = "Las contraseñas no coinciden."
-    elif len(password) < 6:
-        errors["password"] = "La contraseña debe tener al menos 6 caracteres."
+    elif len(password) < MIN_PASSWORD_LENGTH:
+        errors["password"] = f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres."
 
     if not REGEX_USERNAME.match(username):
         errors["username"] = "El nombre de usuario solo acepta letras y números."

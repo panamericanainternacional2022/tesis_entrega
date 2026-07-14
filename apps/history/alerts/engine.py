@@ -26,7 +26,8 @@ def _build_alert_email_body(
     variable: str, value: float, risk_level: str, recommended_action: str,
     edificio_nombre: str = "",
 ) -> str:
-    from apps.history.services.email_sender import build_standard_email_body, get_unit
+    from apps.history.services.email_templates import build_standard_email_body
+    from apps.history.services.email_recipients import get_unit
     var_display = _translate_variable(variable)
     timestamp = time.strftime("%d/%m/%Y %H:%M:%S")
     unit = get_unit(variable)
@@ -56,7 +57,8 @@ def _send_alert_email(
     recommended_action: str,
     sim: Optional['BuildingSimulator'],
 ) -> None:
-    from apps.history.services.email_sender import send_email_alert, get_building_emails
+    from apps.history.services.email_sender import send_email_alert
+    from apps.history.services.email_recipients import get_building_emails
 
     if sim is None:
         return
@@ -149,7 +151,9 @@ def _send_compound_email(
     recommended_action: str,
     sim: 'BuildingSimulator',
 ) -> None:
-    from apps.history.services.email_sender import send_email_alert, get_building_emails, build_compound_alert_email_html
+    from apps.history.services.email_sender import send_email_alert
+    from apps.history.services.email_recipients import get_building_emails
+    from apps.history.services.email_templates import build_compound_alert_email_html
 
     now = time.time()
     if not isinstance(sim.last_email_sent_time_per_var, dict):

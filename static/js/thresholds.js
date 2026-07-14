@@ -6,7 +6,7 @@
     'use strict';
 
     // References globals from shared.js: EDIFICIO_ID, API, _SENSOR_RANGES,
-    // _BOMBA_VARS, _ELEVADOR_VARS, _NO_RISK_VARS, _RISK,
+    // _BOMBA_VARS, _ELEVADOR_VARS, _RISK,
     // currentThresholds, _originalThresholds, _dirtySensorKeys
 
     function _validateThresholdRange(dir, high, critic) {
@@ -50,8 +50,8 @@
 
     function renderThresholdsPanel(th) {
         const _THRESHOLDS_HIDDEN_VARS = ['elev_position'];
-        const bombaVars = _BOMBA_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
-        const elevadorVars = _ELEVADOR_VARS.filter(k => th[k] && !_NO_RISK_VARS.includes(k) && !_THRESHOLDS_HIDDEN_VARS.includes(k));
+        const bombaVars = _BOMBA_VARS.filter(k => th[k] && !_THRESHOLDS_HIDDEN_VARS.includes(k));
+        const elevadorVars = _ELEVADOR_VARS.filter(k => th[k] && !_THRESHOLDS_HIDDEN_VARS.includes(k));
 
         function buildCard(k, cfg) {
             const div = document.createElement('div');

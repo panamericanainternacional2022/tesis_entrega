@@ -56,14 +56,7 @@ class AdminRequiredDecoratorTests(TestCase):
 
 class ClassifyRiskTests(TestCase):
 
-    # ── Sensores sin clasificación de riesgo ────────────────────────────────
-
-    def test_no_risk_vars_return_normal(self):
-        from unittest.mock import patch
-        with patch("apps.core.services.risk_service.NO_RISK_VARS", ["elev_position"]):
-            risk, color = classify_risk("elev_position", 42)
-            self.assertEqual(risk, RISK_NORMAL)
-            self.assertEqual(color, "green")
+    # ── Sensores sin umbrales retornan Normal ───────────────────────────────
 
     def test_variable_without_thresholds_returns_normal(self):
         risk, color = classify_risk("pump_flow_rate", 99)

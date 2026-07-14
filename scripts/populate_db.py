@@ -5,13 +5,8 @@ import django
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-if os.path.exists(_env_path):
-    with open(_env_path, "r", encoding="utf-8") as _f:
-        for _line in _f:
-            if _line.strip() and not _line.startswith("#") and "=" in _line:
-                _key, _val = _line.strip().split("=", 1)
-                os.environ.setdefault(_key.strip(), _val.strip().strip("'\""))
+from apps.core.dotenv import load_dotenv
+load_dotenv()
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
@@ -37,14 +32,14 @@ from apps.sensors.sensor_config import DEFAULT_THRESHOLDS, SENSOR_RANGES
 
 def populate():
     print("Iniciando limpieza de la base de datos...")
-    
+
     from django.db import connection
     with connection.cursor() as cursor:
         cursor.execute(
             "TRUNCATE TABLE edificio, equipo_monitoreo, historial, persona, "
             "umbral_config, limite_sensor_config, usuario, usuario_edificio RESTART IDENTITY CASCADE;"
         )
-    
+
     print("Base de datos limpia y secuencias reiniciadas desde 0.")
 
     print("Iniciando población de base de datos...")
@@ -175,7 +170,7 @@ def populate():
                 building=edificio,
                 variable=variable,
                 defaults={
-                    "max_value": val_range[1],   # Límite físico máximo (simulator.md §2)
+                    "max_value": val_range[1],
                 },
             )
 

@@ -462,11 +462,8 @@
     const _BOMBA_VARS = _CONFIG.pump_vars || [];
     const _ELEVADOR_VARS = _CONFIG.elevator_vars || [];
     const _RISK = _CONFIG.risk_labels || {};
-    const _NO_RISK_VARS = _CONFIG.no_risk_vars || [];
     const _LIMITS_EXCLUDE_VARS = _CONFIG.limits_exclude_vars || [];
-    const _BOOLEAN_VARS = _CONFIG.boolean_vars || [];
     const _ENUM_VARS = _CONFIG.enum_vars || [];
-    const _ENUM_RISK_VALUES = _CONFIG.enum_risk_values || {};
     const _VALUE_DISPLAY = _CONFIG.value_display_es || {};
     let _SENSOR_RANGES = _CONFIG.sensor_ranges || {};
 
@@ -496,7 +493,9 @@
     window.clearCurrentReadings = function () { currentReadings = {}; };
     let currentPumpOn = false;
     let currentElevOn = false;
-    let _lastPosition = null;
+    let _elevTargetFloor = 0;
+    let _pumpDemand = 15.0;
+    let _faultInjectedAt = {};
     let chart1, chart2;
     let unreadHistoryCount = 0;
     let _originalLimits = {};
@@ -550,16 +549,7 @@
                 return { badge: 'badge-crit', label: _RISK.critico };
             }
         }
-        if (_BOOLEAN_VARS.includes(varName)) {
-            const crit = !!value;
-            return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
-        }
         if (_ENUM_VARS.includes(varName)) {
-            const risky = _ENUM_RISK_VALUES[varName] || [];
-            const crit = risky.includes(String(value).toLowerCase());
-            return { badge: `badge-${crit ? 'crit' : 'normal'}`, label: crit ? _RISK.critico : _RISK.normal };
-        }
-        if (_NO_RISK_VARS.includes(varName)) {
             return { badge: 'badge-normal', label: _RISK.normal };
         }
 

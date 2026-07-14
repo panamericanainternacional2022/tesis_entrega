@@ -1,5 +1,4 @@
 import logging
-import threading
 from typing import Any
 
 from django.shortcuts import render
@@ -16,7 +15,7 @@ from apps.history.shared import (
     _build_history_query,
     filter_date_range, build_query_string,
     parse_history, extract_variables,
-    extract_severities, filter_severity_python, filter_by_variable,
+    extract_severities,
 )
 from apps.sensors.sensor_config import PAGE_SIZE
 from apps.core.services.pdf_shared import _pdf_font, safe_text, _get_period_label, draw_row
@@ -56,10 +55,6 @@ def history_view(request: HttpRequest):
     date_from = request.GET.get("fecha_desde", "").strip()
     date_to = request.GET.get("fecha_hasta", "").strip()
 
-    filter_params = {}
-    if building_id_raw and building_id_raw.isdigit():
-        filter_params["edificio"] = building_id_raw
-
     records, _ = _build_history_query(usuario_id, rol, building_id_raw)
 
     if is_admin_role(rol):
@@ -71,17 +66,12 @@ def history_view(request: HttpRequest):
         ).values_list("building", flat=True)
         buildings = Building.objects.filter(id__in=user_building_ids)
 
-    # Total global sin filtrar por fecha/severidad/variable (para el badge)
     total_count = records.distinct().count()
 
     if period == "custom":
         records = filter_date_range(records, period, date_from, date_to)
 
-    records = (
-        records
-        .select_related("user", "monitoring_equipment__building")
-        .distinct()
-    )
+    records = records.select_related("user", "monitoring_equipment__building").distinct()
     records = records.order_by("date" if period == "antiguo" else "-date")
 
     parsed_list = parse_history(records)
@@ -89,8 +79,10 @@ def history_view(request: HttpRequest):
     all_variables = extract_variables(parsed_list)
     available_severities = extract_severities(parsed_list)
 
-    parsed_list = filter_severity_python(parsed_list, severity)
-    parsed_list = filter_by_variable(parsed_list, variable_filter)
+    if severity:
+        parsed_list = [n for n in parsed_list if n.parsed_data.get("parsed") and n.parsed_data.get("risk") == severity]
+    if variable_filter:
+        parsed_list = [n for n in parsed_list if n.parsed_data.get("parsed") and n.parsed_data.get("variable") == variable_filter]
 
     query_string = build_query_string(
         edificio=building_id_raw,
@@ -152,9 +144,9 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
 
 
 def _send_resolution_email(record: History, original_risk: str) -> None:
-    from apps.history.services.email_sender import (
-        send_email_raw,
-        get_building_emails,
+    from apps.history.services.email_sender import send_email_raw
+    from apps.history.services.email_recipients import get_building_emails
+    from apps.history.services.email_templates import (
         build_resolution_email_html,
         build_compound_resolution_email_html,
     )
@@ -228,12 +220,10 @@ def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
             resolved=False,
         ).update(resolved=True)
 
+    import threading
     threading.Thread(target=_send_resolution_email, args=(record, risk), daemon=True).start()
 
     return json_ok({"message": "Alerta marcada como resuelta"})
-
-
-# ── History PDF Report (moved from reports.views.history) ──────────────────
 
 
 @login_required
@@ -267,8 +257,10 @@ def history_pdf_view(request: Any) -> HttpResponse:
     records = records.order_by("date" if period == "antiguo" else "-date")
     parsed_list = parse_history(records)
 
-    parsed_list = filter_severity_python(parsed_list, severity)
-    parsed_list = filter_by_variable(parsed_list, variable_filter)
+    if severity:
+        parsed_list = [n for n in parsed_list if n.parsed_data.get("parsed") and n.parsed_data.get("risk") == severity]
+    if variable_filter:
+        parsed_list = [n for n in parsed_list if n.parsed_data.get("parsed") and n.parsed_data.get("variable") == variable_filter]
 
     range_label = _get_period_label(period, date_from, date_to)
     if not building_name:
@@ -278,8 +270,6 @@ def history_pdf_view(request: Any) -> HttpResponse:
         pdf = _create_report_pdf("Historial")
         now = dt.datetime.now()
 
-        # FIX-12 (BRECHA-12): Capture a real-time snapshot of the active simulator
-        # so the PDF header reflects the machine state at generation time.
         sim_snapshot_lines: list = []
         if building_id_raw and building_id_raw.isdigit():
             from apps.sensors.simulation.globals import simulators
@@ -299,8 +289,6 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
         render_pdf_header(
             pdf,
-            # FIX-10 (BRECHA-10): Renamed to 'Historial de Alertas' — this PDF only
-            # contains Alto/Crítico events, not every telemetry reading.
             title="Historial de Alertas",
             now=now,
             meta_lines=[

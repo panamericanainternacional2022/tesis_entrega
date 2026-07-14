@@ -84,7 +84,7 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
 
     _notify_faults_resolved(edificio_id, old_faults)
 
-    keys_to_remove = [k for k in sim.active_alerts if k.startswith("fault:")]
+    keys_to_remove = [k for k in sim.active_alerts if k.startswith("fault_raw:")]
     for k in keys_to_remove:
         sim.active_alerts.pop(k, None)
 
@@ -94,12 +94,9 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
     _clear_device_attrs(sim, device, "_alert_consecutive", old_faults)
 
     for old_dev, old_fault in old_faults.items():
-        fault_name = FAULT_NAMES_ES.get(old_fault, old_fault)
-        # ── FIX-7 (BRECHA-8): Use raw fault_type as cooldown key (prefix fault_raw:)
-        # to stay consistent with alerts/engine.py and avoid Spanish vs raw mismatch.
         fault_email_key = f"fault_raw:{old_fault}"
         sim.last_email_sent_time_per_var.pop(fault_email_key, None)
-        fault_alert_key = f"fault:{old_fault}"
+        fault_alert_key = f"fault_raw:{old_fault}"
         sim.active_alerts.pop(fault_alert_key, None)
         if hasattr(sim, "_alert_consecutive"):
             sim._alert_consecutive.pop(fault_alert_key, None)
@@ -154,11 +151,9 @@ def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> Non
 
 
 def _send_compound_resolution_email(edificio_id: int, fault_type: str) -> None:
-    from apps.history.services.email_sender import (
-        send_email_raw,
-        get_building_emails,
-        build_compound_resolution_email_html,
-    )
+    from apps.history.services.email_sender import send_email_raw
+    from apps.history.services.email_recipients import get_building_emails
+    from apps.history.services.email_templates import build_compound_resolution_email_html
     from apps.sensors.sensor_config import FAULT_NAMES_ES, FAULT_AFFECTED_VARIABLES
 
     try:
@@ -192,9 +187,6 @@ def reset_simulator(edificio_id: int) -> str:
     sim.elevator_on = False
     sim.manual_pump_override = False
     sim.active_alerts.clear()
-    fault_keys = [k for k in sim.active_alerts if k.startswith("fault:")]
-    for k in fault_keys:
-        sim.active_alerts.pop(k, None)
     sim.history.clear()
     sim.pending_alerts.clear()
     sim.sim_faults.clear()

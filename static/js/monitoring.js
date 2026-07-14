@@ -6,42 +6,12 @@
     'use strict';
 
     // These variables reference globals defined in shared.js:
-    // EDIFICIO_ID, API, IS_ADMIN, _BOMBA_VARS, _ELEVADOR_VARS, _NO_RISK_VARS
+    // EDIFICIO_ID, API, IS_ADMIN, _BOMBA_VARS, _ELEVADOR_VARS
     // _RISK, _currentFaults, _FAULT_FORCED_RISK, currentThresholds
-    // currentPumpOn, currentElevOn, currentReadings, _lastPosition
+    // currentPumpOn, currentElevOn, currentReadings
+    // _elevTargetFloor, _pumpDemand, _faultInjectedAt
     // chart1, chart2, sseSource, monitorConnectionTimeout, unreadHistoryCount
     // CHART_PUMP_VARS, CHART_ELEV_VARS
-
-    function _getMovementState(variable, value) {
-        if (variable !== 'elev_position') return null;
-        if (typeof value !== 'number') return null;
-
-        if (!currentElevOn) {
-            _lastPosition = value;
-            return { cls: 'inactivo', icon: 'fa-power-off', label: 'Inactivo' };
-        }
-
-        if (_lastPosition === null) {
-            _lastPosition = value;
-            return null;
-        }
-
-        const diff = value - _lastPosition;
-        _lastPosition = value;
-
-        const isAtFloor = Math.abs(value - Math.round(value)) < 0.05;
-
-        if (Math.abs(diff) < 0.01) {
-            if (!isAtFloor) {
-                return { cls: 'entre-pisos', icon: 'fa-triangle-exclamation', label: 'Entre pisos' };
-            }
-            return { cls: 'parado', icon: 'fa-pause', label: 'Parado' };
-        }
-        if (diff > 0) {
-            return { cls: 'subiendo', icon: 'fa-arrow-up', label: 'Subiendo' };
-        }
-        return { cls: 'bajando', icon: 'fa-arrow-down', label: 'Bajando' };
-    }
 
     function updateCards(data) {
         const bombaContainer = document.getElementById('bombaCards');
@@ -51,27 +21,26 @@
         for (const [k, v] of Object.entries(data)) {
             const ri = getRiskClass(k, v);
             const displayValue = translateSensorValue(k, v) ?? `${formatNumeric(v, k)} ${getUnit(k)}`;
-            const isNoRisk = _NO_RISK_VARS.includes(k);
 
             let card = document.getElementById(`sensor-card-${k}`);
             if (!card) {
                 card = document.createElement('div');
                 card.id = `sensor-card-${k}`;
                 card.className = 'sensor-card';
-                const badgeHtml = isNoRisk ? '' : `<span class="badge ${ri.badge}">${ri.label}</span>`;
+                const badgeHtml = `<span class="badge ${ri.badge}">${ri.label}</span>`;
 
                 if (k === 'elev_position') {
-                    const movementInfo = _getMovementState(k, v);
-                    const movementHtml = movementInfo
-                        ? `<span class="sensor-card-movement ${movementInfo.cls}"><i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}</span>`
+                    const showTarget = _elevTargetFloor !== undefined && _elevTargetFloor !== 0;
+                    const targetHtml = showTarget
+                        ? `<span class="sensor-card-target">→ ${translateSensorValue('elev_position', _elevTargetFloor) || _elevTargetFloor}</span>`
                         : '';
                     card.innerHTML = `
-                        <div class="sensor-card-header">
-                            <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
-                            ${movementHtml}
-                        </div>
+                        <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
                         <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
-                        <div class="sensor-card-footer" data-sensor-footer>${badgeHtml}</div>
+                        <div class="sensor-card-footer" data-sensor-footer>
+                            ${badgeHtml}
+                            ${targetHtml}
+                        </div>
                     `;
                 } else {
                     card.innerHTML = `
@@ -89,35 +58,30 @@
                 if (valEl && valEl.textContent !== displayValue) valEl.textContent = displayValue;
 
                 if (k === 'elev_position') {
-                    const movementInfo = _getMovementState(k, v);
-                    const movEl = card.querySelector('.sensor-card-movement');
-                    if (movementInfo) {
-                        if (movEl) {
-                            movEl.className = `sensor-card-movement ${movementInfo.cls}`;
-                            movEl.innerHTML = `<i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}`;
+                    const targetEl = card.querySelector('.sensor-card-target');
+                    const showTarget = _elevTargetFloor !== undefined && _elevTargetFloor !== 0;
+                    if (targetEl) {
+                        if (showTarget) {
+                            targetEl.textContent = `→ ${translateSensorValue('elev_position', _elevTargetFloor) || _elevTargetFloor}`;
                         } else {
-                            const headerEl = card.querySelector('.sensor-card-header');
-                            if (headerEl) {
-                                const mov = document.createElement('span');
-                                mov.className = `sensor-card-movement ${movementInfo.cls}`;
-                                mov.innerHTML = `<i class="fa-solid ${movementInfo.icon}"></i> ${movementInfo.label}`;
-                                headerEl.appendChild(mov);
-                            }
+                            targetEl.remove();
                         }
-                    } else if (movEl) {
-                        movEl.remove();
+                    } else if (showTarget) {
+                        const footerEl = card.querySelector('.sensor-card-footer');
+                        if (footerEl) {
+                            const tgt = document.createElement('span');
+                            tgt.className = 'sensor-card-target';
+                            tgt.textContent = `→ ${translateSensorValue('elev_position', _elevTargetFloor) || _elevTargetFloor}`;
+                            footerEl.appendChild(tgt);
+                        }
                     }
                 }
 
                 const footerEl = card.querySelector('[data-sensor-footer], .sensor-card-footer');
                 if (footerEl) {
                     const badgeEl = footerEl.querySelector('.badge');
-                    if (!isNoRisk) {
-                        if (badgeEl) { badgeEl.className = `badge ${ri.badge}`; badgeEl.textContent = ri.label; }
-                        else footerEl.innerHTML = `<span class="badge ${ri.badge}">${ri.label}</span>`;
-                    } else if (badgeEl) {
-                        badgeEl.remove();
-                    }
+                    if (badgeEl) { badgeEl.className = `badge ${ri.badge}`; badgeEl.textContent = ri.label; }
+                    else footerEl.innerHTML = `<span class="badge ${ri.badge}">${ri.label}</span>`;
                 }
             }
         }
@@ -304,6 +268,9 @@
             currentElevOn = data.elevator_on === true;
             updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
         }
+        if (data.elev_target_floor !== undefined) _elevTargetFloor = data.elev_target_floor;
+        if (data.pump_demand !== undefined) _pumpDemand = data.pump_demand;
+        if (data.fault_injected_at) _faultInjectedAt = data.fault_injected_at;
         hideAllStates();
 
         const simPaused = data.sim_paused === true;

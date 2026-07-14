@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from typing import Any
 
 
@@ -8,13 +9,15 @@ from apps.sensors.simulation.models import BuildingSimulator
 
 logger = logging.getLogger(__name__)
 
+_EQUIPMENT_SYNC_INTERVAL = 60
+
 
 def get_simulator(building_id: int) -> BuildingSimulator | None:
     from apps.sensors.simulation.globals import simulators
 
     sim = simulators.get(building_id)
     if sim:
-        _sync_equipment_from_db(sim, building_id)
+        _maybe_sync_equipment(sim, building_id)
         return sim
 
     from apps.buildings.models import Building, MonitoringEquipment
@@ -38,6 +41,15 @@ def get_simulator(building_id: int) -> BuildingSimulator | None:
 
     logger.warning("No hay simulador disponible para el ID %s", building_id)
     return None
+
+
+def _maybe_sync_equipment(sim: BuildingSimulator, building_id: int) -> None:
+    now = time.time()
+    last_sync = getattr(sim, "_last_equipment_sync", 0)
+    if now - last_sync < _EQUIPMENT_SYNC_INTERVAL:
+        return
+    sim._last_equipment_sync = now
+    _sync_equipment_from_db(sim, building_id)
 
 
 def _sync_equipment_from_db(sim: BuildingSimulator, building_id: int) -> None:

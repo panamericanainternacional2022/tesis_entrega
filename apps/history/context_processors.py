@@ -1,4 +1,8 @@
+from django.core.cache import cache
+
 from apps.history.shared import _build_history_query
+
+_UNREAD_CACHE_TTL = 10
 
 
 def unread_history_count(request):
@@ -6,10 +10,11 @@ def unread_history_count(request):
     if not usuario_id:
         return {"unread_history_count": 0}
 
-    rol = request.session.get("usuario_rol", "US")
-
-    records, _ = _build_history_query(usuario_id, rol)
-
-    records_count = records.distinct().count()
-
-    return {"unread_history_count": records_count}
+    cache_key = f"unread_count_{usuario_id}"
+    count = cache.get(cache_key)
+    if count is None:
+        rol = request.session.get("usuario_rol", "US")
+        records, _ = _build_history_query(usuario_id, rol)
+        count = records.distinct().count()
+        cache.set(cache_key, count, timeout=_UNREAD_CACHE_TTL)
+    return {"unread_history_count": count}

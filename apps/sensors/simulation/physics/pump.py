@@ -1,6 +1,6 @@
 import random
 
-from apps.sensors.sensor_config import SENSOR_RANGES, PUMP_VARS
+from apps.sensors.sensor_config import PUMP_VARS
 from apps.sensors.simulation.constants import (
     PUMP_P0, PUMP_K, T_AMBIENT,
 )

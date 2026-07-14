@@ -6,12 +6,12 @@
     'use strict';
 
     // References globals from shared.js: EDIFICIO_ID, API, _SENSOR_RANGES,
-    // _BOMBA_VARS, _ELEVADOR_VARS, _NO_RISK_VARS, _LIMITS_EXCLUDE_VARS,
+    // _BOMBA_VARS, _ELEVADOR_VARS, _LIMITS_EXCLUDE_VARS,
     // currentThresholds, _originalLimits, _limitsDirtyKeys
 
     function renderLimitsPanel(ranges) {
-        const bombaVars = _BOMBA_VARS.filter(k => ranges[k] && !_NO_RISK_VARS.includes(k) && !_LIMITS_EXCLUDE_VARS.includes(k));
-        const elevadorVars = _ELEVADOR_VARS.filter(k => ranges[k] && !_NO_RISK_VARS.includes(k) && !_LIMITS_EXCLUDE_VARS.includes(k));
+        const bombaVars = _BOMBA_VARS.filter(k => ranges[k] && !_LIMITS_EXCLUDE_VARS.includes(k));
+        const elevadorVars = _ELEVADOR_VARS.filter(k => ranges[k] && !_LIMITS_EXCLUDE_VARS.includes(k));
 
         function buildLimitCard(k, r) {
             const div = document.createElement('div');

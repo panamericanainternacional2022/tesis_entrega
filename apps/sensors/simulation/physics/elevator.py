@@ -1,7 +1,7 @@
 import random
 import time
 
-from apps.sensors.sensor_config import SENSOR_RANGES, BOOLEAN_VARS, ENUM_VARS, RISK_CRITICO, DEFAULT_THRESHOLDS
+from apps.sensors.sensor_config import ENUM_VARS, DEFAULT_THRESHOLDS
 from apps.sensors.simulation.constants import (
     FLOOR_HEIGHT,
     CRUISING_SPEED, ACCELERATION, PASSENGER_WAIT_TICKS,
@@ -11,7 +11,6 @@ from apps.sensors.simulation.constants import (
     POWER_OUTAGE_BRAKE_TIME, POWER_OUTAGE_BATTERY_WAIT,
     BATTERY_RESCUE_SPEED,
     OVERSPEED_GOVERNOR_TRIGGER, OVERSPEED_ACCEL_RATE,
-    MAX_STEPS_PER_SECOND,
     ELEVATOR_MOTOR_TEMP_AMBIENT,
     ELEVATOR_MOTOR_RATED_CURRENT,
 )
@@ -223,10 +222,9 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
         return
 
     targets = _get_fault_telemetry_targets(sim, fault)
-    dt = max(sim.sim_speed, 0.01)
 
     for var, target in targets.items():
-        if var in BOOLEAN_VARS or var in ENUM_VARS:
+        if var in ENUM_VARS:
             sd[var] = target
             continue
 

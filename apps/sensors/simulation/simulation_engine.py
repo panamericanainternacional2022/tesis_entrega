@@ -32,7 +32,7 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
     if not hasattr(sim, "manual_targets") or not isinstance(sim.manual_targets, dict):
         sim.manual_targets = {}
 
-    from apps.sensors.sensor_config import BOOLEAN_VARS, ENUM_VARS
+    from apps.sensors.sensor_config import ENUM_VARS
 
     for var, expiration in list(sim.manual_overrides.items()):
         if now >= expiration:
@@ -50,7 +50,7 @@ def _apply_manual_override_transitions(sim: BuildingSimulator) -> None:
             sim.sensor_data[var] = target
             continue
 
-        if var in BOOLEAN_VARS or var in ENUM_VARS:
+        if var in ENUM_VARS:
             sim.sensor_data[var] = target
             continue
 

@@ -9,7 +9,7 @@ from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.physics.pump import _update_pump
 from apps.sensors.simulation.physics.elevator import _update_elevator
 from apps.core.services.risk_service import classify_risk
-from apps.sensors.sensor_config import RISK_CRITICO, RISK_NORMAL, RISK_ALTO
+from apps.sensors.sensor_config import RISK_CRITICO, RISK_NORMAL
 
 
 # ---------------------------------------------------------------------------

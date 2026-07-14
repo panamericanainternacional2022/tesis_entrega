@@ -99,7 +99,6 @@ USER_STATS_COLORS = {
     "edificios":  {"fill": (249, 250, 251), "text": (55, 65, 81)},
 }
 
-NO_RISK_VARS = []
 
 LIMITS_EXCLUDE_VARS = [
     "pump_tank_level", "pump_flow_rate",
@@ -108,15 +107,7 @@ LIMITS_EXCLUDE_VARS = [
 
 
 
-BOOLEAN_VARS = set()
-
 ENUM_VARS = {"elev_door_status"}
-
-ENUM_RISK_VALUES = {
-    # La puerta abierta solo es un riesgo real si el elevador está en movimiento;
-    # en parada normal (DOORS_OPEN, DOOR_OPENING) es el estado esperado.
-    # Se elimina del dict para que no genere alertas automáticas.
-}
 
 # Riesgo forzado por fallo activo: solo cuando el fallo afecta la variable.
 # Clave: (fault_type, variable) → (nivel_riesgo, color)
@@ -147,7 +138,7 @@ ELEVATOR_VARS = [
     "elev_voltage",
 ]
 
-_ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in NO_RISK_VARS and v not in BOOLEAN_VARS and v not in ENUM_VARS]
+_ELEVATOR_NUMERIC = [v for v in ELEVATOR_VARS if v not in ENUM_VARS]
 
 STATS_VARS = PUMP_VARS + _ELEVATOR_NUMERIC
 

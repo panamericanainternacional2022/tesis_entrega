@@ -1,18 +1,22 @@
 from typing import Any
 import logging
+import time
 from dataclasses import dataclass
 
-from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, VAR_NAMES, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
+from apps.sensors.sensor_config import STATS_VARS, PUMP_VARS, ELEVATOR_VARS, PAYLOAD_HISTORY_SLICE, API_HISTORY_LIMIT
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 
 logger = logging.getLogger(__name__)
+
+_EQUIPMENT_SYNC_INTERVAL = 5
+_ALERT_LOG_CACHE_TTL = 3
 
 
 @dataclass
 class PayloadContext:
     sensor_data: dict
     history: list
-    
+
     pump_on: bool
     elevator_on: bool
     equipment_types: set
@@ -23,6 +27,12 @@ class PayloadContext:
     django_connected: bool = False
     sim_faults: dict = None
     active_alerts: dict = None
+
+    elev_state: str = None
+    elev_target_floor: int = None
+    elev_direction: int = None
+    pump_demand: float = None
+    fault_injected_at: dict = None
 
 
 def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[str, Any]:
@@ -45,32 +55,33 @@ def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[s
 
 def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     from apps.thresholds.services import get_thresholds
-    from apps.history.services.history_persistence import get_alert_log
     stats = _compute_stats(ctx.history)
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)
-    sensors = _build_sensors_list(
-        ctx.sensor_data, relevant_vars, thresholds, ctx.sim_faults)
-    pump_status, elevator_status = _fetch_equipment_status(
+    _maybe_sync_equipment_status(
         ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts
     )
+    alert_log = _get_alert_log_cached(ctx.active_edificio_id)
     return {
         "current": {k: v for k, v in ctx.sensor_data.items() if k in relevant_vars},
-        "sensors": sensors,
         "history": [h for h in ctx.history[-PAYLOAD_HISTORY_SLICE:] if h.get("variable") in relevant_vars],
         "thresholds": thresholds,
-        "alert_log": get_alert_log(ctx.active_edificio_id, API_HISTORY_LIMIT),
+        "alert_log": alert_log,
         "stats": stats,
-        
+
         "pump_on": ctx.pump_on,
         "elevator_on": ctx.elevator_on,
         "equipment_types": list(ctx.equipment_types),
-        "pump_status": pump_status,
-        "elevator_status": elevator_status,
         "sim_paused": ctx.sim_paused,
         "sim_speed": ctx.sim_speed,
         "sim_started": ctx.sim_started,
         "sim_faults": ctx.sim_faults or {},
+
+        "elev_state": ctx.elev_state,
+        "elev_target_floor": ctx.elev_target_floor,
+        "elev_direction": ctx.elev_direction,
+        "pump_demand": ctx.pump_demand,
+        "fault_injected_at": ctx.fault_injected_at or {},
     }
 
 
@@ -83,34 +94,40 @@ def _build_relevant_vars(equipment_types: set) -> set[str]:
     return relevant_vars
 
 
-def _build_sensors_list(
-    sensor_data: dict,
-    relevant_vars: set[str],
-    thresholds: dict,
-    sim_faults: dict = None) -> list[dict[str, Any]]:
-    from apps.core.services.risk_service import classify_risk
-    sensors = []
-    for var, value in sensor_data.items():
-        if var not in relevant_vars:
-            continue
-        risk, color = classify_risk(var, value, thresholds, sim_faults)
-        sensors.append({
-            "id": var,
-            "nombre": VAR_NAMES.get(var, var),
-            "riesgo": risk,
-            "color": color,
-        })
-    return sensors
+def _get_alert_log_cached(edificio_id: int) -> list:
+    from django.core.cache import cache
+    cache_key = f"alert_log_{edificio_id}"
+    result = cache.get(cache_key)
+    if result is None:
+        from apps.history.services.history_persistence import get_alert_log
+        result = get_alert_log(edificio_id, API_HISTORY_LIMIT)
+        cache.set(cache_key, result, timeout=_ALERT_LOG_CACHE_TTL)
+    return result
 
 
-def _fetch_equipment_status(
+def _maybe_sync_equipment_status(
     django_connected: bool,
     active_edificio_id: int,
     sim_faults: dict = None,
-    active_alerts: dict = None) -> tuple:
-    pump_status = None
-    elevator_status = None
+    active_alerts: dict = None,
+) -> None:
+    if not django_connected or not active_edificio_id:
+        return
+    from django.core.cache import cache
+    cache_key = f"eq_sync_{active_edificio_id}"
+    last_sync = cache.get(cache_key, 0)
+    now = time.time()
+    if now - last_sync < _EQUIPMENT_SYNC_INTERVAL:
+        return
+    cache.set(cache_key, now, timeout=_EQUIPMENT_SYNC_INTERVAL + 5)
+    _sync_equipment_status(django_connected, active_edificio_id, sim_faults, active_alerts)
 
+
+def _sync_equipment_status(
+    django_connected: bool,
+    active_edificio_id: int,
+    sim_faults: dict = None,
+    active_alerts: dict = None) -> None:
     has_pump_fault = False
     if sim_faults and "pump" in sim_faults:
         has_pump_fault = True
@@ -137,18 +154,9 @@ def _fetch_equipment_status(
                     if eq.status != dynamic_pump:
                         eq.status = dynamic_pump
                         eq.save(update_fields=["status"])
-                    pump_status = dynamic_pump
                 elif eq.equipment_type == "elevador":
                     if eq.status != dynamic_elev:
                         eq.status = dynamic_elev
                         eq.save(update_fields=["status"])
-                    elevator_status = dynamic_elev
         except Exception as e:
-            logger.warning("Error fetching and syncing equipment status: %s", e)
-            pump_status = dynamic_pump
-            elevator_status = dynamic_elev
-    else:
-        pump_status = dynamic_pump
-        elevator_status = dynamic_elev
-
-    return pump_status, elevator_status
+            logger.warning("Error syncing equipment status: %s", e)

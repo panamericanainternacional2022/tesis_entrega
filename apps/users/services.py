@@ -12,7 +12,8 @@ from django.urls import reverse
 
 from apps.buildings.models import UserBuilding
 from apps.core.auth_decorators import ADMIN_ROLES
-from apps.history.services.email_sender import send_email_raw, build_activation_email_html
+from apps.history.services.email_templates import build_activation_email_html
+from apps.history.services.email_sender import send_email_raw
 from apps.users.models import Persona, Usuario
 
 _ACTIVATION_EMAIL_PLAIN = """Estimado/a usuario/a:

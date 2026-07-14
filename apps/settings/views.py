@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 from typing import Any
 
+from apps.core.constants import MIN_PASSWORD_LENGTH
 from apps.core.auth_decorators import login_required
 from apps.core.utils import verify_password
 from apps.users.models import Usuario
@@ -171,9 +172,9 @@ def _validate_config_new_password(
 ) -> None:
     if not new_password:
         return
-    if len(new_password) < 6:
+    if len(new_password) < MIN_PASSWORD_LENGTH:
         form_errors["new_password"] = \
-            "La contraseña debe tener al menos 6 caracteres."
+            f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres."
     elif new_password != confirm_password:
         form_errors["confirm_password"] = \
             "Las contraseñas nuevas no coinciden."

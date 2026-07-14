@@ -19,14 +19,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-if os.path.exists(env_path):
-    with open(env_path, "r", encoding="utf-8") as f:
-        for line in f:
-            if line.strip() and not line.startswith("#") and "=" in line:
-                key, val = line.strip().split("=", 1)
-                os.environ[key.strip()] = val.strip().strip("'\"")
-    logger.info(".env cargado antes de Django setup")
+from apps.core.dotenv import load_dotenv
+load_dotenv()
+logger.info(".env cargado antes de Django setup")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")

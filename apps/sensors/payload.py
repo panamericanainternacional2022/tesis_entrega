@@ -15,5 +15,11 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
         active_edificio_id=sim.edificio_id,
         django_connected=True,
         sim_faults=sim.sim_faults,
-        active_alerts=sim.active_alerts)
+        active_alerts=sim.active_alerts,
+        elev_state=getattr(sim, '_elev_state', None),
+        elev_target_floor=getattr(sim, '_elev_target_floor', None),
+        elev_direction=getattr(sim, '_elev_direction', None),
+        pump_demand=getattr(sim, '_pump_demand', None),
+        fault_injected_at=getattr(sim, 'fault_injected_at', None),
+    )
     return _build_live_payload(ctx)

@@ -2,8 +2,7 @@ from typing import Optional
 
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
-    NO_RISK_VARS,
-    BOOLEAN_VARS, ENUM_VARS, ENUM_RISK_VALUES,
+    ENUM_VARS,
     FAULT_FORCED_RISK)
 
 
@@ -38,19 +37,8 @@ def classify_risk(
             if forced:
                 return forced
 
-    # Sensores booleanos: True → Crítico, False → Normal
-    if variable in BOOLEAN_VARS:
-        return (RISK_CRITICO, "red") if value else (RISK_NORMAL, "green")
-
     # Sensores de enumeración (ej: elev_door_status)
-    # Solo los valores en ENUM_RISK_VALUES se consideran críticos.
     if variable in ENUM_VARS:
-        risky_values = ENUM_RISK_VALUES.get(variable, set())
-        is_risky = str(value).lower() in risky_values
-        return (RISK_CRITICO, "red") if is_risky else (RISK_NORMAL, "green")
-
-    # Sensores sin clasificación de riesgo (ej: elev_position)
-    if variable in NO_RISK_VARS:
         return RISK_NORMAL, "green"
 
     # Sin umbrales configurados → Normal por defecto

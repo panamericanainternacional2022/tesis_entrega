@@ -1,6 +1,4 @@
-import json
 import logging
-from typing import Any
 
 from django.http import JsonResponse
 
