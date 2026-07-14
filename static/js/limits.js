@@ -30,10 +30,17 @@
                 ${refText ? `<span class="thresh-hint">${refText}</span>` : ''}
             </div>`;
             div.innerHTML = headerHtml + `
-                <div class="form-group">
-                    <input type="number" step="any" data-var="${k}" data-level="max" value="${maxVal}" class="form-input">
-                    <div class="error-msg"></div>
-                </div>`;
+                <div class="thresh-grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Límite mínimo</label>
+                        <input type="number" step="any" value="${r[0]}" class="form-input" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Límite máximo</label>
+                        <input type="number" step="any" data-var="${k}" data-level="max" value="${maxVal}" class="form-input">
+                    </div>
+                </div>
+                <div class="error-msg"></div>`;
             return div;
         }
 
@@ -74,7 +81,7 @@
                 const val = parseFloat(inp.value);
                 inp.classList.remove('input-error-state');
                 inp.removeAttribute('aria-invalid');
-                const errorMsgEl = inp.closest('.form-group')?.querySelector('.error-msg');
+                const errorMsgEl = inp.closest('.thresh-card')?.querySelector('.error-msg');
                 if (errorMsgEl) { errorMsgEl.textContent = ''; errorMsgEl.style.visibility = 'hidden'; }
 
                 const showError = (text) => {
