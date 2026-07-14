@@ -76,14 +76,14 @@
                             <a href="{% url 'user_edit' usuario.id %}" class="dropdown-item">
                                 <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Editar
                             </a>
-                            <a href="{% url 'user_delete' usuario.id %}" class="dropdown-item js-btn-confirm-delete" data-confirm="&#191;Est&#225;s seguro de eliminar a {{ usuario.nombre }} {{ usuario.last_name }}?">
-                                <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Eliminar
-                            </a>
                             {% if usuario.email %}
                             <button type="button" class="dropdown-item send-email-btn" data-email="{{ usuario.email }}">
                                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar correo
                             </button>
                             {% endif %}
+                            <a href="{% url 'user_delete' usuario.id %}" class="dropdown-item js-btn-confirm-delete" data-confirm="&#191;Est&#225;s seguro de eliminar a {{ usuario.nombre }} {{ usuario.last_name }}?">
+                                <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Eliminar
+                            </a>
                         </div>
                     </div>
                 </td>
