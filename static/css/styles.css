@@ -1667,11 +1667,51 @@ button {
 /* ─── Chart panel ─── */
 .chart-panel {
     padding: var(--sp-6);
+    padding-bottom: 0px;
 }
 
 .chart-panel canvas {
-    max-height: 220px;
+    max-height: 340px;
     width: 100%;
+    margin-bottom: var(--sp-2);
+}
+
+/* ─── Chart legend (brutalist overrides) ─── */
+.chart-panel canvas+.mb-3,
+.chart-panel .chartjs-legend {
+    margin-top: var(--sp-4);
+}
+
+.grid-charts .chart-panel .form-section-header {
+    margin-bottom: var(--sp-4);
+}
+
+/* ─── Stats tables inside chart panels ─── */
+.grid-charts .chart-panel .table-wrapper {
+    border: none;
+    box-shadow: none;
+}
+
+.grid-charts .chart-panel .table-wrapper::before {
+    display: none;
+}
+
+.grid-charts .chart-panel .report-table {
+    margin: 0;
+}
+
+.grid-charts .chart-panel .report-table th {
+    background: var(--color-ink);
+    color: var(--color-surface);
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    font-size: var(--text-xs);
+}
+
+.grid-charts .chart-panel .report-table td {
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 1024px) {

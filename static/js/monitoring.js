@@ -94,6 +94,45 @@
         '#7c3aed', '#0891b2', '#c026d3', '#ea580c',
     ];
 
+    var BRUTAL_FONT = { family: "'DM Sans', system-ui", size: 11, weight: '500' };
+    var BRUTAL_FONT_SM = { family: "'DM Sans', system-ui", size: 10 };
+
+    var _brutalTooltip = {
+        enabled: true,
+        backgroundColor: '#0a0a0a',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        titleFont: { family: "'DM Sans', system-ui", size: 12, weight: '700' },
+        bodyFont: { family: "'DM Sans', system-ui", size: 11 },
+        padding: { top: 10, bottom: 10, left: 14, right: 14 },
+        borderColor: '#0a0a0a',
+        borderWidth: 3,
+        cornerRadius: 0,
+        displayColors: true,
+        boxWidth: 10,
+        boxHeight: 10,
+        boxPadding: 6,
+        usePointStyle: false,
+    };
+
+    // ─── Plugin: borde brutalista alrededor del canvas ───
+    var brutalBorderPlugin = {
+        id: 'brutalBorder',
+        beforeDraw: function (chart) {
+            var ctx = chart.ctx;
+            var xAxis = chart.scales.x;
+            var yAxis = chart.scales.y;
+            if (!xAxis || !yAxis) return;
+            var area = chart.chartArea;
+            if (!area) return;
+            ctx.save();
+            ctx.strokeStyle = '#0a0a0a';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+            ctx.restore();
+        }
+    };
+
     function _formatDayLabel(dayStr) {
         if (!dayStr) return '';
         var parts = dayStr.split('-');
@@ -112,40 +151,54 @@
             return;
         }
 
-        var fontOpts = { family: "'DM Sans', system-ui", size: 10 };
+        Chart.register(brutalBorderPlugin);
 
         var chartDefaults = {
             responsive: true,
             interaction: { mode: 'index', intersect: false },
-            layout: { padding: { right: 10 } },
+            layout: { padding: { top: 8, right: 12, bottom: 16, left: 4 } },
             plugins: {
                 legend: {
                     display: true,
                     position: 'bottom',
-                    labels: { font: fontOpts, usePointStyle: true, pointStyle: 'line', padding: 12 },
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function (ctx) {
-                            var variable = ctx.dataset.variable;
-                            var formatted = variable
-                                ? formatNumeric(ctx.raw, variable)
-                                : (typeof ctx.raw === 'number' ? ctx.raw.toFixed(2) : ctx.raw);
-                            return ctx.dataset.label + ': ' + formatted;
-                        },
+                    labels: {
+                        font: BRUTAL_FONT_SM,
+                        usePointStyle: true,
+                        pointStyle: 'rectRounded',
+                        padding: 20,
+                        color: '#0a0a0a',
+                        boxWidth: 14,
+                        boxHeight: 14,
                     },
                 },
+                tooltip: _brutalTooltip,
             },
             scales: {
                 x: {
                     type: 'category',
-                    ticks: { font: fontOpts, maxRotation: 0 },
+                    border: { color: '#0a0a0a', width: 2 },
+                    ticks: {
+                        font: BRUTAL_FONT_SM,
+                        maxRotation: 0,
+                        color: '#5e5e5e',
+                        padding: 6,
+                    },
                     grid: { display: false },
                 },
                 y: {
                     type: 'linear',
                     beginAtZero: true,
-                    ticks: { font: fontOpts },
+                    border: { color: '#0a0a0a', width: 2 },
+                    ticks: {
+                        font: BRUTAL_FONT_SM,
+                        color: '#5e5e5e',
+                        padding: 8,
+                    },
+                    grid: {
+                        color: 'rgba(10, 10, 10, 0.08)',
+                        lineWidth: 1,
+                        drawTicks: false,
+                    },
                 },
             },
             animation: false,
@@ -175,9 +228,16 @@
                 label: getVariableName(v) + ' (' + getUnit(v) + ')',
                 data: info.avg,
                 borderColor: color,
-                borderWidth: 2,
-                pointRadius: 3,
-                pointHoverRadius: 5,
+                backgroundColor: color,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: color,
+                pointBorderWidth: 2,
+                pointHoverBackgroundColor: color,
+                pointHoverBorderColor: '#0a0a0a',
+                pointHoverBorderWidth: 2,
                 tension: 0.3,
                 fill: false,
                 variable: v,
@@ -358,14 +418,19 @@
                 + '<td>' + std + '</td></tr>';
         }).join('');
         div.innerHTML =
-            '<div class="table-wrapper">' +
-            '<table class="report-table">' +
-            '<thead><tr>' +
-            '<th>' + firstColLabel + '</th>' +
-            '<th>Prom.</th><th>Mín.</th><th>Máx.</th><th>Desv. Est.</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-            '</table></div>';
+            '<section class="chart-panel">' +
+                '<div class="form-section-header">' +
+                    '<h2 class="form-page-title form-section-title">' + firstColLabel + '</h2>' +
+                '</div>' +
+                '<div class="table-wrapper">' +
+                '<table class="report-table stats-table">' +
+                '<thead><tr>' +
+                '<th>Variable</th>' +
+                '<th>Prom.</th><th>Mín.</th><th>Máx.</th><th>Desv. Est.</th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '</table></div>' +
+            '</section>';
     }
 
     function updateStats(stats) {
