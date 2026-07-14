@@ -65,7 +65,7 @@
                                 <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Editar
                             </a>
                             <a href="{% url 'building_report_pdf' building.id %}" class="dropdown-item">
-                                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar reporte de estado
+                                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar reporte
                             </a>
                             <form method="post" action="{% url 'delete_building' building.id %}" class="js-btn-confirm-delete" data-confirm="&#191;Est&#225;s seguro de eliminar {{ building.name }}? Se eliminar&#225; todo el historial asociado y se desvincular&#225;n los usuarios de este edificio.">
                                 {% csrf_token %}

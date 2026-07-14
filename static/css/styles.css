@@ -1052,6 +1052,7 @@ button {
     padding: 11px var(--sp-4);
     font-size: var(--text-sm);
     font-family: var(--font);
+    white-space: nowrap;
     text-decoration: none;
     color: var(--color-text-primary);
     background: var(--color-surface);
