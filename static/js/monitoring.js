@@ -204,16 +204,30 @@
             animation: false,
         };
 
+        function _legendCursorHandler(isLeave) {
+            return function (e, legendItem, legend) {
+                legend.chart.canvas.style.cursor = isLeave ? 'default' : 'pointer';
+            };
+        }
+
+        var opts1 = JSON.parse(JSON.stringify(chartDefaults));
+        opts1.plugins.legend.onHover = _legendCursorHandler(false);
+        opts1.plugins.legend.onLeave = _legendCursorHandler(true);
+        opts1.scales.y.afterFit = function (scale) { scale.width = 65; };
         chart1 = new Chart(canvas1.getContext('2d'), {
             type: 'line',
             data: { labels: [], datasets: [] },
-            options: JSON.parse(JSON.stringify(chartDefaults)),
+            options: opts1,
         });
 
+        var opts2 = JSON.parse(JSON.stringify(chartDefaults));
+        opts2.plugins.legend.onHover = _legendCursorHandler(false);
+        opts2.plugins.legend.onLeave = _legendCursorHandler(true);
+        opts2.scales.y.afterFit = function (scale) { scale.width = 65; };
         chart2 = new Chart(canvas2.getContext('2d'), {
             type: 'line',
             data: { labels: [], datasets: [] },
-            options: JSON.parse(JSON.stringify(chartDefaults)),
+            options: opts2,
         });
     }
 

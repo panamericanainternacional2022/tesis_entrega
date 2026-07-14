@@ -411,15 +411,14 @@ def _render_thresholds(
 
     render_section_divider(pdf, "Umbrales de riesgo configurados")
 
-    col_widths = [58, 38, 24, 24, 24, 22]
-    col_headers = ["Variable", "Dirección", "Bajo", "Medio", "Alto", "Unidad"]
-    col_aligns = ["L", "C", "C", "C", "C", "C"]
+    col_widths = [58, 24, 24, 24, 22]
+    col_headers = ["Variable", "Bajo", "Medio", "Alto", "Unidad"]
+    col_aligns = ["L", "C", "C", "C", "C"]
 
     render_table_header(pdf, col_widths, col_aligns, col_headers)
 
     _pdf_font(pdf, "", 9)
     pdf.set_draw_color(10, 10, 10)
-    dir_labels = {"higher": "Mayor es peor", "lower": "Menor es peor", "range": "Rango válido"}
     for idx, var in enumerate(sorted(relevant_vars)):
         if var not in thresholds:
             continue
@@ -430,7 +429,7 @@ def _render_thresholds(
         if d == "range":
             draw_row(
                 pdf, col_widths, col_aligns,
-                [var_name, dir_labels.get(d, d), f"{cfg['low']}", "—", f"{cfg['high']}", unit],
+                [var_name, f"{cfg['low']}", "—", f"{cfg['high']}", unit],
                 row_index=idx)
         else:
             low = cfg.get("low", 0)
@@ -438,7 +437,7 @@ def _render_thresholds(
             high = cfg.get("high", 0)
             draw_row(
                 pdf, col_widths, col_aligns,
-                [var_name, dir_labels.get(d, d), str(low), str(med), str(high), unit],
+                [var_name, str(low), str(med), str(high), unit],
                 row_index=idx)
 
     pdf.ln(4)

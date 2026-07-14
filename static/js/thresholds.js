@@ -60,14 +60,9 @@
             const unit = getUnit(k);
             const bounds = _SENSOR_RANGES[k];
             const boundsText = bounds ? `Límite: ${bounds[0]} – ${bounds[1]}${unit ? ' ' + unit : ''}` : '';
-            const DIR_BADGE = {
-                higher: '<span class="thresh-dir-badge" style="color:var(--state-critical);" title="Mayor es peor"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Mayor es peor</span>',
-                lower: '<span class="thresh-dir-badge" style="color:var(--state-critical);" title="Menor es peor"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Menor es peor</span>',
-            };
-            const dirBadge = DIR_BADGE[cfg.direction] || '<span class="thresh-dir-badge" style="color:var(--state-info);" title="Rango válido"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> Rango válido</span>';
             const headerHtml = `<div class="thresh-card-header">
                 <span class="thresh-label">${name}${unit ? ` (${unit})` : ''}</span>
-                ${dirBadge}
+                ${boundsText ? `<span class="thresh-bounds-badge">${boundsText}</span>` : ''}
             </div>`;
 
             if (cfg.direction === 'range') {
@@ -77,8 +72,7 @@
                         <div class="form-group"><label class="form-label">Máximo aceptable</label><input type="number" step="any" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
-                    <input type="hidden" data-var="${k}" data-level="direction" value="range">
-                    <div class="thresh-card-footer"><span>${boundsText}</span></div>`;
+                    <input type="hidden" data-var="${k}" data-level="direction" value="range">`;
             } else {
                 div.innerHTML = headerHtml + `
                     <div class="thresh-grid-2">
@@ -86,8 +80,7 @@
                         <div class="form-group"><label class="form-label">Crítico</label><input type="number" step="any" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
-                    <input type="hidden" data-var="${k}" data-level="direction" value="${cfg.direction}">
-                    <div class="thresh-card-footer"><span>${boundsText}</span></div>`;
+                    <input type="hidden" data-var="${k}" data-level="direction" value="${cfg.direction}">`;
             }
             return div;
         }
