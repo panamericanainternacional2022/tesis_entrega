@@ -6,7 +6,8 @@ import eventlet
 from apps.sensors.sensor_config import (
     PUMP_VARS, ELEVATOR_VARS,
     RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
-    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES)
+    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
+    DAILY_PERSIST_INTERVAL, DAILY_RETENTION_DAYS)
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
@@ -142,8 +143,6 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
             continue
-        # FIX-8 (BRECHA-3): Skip grace-period variables so startup spikes
-        # don't pollute the in-memory history with misleading readings.
         if _should_skip(sim, var):
             continue
         if risk_cache and var in risk_cache:
@@ -163,6 +162,36 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
     sim.history.extend(new_readings)
     if len(sim.history) > MAX_HISTORY_SIZE:
         sim.history = sim.history[-MAX_HISTORY_SIZE:]
+
+    sim._persist_tick = getattr(sim, "_persist_tick", 0) + 1
+    if sim._persist_tick >= DAILY_PERSIST_INTERVAL:
+        sim._persist_tick = 0
+        _persist_readings(sim, new_readings)
+
+
+def _persist_readings(sim: BuildingSimulator, readings: list[dict]) -> None:
+    try:
+        from django.utils import timezone
+        from apps.sensors.models import SensorReading
+
+        now = timezone.now()
+        cutoff = now - timezone.timedelta(days=DAILY_RETENTION_DAYS)
+        SensorReading.objects.filter(
+            building_id=sim.edificio_id, timestamp__lt=cutoff
+        ).delete()
+
+        to_create = [
+            SensorReading(
+                building_id=sim.edificio_id,
+                variable=r["variable"],
+                value=r["value"],
+                risk=r["risk"],
+            )
+            for r in readings
+        ]
+        SensorReading.objects.bulk_create(to_create, batch_size=200)
+    except Exception:
+        logger.exception("Error persistiendo lecturas para edificio %s", sim.edificio_id)
 
 
 def generate_data_and_emit() -> None:

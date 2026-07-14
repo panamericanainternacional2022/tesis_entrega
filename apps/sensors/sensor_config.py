@@ -361,6 +361,8 @@ PAGE_SIZE: int = 15
 SMTP_TIMEOUT: int = 15
 API_HISTORY_LIMIT: int = 50
 PAYLOAD_HISTORY_SLICE: int = 200
+DAILY_PERSIST_INTERVAL: int = 300
+DAILY_RETENTION_DAYS: int = 8
 
 SENSOR_RANGES = {
     # ── SISTEMA BOMBA — Límites físicos destructivos (simulator.md §2) ──────

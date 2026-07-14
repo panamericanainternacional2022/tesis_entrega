@@ -11,4 +11,5 @@ urlpatterns = [
     path("", include("apps.limits.urls")),
     path("", include("apps.thresholds.urls")),
     path("", include("apps.settings.urls")),
+    path("", include("apps.sensors.urls")),
 ]

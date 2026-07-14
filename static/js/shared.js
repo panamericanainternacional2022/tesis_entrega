@@ -473,7 +473,7 @@
         "pos_sensor_fail|elev_door_status": true,
     };
 
-    const CHART_PUMP_VARS = _BOMBA_VARS.filter(v => v !== 'tank_level');
+    const CHART_PUMP_VARS = _BOMBA_VARS.filter(v => v !== 'pump_tank_level');
     const CHART_ELEV_VARS = _ELEVADOR_VARS.filter(
         v => v !== 'elev_position' && v !== 'elev_door_status'
     );

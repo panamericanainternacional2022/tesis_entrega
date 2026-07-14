@@ -1128,6 +1128,7 @@ button {
     border-bottom: 2px solid var(--color-accent);
 }
 
+
 /* Variante: tabla de estadísticas */
 .stats-table th:not(:first-child),
 .stats-table td:not(:first-child) {
@@ -1665,7 +1666,7 @@ button {
 
 /* ─── Chart panel ─── */
 .chart-panel {
-    padding: var(--sp-4);
+    padding: var(--sp-6);
 }
 
 .chart-panel canvas {

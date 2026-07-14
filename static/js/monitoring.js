@@ -87,96 +87,130 @@
         }
     }
 
+    // ─────────────── DAILY CHART CONFIG ───────────────
+
+    var LINE_PALETTE = [
+        '#2563eb', '#dc2626', '#16a34a', '#d97706',
+        '#7c3aed', '#0891b2', '#c026d3', '#ea580c',
+    ];
+
+    function _formatDayLabel(dayStr) {
+        if (!dayStr) return '';
+        var parts = dayStr.split('-');
+        return parts[2] + '/' + parts[1];
+    }
+
     function initCharts() {
         if (typeof Chart === 'undefined') {
             console.warn('Chart.js no disponible. Gráficos desactivados.');
             return;
         }
-        const canvas1 = document.getElementById('chart1');
-        const canvas2 = document.getElementById('chart2');
+        var canvas1 = document.getElementById('chart1');
+        var canvas2 = document.getElementById('chart2');
         if (!canvas1 || !canvas2) {
             console.warn('Canvas para gráficos no encontrados. Omisión de inicialización.');
             return;
         }
 
-        const chartDefaults = {
+        var fontOpts = { family: "'DM Sans', system-ui", size: 10 };
+
+        var chartDefaults = {
             responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            layout: { padding: { right: 10 } },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { font: fontOpts, usePointStyle: true, pointStyle: 'line', padding: 12 },
+                },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => {
-                            const dataset = ctx.chart.data.datasets[ctx.datasetIndex];
-                            const variable = dataset.variables ? dataset.variables[ctx.dataIndex] : null;
-                            const formatted = variable
+                        label: function (ctx) {
+                            var variable = ctx.dataset.variable;
+                            var formatted = variable
                                 ? formatNumeric(ctx.raw, variable)
                                 : (typeof ctx.raw === 'number' ? ctx.raw.toFixed(2) : ctx.raw);
-                            return `${ctx.label}: ${formatted}`;
+                            return ctx.dataset.label + ': ' + formatted;
                         },
                     },
                 },
             },
             scales: {
-                x: { ticks: { font: { family: "'DM Sans', system-ui", size: 10 } } },
-                y: { beginAtZero: true, ticks: { font: { family: "'DM Sans', system-ui", size: 10 } } },
+                x: {
+                    type: 'category',
+                    ticks: { font: fontOpts, maxRotation: 0 },
+                    grid: { display: false },
+                },
+                y: {
+                    type: 'linear',
+                    beginAtZero: true,
+                    ticks: { font: fontOpts },
+                },
             },
+            animation: false,
         };
 
-        const inkColor = getCSSVar('--color-ink') || '#0a0a0a';
-
         chart1 = new Chart(canvas1.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: CHART_PUMP_VARS.map(v => `${getVariableName(v)} (${getUnit(v)})`),
-                datasets: [{
-                    variables: CHART_PUMP_VARS,
-                    backgroundColor: inkColor,
-                    borderColor: inkColor,
-                    borderWidth: 1,
-                    data: new Array(CHART_PUMP_VARS.length).fill(0),
-                }],
-            },
-            options: chartDefaults,
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: JSON.parse(JSON.stringify(chartDefaults)),
         });
 
         chart2 = new Chart(canvas2.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: CHART_ELEV_VARS.map(v => `${getVariableName(v)} (${getUnit(v)})`),
-                datasets: [{
-                    variables: CHART_ELEV_VARS,
-                    backgroundColor: inkColor,
-                    borderColor: inkColor,
-                    borderWidth: 1,
-                    data: new Array(CHART_ELEV_VARS.length).fill(0),
-                }],
-            },
-            options: chartDefaults,
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: JSON.parse(JSON.stringify(chartDefaults)),
         });
     }
 
-    function updateCharts(history) {
-        if (typeof Chart === 'undefined' || !chart1 || !history?.length) return;
+    function _buildDailyDatasets(variables, varData) {
+        var datasets = [];
+        variables.forEach(function (v, i) {
+            var color = LINE_PALETTE[i % LINE_PALETTE.length];
+            var info = varData[v];
+            if (!info) return;
 
-        const getLatestReading = (v) => history.filter(item => item.variable === v).pop();
-        const getLatest = (v) => { const r = getLatestReading(v); return r ? r.value : 0; };
-        const getSensorColor = (v) => {
-            const r = getLatestReading(v);
-            if (!r) return getCSSVar('--color-ink') || '#0a0a0a';
-            if (r.risk === _RISK.critico) return getCSSVar('--state-critical') || '#dc2626';
-            if (r.risk === _RISK.alto) return getCSSVar('--state-high') || '#c2410c';
-            return getCSSVar('--state-normal') || '#16a34a';
-        };
+            datasets.push({
+                label: getVariableName(v) + ' (' + getUnit(v) + ')',
+                data: info.avg,
+                borderColor: color,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                tension: 0.3,
+                fill: false,
+                variable: v,
+            });
+        });
+        return datasets;
+    }
 
-        const applyToChart = (chartInst, vars) => {
-            chartInst.data.datasets[0].data = vars.map(getLatest);
-            chartInst.data.datasets[0].backgroundColor = vars.map(getSensorColor);
-            chartInst.data.datasets[0].borderColor = chartInst.data.datasets[0].backgroundColor;
-            chartInst.update();
-        };
+    function renderDailyCharts(data) {
+        if (!chart1 && !chart2) return;
+        var labels = (data.labels || []).map(_formatDayLabel);
 
-        if (chart1) applyToChart(chart1, CHART_PUMP_VARS);
-        if (chart2) applyToChart(chart2, CHART_ELEV_VARS);
+        if (chart1 && data.pump) {
+            var pumpVars = Object.keys(data.pump);
+            chart1.data.labels = labels;
+            chart1.data.datasets = _buildDailyDatasets(pumpVars, data.pump);
+            chart1.update('none');
+        }
+
+        if (chart2 && data.elevator) {
+            var elevVars = Object.keys(data.elevator);
+            chart2.data.labels = labels;
+            chart2.data.datasets = _buildDailyDatasets(elevVars, data.elevator);
+            chart2.update('none');
+        }
+    }
+
+    function fetchDailyData() {
+        if (!EDIFICIO_ID) return;
+        fetch('/api/sensors/daily/' + EDIFICIO_ID + '/?days=7')
+            .then(function (r) { return r.json(); })
+            .then(function (data) { renderDailyCharts(data); })
+            .catch(function () {});
     }
 
     function updateFaultWarnings() {
@@ -283,7 +317,6 @@
         if (simPaused && !isFirstLoad) return;
 
         if (data.current) { currentReadings = data.current; updateCards(data.current); }
-        if (data.history) updateCharts(data.history);
 
         const lastUpd = document.getElementById('lastUpdate');
         if (lastUpd) {
@@ -312,28 +345,33 @@
     }
 
     function renderStatsTable(entries, containerId, firstColLabel) {
-        const div = document.getElementById(containerId);
+        var div = document.getElementById(containerId);
         if (!div) return;
         if (!entries.length) { div.innerHTML = ''; return; }
-        const rows = entries.map(([k, v]) =>
-            `<tr><td>${getVariableName(k)}</td><td>${formatNumeric(v.avg, k)}</td><td>${formatNumeric(v.min, k)}</td><td>${formatNumeric(v.max, k)}</td></tr>`
-        ).join('');
-        div.innerHTML = `
-            <div class="table-wrapper">
-                <table class="report-table">
-                    <thead><tr>
-                        <th>${firstColLabel}</th>
-                        <th>Prom.</th><th>Mín.</th><th>Máx.</th>
-                    </tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>`;
+        var rows = entries.map(function (entry) {
+            var k = entry[0], v = entry[1];
+            var std = v.std != null ? formatNumeric(v.std, k) : '-';
+            return '<tr><td>' + getVariableName(k) + '</td>'
+                + '<td>' + formatNumeric(v.avg, k) + '</td>'
+                + '<td>' + formatNumeric(v.min, k) + '</td>'
+                + '<td>' + formatNumeric(v.max, k) + '</td>'
+                + '<td>' + std + '</td></tr>';
+        }).join('');
+        div.innerHTML =
+            '<div class="table-wrapper">' +
+            '<table class="report-table">' +
+            '<thead><tr>' +
+            '<th>' + firstColLabel + '</th>' +
+            '<th>Prom.</th><th>Mín.</th><th>Máx.</th><th>Desv. Est.</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+            '</table></div>';
     }
 
     function updateStats(stats) {
-        const entries = stats && Object.keys(stats).length ? Object.entries(stats) : [];
-        renderStatsTable(entries.filter(([k]) => _BOMBA_VARS.includes(k)), 'statsBombaPanel', 'Estadísticas de la bomba');
-        renderStatsTable(entries.filter(([k]) => _ELEVADOR_VARS.includes(k)), 'statsElevadorPanel', 'Estadísticas del elevador');
+        var entries = stats && Object.keys(stats).length ? Object.entries(stats) : [];
+        renderStatsTable(entries.filter(function (e) { return _BOMBA_VARS.includes(e[0]); }), 'statsBombaPanel', 'Estadísticas de la bomba');
+        renderStatsTable(entries.filter(function (e) { return _ELEVADOR_VARS.includes(e[0]); }), 'statsElevadorPanel', 'Estadísticas del elevador');
     }
 
     // Admin manual controls
@@ -529,12 +567,25 @@
         setHistoryBadge(0);
         showState('stateLoading');
         initCharts();
-        
+        fetchDailyData();
+
+        var _origClear = window.clearCurrentReadings || function () {};
+        window.clearCurrentReadings = function () {
+            _origClear();
+            [chart1, chart2].forEach(function (c) {
+                if (!c) return;
+                c.data.labels = [];
+                c.data.datasets = [];
+                c.update('none');
+            });
+            fetchDailyData();
+        };
+
         monitorConnectionTimeout = setTimeout(() => {
             showState('stateOffline');
             monitorConnectionTimeout = null;
         }, 15000);
-        
+
         connectSSE();
 
         // Admin manual controls (from setupAdminEvents)

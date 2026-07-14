@@ -1,5 +1,6 @@
 from typing import Any
 import logging
+import math
 import time
 from dataclasses import dataclass
 
@@ -42,13 +43,16 @@ def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[s
         vals = [
             r["value"]
             for r in recent
-            if r["variable"] == var and isinstance(r["value"], (int, float)) and not isinstance(r["value"], bool)
+            if r["variable"] and r["variable"] == var and isinstance(r["value"], (int, float)) and not isinstance(r["value"], bool)
         ]
         if vals:
+            avg = sum(vals) / len(vals)
+            std = math.sqrt(sum((v - avg) ** 2 for v in vals) / len(vals)) if len(vals) > 1 else 0.0
             stats[var] = {
-                "avg": sum(vals) / len(vals),
+                "avg": avg,
                 "min": min(vals),
                 "max": max(vals),
+                "std": std,
             }
     return stats
 
@@ -62,12 +66,14 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts
     )
     alert_log = _get_alert_log_cached(ctx.active_edificio_id)
+    latest_ts = ctx.history[-1]["timestamp"] if ctx.history else None
     return {
         "current": {k: v for k, v in ctx.sensor_data.items() if k in relevant_vars},
         "history": [h for h in ctx.history[-PAYLOAD_HISTORY_SLICE:] if h.get("variable") in relevant_vars],
         "thresholds": thresholds,
         "alert_log": alert_log,
         "stats": stats,
+        "stats_timestamp": latest_ts,
 
         "pump_on": ctx.pump_on,
         "elevator_on": ctx.elevator_on,

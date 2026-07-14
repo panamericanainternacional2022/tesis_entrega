@@ -19,11 +19,6 @@
     {% include 'core/components/navbar.html' %}
 
     <main class="login-page">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
         {% block content %}{% endblock %}
     </main>
 
