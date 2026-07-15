@@ -15,6 +15,6 @@ def unread_history_count(request):
     if count is None:
         rol = request.session.get("usuario_rol", "US")
         records, _ = _build_history_query(usuario_id, rol)
-        count = records.distinct().count()
+        count = records.filter(resolved=False).distinct().count()
         cache.set(cache_key, count, timeout=_UNREAD_CACHE_TTL)
     return {"unread_history_count": count}

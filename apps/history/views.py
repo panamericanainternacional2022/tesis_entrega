@@ -125,7 +125,7 @@ def view_unread_count(request: HttpRequest) -> JsonResponse:
     rol = request.session.get("usuario_rol", "US")
     records, _ = _build_history_query(usuario_id, rol)
 
-    return json_ok({"count": records.distinct().count()})
+    return json_ok({"count": records.filter(resolved=False).distinct().count()})
 
 
 @login_required
@@ -145,7 +145,7 @@ def sse_unread_count_stream(request: HttpRequest):
             while True:
                 eventlet.sleep(3)
                 records, _ = _build_history_query(usuario_id, rol)
-                count = records.distinct().count()
+                count = records.filter(resolved=False).distinct().count()
 
                 if count != last_count:
                     yield f"event: count-update\ndata: {json.dumps({'count': count})}\n\n"
