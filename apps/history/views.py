@@ -139,7 +139,6 @@ def sse_unread_count_stream(request: HttpRequest):
         import json
         import eventlet
         from apps.history.shared import _build_history_query
-        from apps.sensors.sensor_config import FAULT_NAMES_ES
 
         last_count = -1
         try:
@@ -149,48 +148,7 @@ def sse_unread_count_stream(request: HttpRequest):
                 count = records.distinct().count()
 
                 if count != last_count:
-                    latest_payload = None
-                    if count > 0:
-                        latest = records.distinct().order_by("-date").first()
-                        if latest:
-                            msg = latest.message if isinstance(latest.message, dict) else {}
-                            risk = msg.get("risk", "")
-                            timestamp = latest.date.strftime("%Y-%m-%d %H:%M:%S") if latest.date else ""
-
-                            if latest.fault_type:
-                                fault_name = FAULT_NAMES_ES.get(latest.fault_type, latest.fault_type)
-                                var_details = msg.get("variables_detail", [])
-                                variables = [
-                                    {
-                                        "variable": v.get("variable", ""),
-                                        "value": v.get("value"),
-                                        "risk": v.get("risk", risk),
-                                        "unit": v.get("unit", ""),
-                                        "display_name": v.get("display_name", v.get("variable", "")),
-                                    }
-                                    for v in var_details
-                                ] if var_details else (latest.affected_variables or [])
-                                latest_payload = {
-                                    "timestamp": timestamp,
-                                    "fault_type": latest.fault_type,
-                                    "fault_name": fault_name,
-                                    "variables": variables,
-                                    "risk": risk,
-                                    "message": msg.get("action", ""),
-                                }
-                            else:
-                                latest_payload = {
-                                    "timestamp": timestamp,
-                                    "variable": msg.get("variable", ""),
-                                    "value": msg.get("value"),
-                                    "risk": risk,
-                                    "message": msg.get("action", ""),
-                                }
-
-                    payload = {"count": count}
-                    if latest_payload:
-                        payload["latest"] = latest_payload
-                    yield f"event: count-update\ndata: {json.dumps(payload)}\n\n"
+                    yield f"event: count-update\ndata: {json.dumps({'count': count})}\n\n"
                     last_count = count
 
         except GeneratorExit:

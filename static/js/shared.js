@@ -422,10 +422,12 @@ function initLiveBadge() {
             sidebarBadge.classList.add('badge-pulse');
             setTimeout(function () { sidebarBadge.classList.remove('badge-pulse'); }, 2000);
 
-            // Habilitar botón de nuevos eventos en history page
+            // Habilitar botón de nuevos eventos y filtro en history page
             if (newEventsBtn) {
                 newEventsBtn.disabled = false;
             }
+            var filterBtn = document.getElementById('openFilterPanel');
+            if (filterBtn) filterBtn.disabled = false;
         }
 
         lastCount = count;
@@ -459,6 +461,9 @@ function initLiveBadge() {
                 pollInterval = null;
             }
         };
+        window.addEventListener('beforeunload', function () {
+            if (sseSource) sseSource.close();
+        });
     } else {
         pollCount();
         pollInterval = setInterval(pollCount, 5000);
@@ -694,10 +699,17 @@ window.setEquipmentState = (pumpOn, elevOn) => {
 Object.defineProperty(window, '_SENSOR_RANGES', { get: function () { return _SENSOR_RANGES; }, configurable: true });
 
 function setHistoryBadge(count) {
-    const pageBadge = document.getElementById('historyBadgeCount');
-    if (!pageBadge) return;
-    if (count > 0) { pageBadge.textContent = count; pageBadge.style.display = 'inline-flex'; pageBadge.hidden = false; }
-    else { pageBadge.textContent = ''; pageBadge.style.display = 'none'; pageBadge.hidden = true; }
+    var badge = document.getElementById('historyBadgeSidebar');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.add('visible');
+    } else {
+        badge.textContent = '';
+        badge.classList.remove('visible');
+    }
+    var btn = document.getElementById('newEventsBtn');
+    if (btn) btn.disabled = count <= 0;
 }
 
 
