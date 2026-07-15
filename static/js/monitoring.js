@@ -589,9 +589,35 @@
         const clearBtn = document.getElementById('clearDbHistoryBtn');
         if (clearBtn) {
             clearBtn.addEventListener('click', async () => {
-                if (!await showConfirm('¿Estás seguro de que deseas limpiar todo el historial?')) return;
+                const filters = {};
+                const edi = document.getElementById('hidden-edificio')?.value;
+                const sev = document.getElementById('hidden-severidad')?.value;
+                const vrb = document.getElementById('hidden-variable')?.value;
+                const fdesde = document.getElementById('hidden-fecha-desde')?.value;
+                const fhasta = document.getElementById('hidden-fecha-hasta')?.value;
+                const per = document.getElementById('periodoSelect')?.value;
+
+                if (edi) filters.edificio = edi;
+                if (sev) filters.severidad = sev;
+                if (vrb) filters.variable = vrb;
+                if (fdesde) filters.fecha_desde = fdesde;
+                if (fhasta) filters.fecha_hasta = fhasta;
+                if (per) filters.periodo = per;
+
+                let scopeMsg = 'todos tus registros';
+                const buildingName = window.SELECTED_EDIFICIO_NOMBRE;
+                if (buildingName) {
+                    scopeMsg = `tus registros del edificio "${buildingName}"`;
+                }
+                if (sev || vrb || fdesde) {
+                    scopeMsg += ' con los filtros actuales';
+                }
+                if (!await showConfirm(`¿Estás seguro de que deseas limpiar ${scopeMsg}?`)) return;
                 try {
-                    const resp = await csrfFetch(API.clearHistory, { method: 'POST' });
+                    const resp = await csrfFetch(API.clearHistory, {
+                        method: 'POST',
+                        body: JSON.stringify(filters),
+                    });
                     if (resp.ok) { window.location.href = window.location.pathname; }
                     else throw new Error('Error al limpiar');
                 } catch (_) { await showAlert('No se pudo limpiar el historial.', 'error'); }

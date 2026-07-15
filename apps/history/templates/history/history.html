@@ -73,7 +73,8 @@
                            title="Descargar historial con los filtros actuales"{% if not records %} aria-disabled="true"{% endif %}>
                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar historial
                         </a>
-                        <button type="button" id="clearDbHistoryBtn" class="dropdown-item"{% if not records %} disabled{% endif %}>
+                        <button type="button" id="clearDbHistoryBtn" class="dropdown-item"{% if not records %} disabled{% endif %}
+                                title="Limpiar solo los registros que coinciden con los filtros activos (edificio, severidad, variable, fechas)">
                             <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Limpiar historial
                         </button>
                     </div>
@@ -81,6 +82,26 @@
 
             </div>
         </form>
+        {% if selected_edificio_id or severidad or variable_filter or fecha_desde %}
+        <div class="active-filters-bar">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+            <span class="active-filters-label">Filtros activos:</span>
+            <span class="active-filters-list">
+                {% if selected_edificio_id and selected_edificio_nombre %}
+                <span class="filter-chip">Edificio: {{ selected_edificio_nombre }}</span>
+                {% endif %}
+                {% if severidad %}
+                <span class="filter-chip">Severidad: {{ severidad }}</span>
+                {% endif %}
+                {% if variable_filter %}
+                <span class="filter-chip">Variable: {{ variable_filter }}</span>
+                {% endif %}
+                {% if fecha_desde %}
+                <span class="filter-chip">{{ fecha_desde }} – {{ fecha_hasta }}</span>
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
     </div>
 
     <div class="hist-card">
@@ -219,6 +240,7 @@
 <script src="{% static 'js/monitoring.js' %}" defer></script>
 <script>
     window.SELECTED_EDIFICIO_ID = {% if selected_edificio_id %}{{ selected_edificio_id }}{% else %}null{% endif %};
+    window.SELECTED_EDIFICIO_NOMBRE = {% if selected_edificio_id and selected_edificio_nombre %}"{{ selected_edificio_nombre|escapejs }}"{% else %}null{% endif %};
     window.CSRF_TOKEN = "{{ csrf_token|escapejs }}";
 
     var periodoSelect = document.getElementById('periodoSelect');

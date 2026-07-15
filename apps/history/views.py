@@ -55,7 +55,7 @@ def history_view(request: HttpRequest):
     date_from = request.GET.get("fecha_desde", "").strip()
     date_to = request.GET.get("fecha_hasta", "").strip()
 
-    records, _ = _build_history_query(usuario_id, rol, building_id_raw)
+    records, building_name = _build_history_query(usuario_id, rol, building_id_raw)
 
     if is_admin_role(rol):
         buildings = Building.objects.all()
@@ -103,6 +103,7 @@ def history_view(request: HttpRequest):
             "records": page_obj,
             "edificios": buildings,
             "selected_edificio_id": int(building_id_raw) if building_id_raw and building_id_raw.isdigit() else None,
+            "selected_edificio_nombre": building_name,
             "rol": rol,
             "filter_query_string": query_string,
             "severidad": severity,
@@ -134,12 +135,37 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     if not usuario_id:
         return json_error("Sesión inválida", status=401)
 
-    rol = request.session.get("usuario_rol", "US")
-    if is_admin_role(rol):
-        History.objects.all().delete()
-    else:
-        History.objects.filter(user_id=usuario_id).delete()
+    import json
+    data = {}
+    if request.body:
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            pass
 
+    edificio_id = data.get("edificio")
+    severidad = data.get("severidad", "")
+    variable_filter = data.get("variable", "")
+    fecha_desde = data.get("fecha_desde", "")
+    fecha_hasta = data.get("fecha_hasta", "")
+    periodo = data.get("periodo", "reciente")
+
+    qs = History.objects.filter(user_id=usuario_id)
+
+    if edificio_id:
+        qs = qs.filter(monitoring_equipment__building_id=edificio_id)
+
+    if periodo == "custom" and fecha_desde and fecha_hasta:
+        qs = filter_date_range(qs, periodo, fecha_desde, fecha_hasta)
+    elif fecha_desde and fecha_hasta:
+        qs = filter_date_range(qs, "custom", fecha_desde, fecha_hasta)
+
+    if severidad:
+        qs = qs.filter(message__risk=severidad)
+    if variable_filter:
+        qs = qs.filter(message__variable=variable_filter)
+
+    qs.delete()
     return json_ok({"message": "History cleared successfully"})
 
 
