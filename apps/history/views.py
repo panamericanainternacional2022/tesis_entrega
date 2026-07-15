@@ -143,7 +143,7 @@ def sse_unread_count_stream(request: HttpRequest):
         last_count = -1
         try:
             while True:
-                eventlet.sleep(3)
+                eventlet.sleep(1)
                 records, _ = _build_history_query(usuario_id, rol)
                 count = records.filter(resolved=False).distinct().count()
 
