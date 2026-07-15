@@ -287,7 +287,7 @@
     }
 
     async function resetAllThresholds() {
-        if (!await showConfirm('¿Restablecer todos los umbrales a sus valores originales (último guardado)?')) return;
+        if (!await showConfirm('¿Estás seguro de que deseas restablecer todos los umbrales a sus valores originales?')) return;
         resetPanelThresholds('bomba');
         resetPanelThresholds('elevador');
     }

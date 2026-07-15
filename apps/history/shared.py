@@ -135,7 +135,7 @@ def parse_history_record_for_display(record: History) -> History:
             )
         if getattr(record, "resolved", False):
             record.parsed_data["risk"] = "Resuelta"
-            record.parsed_data["risk_icon"] = "fa-check"
+            record.parsed_data["risk_icon"] = "fa-circle-check"
             record.parsed_data["risk_css"] = "risk-resolved"
     else:
         record.parsed_data = {"parsed": False}

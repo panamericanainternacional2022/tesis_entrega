@@ -26,6 +26,20 @@
 {% block list_actions %}
 {% url 'register_building' as registro_url %}
                 {% include 'core/components/button.html' with url=registro_url class='btn btn-primary' text='Agregar edificio' icon='fa-solid fa-plus' %}
+{% if current_equipamiento or request.GET.q %}
+<div class="active-filters-bar">
+    <i class="fa-solid fa-filter" aria-hidden="true"></i>
+    <span class="active-filters-label">Filtros activos:</span>
+    <span class="active-filters-list">
+        {% if current_equipamiento %}
+        <span class="filter-chip">Equipamiento: {{ current_equipamiento|title }}</span>
+        {% endif %}
+        {% if request.GET.q %}
+        <span class="filter-chip">Búsqueda: &laquo;{{ request.GET.q }}&raquo;</span>
+        {% endif %}
+    </span>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block list_table %}

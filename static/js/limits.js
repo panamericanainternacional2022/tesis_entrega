@@ -201,7 +201,7 @@
     }
 
     async function resetAllLimits() {
-        if (!await showConfirm('¿Restablecer todos los límites a sus valores originales (último guardado)?')) return;
+        if (!await showConfirm('¿Estás seguro de que deseas restablecer todos los límites a sus valores originales?')) return;
         resetPanelLimits('bomba');
         resetPanelLimits('elevador');
     }

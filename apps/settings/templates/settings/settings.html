@@ -29,16 +29,16 @@
                         <label for="username">Nombre de usuario</label>
                         <div class="input-with-icon">
                             <input type="text" id="username" name="username" value="{{ usuario.username|default:'' }}" data-validate="username" required class="form-input {% if form_errors.username %}input-error-state{% endif %}" />
-                            <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
-                        </div>
-                        <div class="error-msg">{% if form_errors.username %}{{ form_errors.username }}{% endif %}</div>
+                        <i class="fa-solid fa-user input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
+                    <div class="error-msg">{% if form_errors.username %}{{ form_errors.username }}{% endif %}</div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="email">Correo electrónico</label>
-                        <div class="input-with-icon">
-                            <input type="email" id="email" name="email" value="{{ persona.email|default:'' }}" data-validate="email" maxlength="75" required class="form-input {% if form_errors.email or form_errors.email_unico %}input-error-state{% endif %}" />
-                            <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <div class="input-with-icon">
+                        <input type="email" id="email" name="email" value="{{ persona.email|default:'' }}" data-validate="email" maxlength="75" required class="form-input {% if form_errors.email or form_errors.email_unico %}input-error-state{% endif %}" />
+                        <i class="fa-solid fa-envelope input-icon input-icon--right" aria-hidden="true"></i>
                         </div>
                         <div class="error-msg">{% if form_errors.email %}{{ form_errors.email }}{% elif form_errors.email_unico %}{{ form_errors.email_unico }}{% endif %}</div>
                     </div>

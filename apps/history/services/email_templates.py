@@ -162,7 +162,7 @@ def build_activation_email_html(link: str) -> str:
               <div style="margin: 0 0 28px 0; text-align: left;">
                 <a href="{link}" target="_blank"
                    style="background-color: {_ACCENT}; color: {_SURFACE}; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 4px 4px 0px {_INK};">
-                  Completar registro
+                  Activar cuenta
                 </a>
               </div>
 

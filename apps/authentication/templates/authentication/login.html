@@ -30,7 +30,7 @@
             <label for="username">Nombre de usuario</label>
             <div class="input-with-icon">
                 <input type="text" id="username" name="username" class="form-input {% if form_errors.username %}input-error-state{% endif %}" placeholder="Usuario" value="{{ username_val|default:'' }}" data-validate="username" required>
-                <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
+                <i class="fa-solid fa-user input-icon input-icon--right" aria-hidden="true"></i>
             </div>
             <div class="error-msg">{% if form_errors.username %}{{ form_errors.username }}{% endif %}</div>
         </div>

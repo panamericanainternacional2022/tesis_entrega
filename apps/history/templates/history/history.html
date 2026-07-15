@@ -55,7 +55,7 @@
                 <div class="divider-v"></div>
 
                 <button id="openFilterPanel" type="button" class="btn btn-primary" {% if total_count == 0 or edificios|length <= 1 and all_variables|length <= 1 and ALL_SEVERITIES|length <= 1 %}disabled{% endif %}>
-                    <i class="fa-solid fa-sliders" aria-hidden="true"></i> Filtrar
+                    <i class="fa-solid fa-filter" aria-hidden="true"></i> Filtrar
                     {% if severidad or variable_filter or selected_edificio_id %}
                     <span class="filter-dot"></span>
                     {% endif %}
@@ -159,7 +159,7 @@
 <div id="filterPanelOverlay" class="filter-overlay" aria-hidden="true"></div>
 <aside id="filterPanel" class="filter-panel" aria-labelledby="filter-panel-title">
     <div class="filter-panel-header">
-        <div class="row-sm"><i class="fa-solid fa-sliders" aria-hidden="true"></i><h2 id="filter-panel-title" class="section-label m-0">Filtros</h2></div>
+        <div class="row-sm"><h2 id="filter-panel-title" class="section-label m-0">Filtros</h2></div>
         <button type="button" id="closeFilterPanelBtn" class="btn btn-icon" aria-label="Cerrar panel de filtros"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="filter-panel-body">

@@ -1,15 +1,15 @@
 {% extends 'core/layouts/base_sidebar.html' %}
 {% load static %}
 
-{% block title %}{% if editing %}Modificar datos de usuario{% else %}Registro de nuevo usuario{% endif %}{% endblock %}
+{% block title %}{% if editing %}Editar usuario{% else %}Registrar usuario{% endif %}{% endblock %}
 
 {% block content %}
 <section class="reports-card" aria-labelledby="form-title">
     <header class="page-header">
         <div class="row-start">
-            <h1 class="m-0" id="form-title">{% if editing %}Modificar datos de usuario{% else %}Registro de nuevo usuario{% endif %}</h1>
+            <h1 class="m-0" id="form-title">{% if editing %}Editar usuario{% else %}Registrar usuario{% endif %}</h1>
         </div>
-        <p class="mt-1">{% if editing %}Actualiza la información personal, datos de contacto, rol asignado o edificio correspondiente del usuario seleccionado.{% else %}Registra un nuevo usuario en la base de datos para enviarle automáticamente sus credenciales de acceso y habilitarlo en el sistema.{% endif %}</p>
+        <p class="mt-1">{% if editing %}Edita la información personal, datos de contacto, rol asignado o edificio correspondiente del usuario seleccionado.{% else %}Registra un nuevo usuario en la base de datos para enviarle automáticamente sus credenciales de acceso y habilitarlo en el sistema.{% endif %}</p>
     </header>
 
     <form class="form-card mt-0" method="post" novalidate>
@@ -58,7 +58,7 @@
                     <label for="email">Correo electrónico</label>
                     <div class="input-with-icon">
                         <input placeholder="correo@ejemplo.com" type="email" id="email" name="email" value="{{ user.email|default:'' }}" data-validate="email" maxlength="75" required class="form-input {% if form_errors.email or form_errors.email_unico %}input-error-state{% endif %}" />
-                        <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
+                        <i class="fa-solid fa-envelope input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
                     <div class="error-msg">{% if form_errors.email %}{{ form_errors.email }}{% elif form_errors.email_unico %}{{ form_errors.email_unico }}{% endif %}</div>
                 </div>
@@ -66,7 +66,7 @@
                     <label for="cedula">Cédula (CI)</label>
                     <div class="input-with-icon">
                         <input placeholder="V-12345678" type="text" id="cedula" name="cedula" value="{{ user.cedula|default:'' }}" data-validate="cedula" data-exclude-id="{% if editing %}{{ persona_id }}{% endif %}" data-url="{% url 'check_cedula' %}" maxlength="16" required class="form-input {% if form_errors.cedula or form_errors.cedula_long or form_errors.cedula_unico %}input-error-state{% endif %}" />
-                        <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
+                        <i class="fa-solid fa-id-card input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
                     <div class="error-msg">{% if form_errors.cedula %}{{ form_errors.cedula }}{% elif form_errors.cedula_long %}{{ form_errors.cedula_long }}{% elif form_errors.cedula_unico %}{{ form_errors.cedula_unico }}{% endif %}</div>
                 </div>
