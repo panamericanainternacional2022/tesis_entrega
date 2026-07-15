@@ -1497,6 +1497,14 @@ button {
     display: inline-flex;
 }
 
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+.badge-pulse {
+    animation: badgePulse 0.5s ease-in-out 3;
+}
+
 /* ─── Toast ─── */
 .toast-container {
     position: fixed;

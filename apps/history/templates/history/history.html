@@ -10,7 +10,6 @@
     <header class="page-header">
         <div class="row-start">
             <h1 class="m-0" id="history-title">Historial</h1>
-            <span id="historyBadgeCount" class="hist-count-badge{% if total_count > 0 %} visible{% endif %}">{{ total_count }}</span>
         </div>
         <p class="mt-1">Historial cronológico de eventos del sistema y reportes de sensores. Filtra por severidad, variable o período para analizar el comportamiento del sistema.</p>
     </header>
@@ -60,6 +59,9 @@
                     {% if severidad or variable_filter or selected_edificio_id %}
                     <span class="filter-dot"></span>
                     {% endif %}
+                </button>
+                <button id="newEventsBtn" type="button" class="btn btn-secondary" disabled>
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Recargar eventos
                 </button>
 
                 <div class="actions-dropdown">

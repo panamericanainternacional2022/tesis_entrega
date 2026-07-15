@@ -527,16 +527,19 @@
     function addLiveHistoryEvent(data) {
         const container = document.getElementById('live-history-list');
         if (!container) return;
-        document.getElementById('live-no-history')?.remove();
 
         let ul = container.querySelector('.hist-list');
-        if (!ul) { ul = document.createElement('ul'); ul.className = 'hist-list'; container.appendChild(ul); }
+        if (!ul) {
+            container.querySelectorAll('.no-history').forEach(function (el) { el.remove(); });
+            ul = document.createElement('ul'); ul.className = 'hist-list'; container.appendChild(ul);
+        }
 
         const li = document.createElement('li');
         li.className = 'hist-item';
 
-        const BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal' };
-        const badgeClass = BADGE_MAP[data.risk] || 'sensor-normal';
+        var _riskUpper = (data.risk || '').toUpperCase();
+        var BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal' };
+        var badgeClass = BADGE_MAP[_riskUpper] || 'sensor-normal';
 
         if (data.fault_type) {
             const faultName = data.fault_name || _faultTypeToDisplay(data.fault_type);
@@ -660,6 +663,7 @@
     window.fetchInitialData = fetchInitialData_monitoring;
     window.initLiveHistory = initLiveHistory;
     window.connectSSE = connectSSE;
+    window.addLiveHistoryEvent = addLiveHistoryEvent;
     window.updateEquipmentPowerBtns = updateEquipmentPowerBtns;
 
     function fetchInitialData_monitoring() {

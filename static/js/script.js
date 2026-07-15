@@ -9,6 +9,9 @@
 (function (window, document) {
 
     window.addEventListener('DOMContentLoaded', () => {
+        // Live badge SSE en TODAS las páginas
+        if (typeof window.initLiveBadge === 'function') window.initLiveBadge();
+
         const IS_ADMIN = window.IS_ADMIN === true;
 
         // --- Página de límites ---
@@ -41,12 +44,9 @@
             return;
         }
 
-        // --- Página de historial (SSE live history) ---
+        // --- Página de historial ---
         if (document.getElementById('live-history-list')) {
-            const badgeCountEl = document.getElementById('historyBadgeCount');
-            if (badgeCountEl) unreadHistoryCount = parseInt(badgeCountEl.textContent, 10) || 0;
             if (typeof initLiveHistory === 'function') initLiveHistory();
-            if (EDIFICIO_ID && typeof connectSSE === 'function') connectSSE();
         }
     });
 
