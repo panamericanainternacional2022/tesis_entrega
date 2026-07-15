@@ -13,11 +13,11 @@
         <div class="alert alert-error">
             {{ error }}
         </div>
-        <div style="text-align: center;">
+        <div class="text-center">
             {% include 'core/components/button.html' with url='/login/' class='btn btn-primary' text='Ir al inicio de sesión' icon='fa-solid fa-right-to-bracket' %}
         </div>
     {% else %}
-        <h1 style="margin-bottom: 1.5rem;">Configurar credenciales</h1>
+        <h1 class="mb-6">Configurar credenciales</h1>
  
         {% if form_error %}
             <div class="alert alert-error">
@@ -47,7 +47,7 @@
                 <div class="error-msg">{% if form_errors.confirm_password %}{{ form_errors.confirm_password }}{% endif %}</div>
             </div>
  
-            <div style="text-align: center;">
+            <div class="text-center">
                 {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Activar cuenta y acceder' icon='fa-solid fa-check' %}
             </div>
         </form>

@@ -157,12 +157,12 @@
 <div id="filterPanelOverlay" class="filter-overlay" aria-hidden="true"></div>
 <aside id="filterPanel" class="filter-panel" aria-labelledby="filter-panel-title">
     <div class="filter-panel-header">
-        <div class="row-sm"><i class="fa-solid fa-sliders" aria-hidden="true"></i><h2 id="filter-panel-title" class="section-label m-0" style="font-size: inherit; font-weight: inherit; color: inherit;">Filtros</h2></div>
+        <div class="row-sm"><i class="fa-solid fa-sliders" aria-hidden="true"></i><h2 id="filter-panel-title" class="section-label m-0">Filtros</h2></div>
         <button type="button" id="closeFilterPanelBtn" class="btn btn-icon" aria-label="Cerrar panel de filtros"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="filter-panel-body">
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-edificio-filter" style="display:block"><i class="fa-solid fa-building" aria-hidden="true"></i> Edificio</label>
+            <label class="filter-section-label" for="panel-edificio-filter"><i class="fa-solid fa-building" aria-hidden="true"></i> Edificio</label>
             <select id="panel-edificio-filter" aria-label="Filtrar por edificio" class="custom-select-init" {% if edificios|length <= 1 %}disabled{% endif %}>
                 <option value="">Todos los edificios</option>
                 {% for building in edificios %}
@@ -171,7 +171,7 @@
             </select>
         </div>
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-severidad" style="display:block"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Severidad</label>
+            <label class="filter-section-label" for="panel-severidad"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Severidad</label>
             <select id="panel-severidad" aria-label="Filtrar por severidad" class="custom-select-init">
                 <option value="">Todas las severidades</option>
                 {% for sev in ALL_SEVERITIES %}
@@ -180,7 +180,7 @@
             </select>
         </div>
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-variable" style="display:block"><i class="fa-solid fa-gauge" aria-hidden="true"></i> Variable</label>
+            <label class="filter-section-label" for="panel-variable"><i class="fa-solid fa-gauge" aria-hidden="true"></i> Variable</label>
             <select id="panel-variable" aria-label="Filtrar por variable" class="custom-select-init">
                 <option value="">Todas las variables</option>
                 {% for var in all_variables %}
@@ -203,23 +203,23 @@
     <div class="custom-modal-container max-w-420" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
         <div class="row-md ">
             <i class="fa-solid fa-calendar-days text-xl text-ink" aria-hidden="true"></i>
-            <h2 id="custom-modal-title" class="drawer-title m-0" style="font-size: inherit; font-weight: inherit; color: inherit;">Rango personalizado</h2>
+            <h2 id="custom-modal-title" class="drawer-title m-0">Rango personalizado</h2>
         </div>
         <p class="text-sm text-secondary m-0 mb-3">Selecciona las fechas de inicio y fin del período que quieres consultar.</p>
 
         <div class="col-stack">
             <div>
-                <label class="field-label" for="modal-fecha-desde" style="display:block">Desde</label>
+                <label class="field-label d-block" for="modal-fecha-desde">Desde</label>
                 <input type="date" id="modal-fecha-desde"
                        value="{{ fecha_desde }}" class="form-input">
             </div>
             <div>
-                <label class="field-label" for="modal-fecha-hasta" style="display:block">Hasta</label>
+                <label class="field-label d-block" for="modal-fecha-hasta">Hasta</label>
                 <input type="date" id="modal-fecha-hasta"
                        value="{{ fecha_hasta }}" class="form-input">
             </div>
 
-            <div id="customDateError" class="error-msg" style="visibility:hidden">
+            <div id="customDateError" class="error-msg v-hidden">
                 La fecha "Desde" no puede ser posterior a "Hasta"
             </div>
         </div>

@@ -87,6 +87,9 @@
     --state-info: #475569;
     --state-info-bg: #f1f5f9;
 
+    /* Alias de warning (usado por .fault-warning) */
+    --color-warning: var(--state-high);
+
     /* ==========================================
        C. ESCALA DE ESPACIADOS (GRID BASE 4/8PX)
        ========================================== */
@@ -1792,6 +1795,13 @@ button {
     flex-shrink: 0;
 }
 
+.filter-panel-header h2,
+.custom-modal-container h2 {
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+
 .filter-panel-body {
     flex: 1;
     overflow-y: auto;
@@ -1862,7 +1872,7 @@ button {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--sp-1-5);
+    gap: var(--sp-1);
 }
 
 .filter-chip {
@@ -2528,6 +2538,10 @@ input.is-dirty.input-error-state:active {
     margin-bottom: var(--sp-3);
 }
 
+.mb-6 {
+    margin-bottom: var(--sp-6);
+}
+
 .ml-auto {
     margin-left: auto;
 }
@@ -2548,6 +2562,10 @@ input.is-dirty.input-error-state:active {
     padding-bottom: 0;
 }
 
+.pb-6 {
+    padding-bottom: var(--sp-6);
+}
+
 /* Flexbox */
 .flex {
     display: flex;
@@ -2565,6 +2583,10 @@ input.is-dirty.input-error-state:active {
     flex-wrap: wrap;
 }
 
+.gap-1 {
+    gap: var(--sp-1);
+}
+
 .gap-2 {
     gap: var(--sp-2);
 }
@@ -2575,6 +2597,10 @@ input.is-dirty.input-error-state:active {
 
 .self-end {
     align-self: end;
+}
+
+.min-w-130 {
+    min-width: 130px;
 }
 
 .col-stack {
@@ -2653,6 +2679,24 @@ input.is-dirty.input-error-state:active {
 
 .text-2xl {
     font-size: var(--text-2xl);
+}
+
+/* Display */
+.d-block {
+    display: block;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.v-hidden {
+    visibility: hidden;
+}
+
+/* Text alignment */
+.text-center {
+    text-align: center;
 }
 
 /* Misc */

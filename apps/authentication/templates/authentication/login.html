@@ -9,7 +9,7 @@
         <p class="login-card-subtitle">Sistema inteligente en monitoreo</p>
     </header>
 
-    <h1 style="margin-bottom: 1.5rem;">Acceso al sistema</h1>
+    <h1 class="mb-6">Acceso al sistema</h1>
 
     {% if success %}
         <div class="alert alert-success">
@@ -38,7 +38,7 @@
             <div class="error-msg">{% if form_errors.password %}{{ form_errors.password }}{% endif %}</div>
         </div>
 
-        <div style="text-align: center;">
+        <div class="text-center">
             {% include 'core/components/button.html' with type='submit' class='btn btn-primary' text='Ingresar' icon='fa-solid fa-right-to-bracket' %}
         </div>
     </form>
