@@ -415,12 +415,6 @@
             updateStats(data.stats);
         }
 
-        const isHistoryPage = !!document.getElementById('live-history-list');
-        if (!isHistoryPage) {
-            const totalAlerts = _countUnreadAlerts(data.alert_log);
-            unreadHistoryCount = totalAlerts;
-            setHistoryBadge(totalAlerts);
-        }
     }
 
     function updateSummaryValues(data) {
