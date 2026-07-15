@@ -117,7 +117,7 @@
     </div>
     <div class="filter-panel-body">
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-edificio"><i class="fa-solid fa-building" aria-hidden="true"></i> Edificio</label>
+            <label class="filter-section-label" for="panel-edificio">Edificio</label>
             <select id="panel-edificio" class="custom-select-init" {% if edificios|length <= 1 %}disabled{% endif %}>
                 <option value="">Todos los edificios</option>
                 {% for building in edificios %}
@@ -126,7 +126,7 @@
             </select>
         </div>
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-estado"><i class="fa-solid fa-user-check" aria-hidden="true"></i> Estado</label>
+            <label class="filter-section-label" for="panel-estado">Estado</label>
             <select id="panel-estado" class="custom-select-init">
                 <option value="">Todos los estados</option>
                 <option value="registrado" {% if current_estado == 'registrado' %}selected{% endif %}>Registrados</option>

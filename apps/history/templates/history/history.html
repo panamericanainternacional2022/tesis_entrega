@@ -55,7 +55,7 @@
 
                 <div class="divider-v"></div>
 
-                <button id="openFilterPanel" type="button" class="btn btn-primary" {% if total_count == 0 %}disabled{% endif %}>
+                <button id="openFilterPanel" type="button" class="btn btn-primary" {% if total_count == 0 or edificios|length <= 1 and all_variables|length <= 1 and ALL_SEVERITIES|length <= 1 %}disabled{% endif %}>
                     <i class="fa-solid fa-sliders" aria-hidden="true"></i> Filtrar
                     {% if severidad or variable_filter or selected_edificio_id %}
                     <span class="filter-dot"></span>
@@ -162,7 +162,7 @@
     </div>
     <div class="filter-panel-body">
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-edificio-filter"><i class="fa-solid fa-building" aria-hidden="true"></i> Edificio</label>
+            <label class="filter-section-label" for="panel-edificio-filter">Edificio</label>
             <select id="panel-edificio-filter" aria-label="Filtrar por edificio" class="custom-select-init" {% if edificios|length <= 1 %}disabled{% endif %}>
                 <option value="">Todos los edificios</option>
                 {% for building in edificios %}
@@ -171,8 +171,8 @@
             </select>
         </div>
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-severidad"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Severidad</label>
-            <select id="panel-severidad" aria-label="Filtrar por severidad" class="custom-select-init">
+            <label class="filter-section-label" for="panel-severidad">Severidad</label>
+            <select id="panel-severidad" aria-label="Filtrar por severidad" class="custom-select-init" {% if ALL_SEVERITIES|length <= 1 %}disabled{% endif %}>
                 <option value="">Todas las severidades</option>
                 {% for sev in ALL_SEVERITIES %}
                 <option value="{{ sev }}" {% if severidad == sev %}selected{% endif %}>{{ sev }}</option>
@@ -180,8 +180,8 @@
             </select>
         </div>
         <div class="filter-panel-section">
-            <label class="filter-section-label" for="panel-variable"><i class="fa-solid fa-gauge" aria-hidden="true"></i> Variable</label>
-            <select id="panel-variable" aria-label="Filtrar por variable" class="custom-select-init">
+            <label class="filter-section-label" for="panel-variable">Variable</label>
+            <select id="panel-variable" aria-label="Filtrar por variable" class="custom-select-init" {% if all_variables|length <= 1 %}disabled{% endif %}>
                 <option value="">Todas las variables</option>
                 {% for var in all_variables %}
                 <option value="{{ var }}" {% if variable_filter == var %}selected{% endif %}>{{ var }}</option>
