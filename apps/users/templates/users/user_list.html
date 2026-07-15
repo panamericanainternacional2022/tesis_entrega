@@ -37,14 +37,31 @@
         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
     </button>
     <div class="dropdown-menu">
-        <a href="{% url 'user_pdf' %}?{{ filter_query_string }}" class="dropdown-item"{% if not usuarios %} aria-disabled="true"{% endif %}>
+        <a href="{% url 'user_pdf' %}?{{ filter_query_string }}" class="dropdown-item"
+           title="Descargar reporte con los filtros actuales"{% if not usuarios %} aria-disabled="true"{% endif %}>
             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar reporte
         </a>
-        <button type="button" class="dropdown-item" id="sendAllEmailBtn" data-edificio-id="{{ selected_edificio_id|default:'' }}"{% if not usuarios %} disabled{% endif %}>
+        <button type="button" class="dropdown-item" id="sendAllEmailBtn"
+                data-edificio-id="{{ selected_edificio_id|default:'' }}"
+                title="Enviar correo a los usuarios que coinciden con los filtros actuales"{% if not usuarios %} disabled{% endif %}>
             <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar a todos
         </button>
     </div>
 </div>
+{% if selected_edificio_id or current_estado %}
+<div class="active-filters-bar">
+    <i class="fa-solid fa-filter" aria-hidden="true"></i>
+    <span class="active-filters-label">Filtros activos:</span>
+    <span class="active-filters-list">
+        {% if selected_edificio_id and selected_edificio_nombre %}
+        <span class="filter-chip">Edificio: {{ selected_edificio_nombre }}</span>
+        {% endif %}
+        {% if current_estado %}
+        <span class="filter-chip">Estado: {{ current_estado }}</span>
+        {% endif %}
+    </span>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block list_table %}

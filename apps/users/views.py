@@ -51,10 +51,17 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
         filter_params["estado"] = estado
     filter_query_string = urlencode(filter_params)
 
+    building_name = ""
+    if building_id.isdigit():
+        b = Building.objects.filter(id=building_id).first()
+        if b:
+            building_name = b.name
+
     return render(request, "users/user_list.html", {
         "usuarios": users,
         "edificios": buildings,
         "selected_edificio_id": int(building_id) if building_id.isdigit() else None,
+        "selected_edificio_nombre": building_name,
         "current_estado": estado,
         "filter_query_string": filter_query_string,
         "show_filter": show_filter,
