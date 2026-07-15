@@ -689,7 +689,6 @@
 
     // Public init function called by the dispatcher in script.js
     window.AppMonitoringInit = function initMonitoringPage() {
-        setHistoryBadge(0);
         showState('stateLoading');
         initCharts();
         fetchDailyData();

@@ -22,3 +22,25 @@ class History(models.Model):
     def __str__(self) -> str:
         msg_str = str(self.message)
         return f"[{self.date}] {msg_str[:60]}"
+
+
+class UserDismissedHistory(models.Model):
+    user = models.ForeignKey(
+        "users.Usuario", on_delete=models.CASCADE, db_column="id_usuario"
+    )
+    history_record = models.ForeignKey(
+        History, on_delete=models.CASCADE, db_column="id_historial"
+    )
+    dismissed_at = models.DateTimeField(auto_now_add=True, db_column="descartado_en")
+
+    class Meta:
+        db_table = "historial_descartado"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "history_record"],
+                name="uq_user_history_dismissed",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"User {self.user_id} dismissed history #{self.history_record_id}"

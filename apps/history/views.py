@@ -10,7 +10,7 @@ from apps.core.auth_decorators import login_required, is_admin_role
 from apps.core.services.http_request import get_building_id_param
 from apps.core.services.http_response import json_ok, json_error
 from apps.buildings.models import Building
-from apps.history.models import History
+from apps.history.models import History, UserDismissedHistory
 from apps.history.shared import (
     _build_history_query,
     filter_date_range, build_query_string,
@@ -195,7 +195,13 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     if variable_filter:
         qs = qs.filter(message__variable=variable_filter)
 
-    qs.delete()
+    record_ids = list(qs.values_list("id", flat=True))
+    if record_ids:
+        dismissed = [
+            UserDismissedHistory(user_id=usuario_id, history_record_id=rid)
+            for rid in record_ids
+        ]
+        UserDismissedHistory.objects.bulk_create(dismissed, ignore_conflicts=True)
     return json_ok({"message": "History cleared successfully"})
 
 

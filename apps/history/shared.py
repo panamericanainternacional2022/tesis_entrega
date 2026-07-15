@@ -9,7 +9,7 @@ from apps.sensors.sensor_config import (
     VAR_NAMES, UNITS, VALUE_DISPLAY_ES, FAULT_NAMES_ES,
     RISK_NORMAL, RISK_CRITICO, RISK_ALTO, SEVERITY_LEVELS,
 )
-from apps.history.models import History
+from apps.history.models import History, UserDismissedHistory
 
 
 _RISK_ICONS = {
@@ -41,6 +41,11 @@ def _build_history_query(
             Q(user_id=user_id)
             | Q(monitoring_equipment__building__user_assignments__user_id=user_id)
         ).distinct()
+
+    dismissed_ids = UserDismissedHistory.objects.filter(
+        user_id=user_id
+    ).values("history_record_id")
+    records = records.exclude(id__in=dismissed_ids)
 
     if building_id:
         # FIX-HISTORY: Usar Q con OR para incluir registros guardados sin
