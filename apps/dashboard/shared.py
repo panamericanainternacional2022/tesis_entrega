@@ -5,7 +5,7 @@ def build_monitoring_config(building_id: int) -> dict:
     from apps.sensors.sensor_config import (
         LIMITS_EXCLUDE_VARS, PUMP_VARS, ELEVATOR_VARS, VAR_NAMES, UNITS,
         RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
-        VALUE_DISPLAY_ES, ENUM_VARS,
+        VALUE_DISPLAY_ES, ENUM_VARS, FAULT_NAMES_ES,
     )
     from apps.limits.services import get_sensor_limits
     from apps.buildings.models import Building
@@ -30,6 +30,7 @@ def build_monitoring_config(building_id: int) -> dict:
             "alto": RISK_ALTO,
             "critico": RISK_CRITICO,
         },
+        "fault_names_es": FAULT_NAMES_ES,
     }
 
 

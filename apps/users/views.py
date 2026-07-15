@@ -57,12 +57,15 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
         if b:
             building_name = b.name
 
+    estado_display = {"registrado": "Registrados", "por_registrar": "Por registrar"}.get(estado, estado)
+
     return render(request, "users/user_list.html", {
         "usuarios": users,
         "edificios": buildings,
         "selected_edificio_id": int(building_id) if building_id.isdigit() else None,
         "selected_edificio_nombre": building_name,
         "current_estado": estado,
+        "current_estado_display": estado_display,
         "filter_query_string": filter_query_string,
         "show_filter": show_filter,
     })

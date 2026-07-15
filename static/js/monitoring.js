@@ -519,6 +519,11 @@
         return isNaN(d.getTime()) ? ts : d.toLocaleString();
     }
 
+    const _faultTypeToDisplay = (faultType) => {
+        const name = (window._CONFIG && window._CONFIG.fault_names_es && window._CONFIG.fault_names_es[faultType]);
+        return name || faultType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    };
+
     function addLiveHistoryEvent(data) {
         const container = document.getElementById('live-history-list');
         if (!container) return;
@@ -534,9 +539,9 @@
         const badgeClass = BADGE_MAP[data.risk] || 'sensor-normal';
 
         if (data.fault_type) {
-            const faultName = data.fault_name || data.fault_type;
+            const faultName = data.fault_name || _faultTypeToDisplay(data.fault_type);
             const varsList = (data.variables || []).map(v => {
-                const varName = typeof v === 'string' ? v : (v.display_name || v.variable);
+                const varName = typeof v === 'string' ? v : (v.display_name || getVariableName(v.variable));
                 const varValue = typeof v === 'string' ? '' : (v.value != null ? ` ${v.value}${v.unit ? ' ' + v.unit : ''}` : '');
                 const varRisk = typeof v === 'string' ? '' : v.risk;
                 const riskSpan = varRisk ? ` <span class="compound-var-risk">(${safeText(varRisk)})</span>` : '';
