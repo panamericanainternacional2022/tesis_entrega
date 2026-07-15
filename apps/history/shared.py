@@ -15,7 +15,7 @@ from apps.history.models import History, UserDismissedHistory
 _RISK_ICONS = {
     RISK_NORMAL:      "fa-circle-check",
     RISK_CRITICO:     "fa-circle-exclamation",
-    RISK_ALTO:        "fa-circle-exclamation",
+    RISK_ALTO:        "fa-triangle-exclamation",
 }
 
 _RISK_CSS = {
@@ -135,7 +135,7 @@ def parse_history_record_for_display(record: History) -> History:
             )
         if getattr(record, "resolved", False):
             record.parsed_data["risk"] = "Resuelta"
-            record.parsed_data["risk_icon"] = "fa-circle-check"
+            record.parsed_data["risk_icon"] = "fa-check"
             record.parsed_data["risk_css"] = "risk-resolved"
     else:
         record.parsed_data = {"parsed": False}

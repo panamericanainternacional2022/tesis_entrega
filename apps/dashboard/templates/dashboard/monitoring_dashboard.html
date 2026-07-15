@@ -38,7 +38,7 @@
         <div class="divider-v"></div>
         <button type="button" id="simResetBtn" class="btn btn-critical" disabled
                 title="Reinicio completo: restaura TODO el simulador a su estado inicial.">
-            <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reiniciar simulador
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reiniciar simulador
         </button>
         {% endif %}
     </div>
@@ -469,13 +469,13 @@
             if (!btn) return;
 
             if (!this.simPaused) {
-                btn.innerHTML = '<i class="fas fa-pause"></i> <span>Pausar</span>';
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Pausar</span>';
                 btn.className = 'btn btn-secondary';
             } else if (!this.simStarted) {
-                btn.innerHTML = '<i class="fas fa-play"></i> <span>Iniciar</span>';
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Iniciar</span>';
                 btn.className = 'btn btn-primary';
             } else {
-                btn.innerHTML = '<i class="fas fa-play"></i> <span>Reanudar</span>';
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Reanudar</span>';
                 btn.className = 'btn btn-primary';
             }
         };

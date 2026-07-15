@@ -48,7 +48,7 @@
             <i class="fa-solid fa-building" aria-hidden="true"></i> Edificios
         </a>
         <a href="{% url 'history' %}" class="sidebar-link">
-            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
             <span>Historial</span>
             <span id="historyBadgeSidebar" class="sidebar-hist-badge{% if unread_history_count > 0 %} visible{% endif %}" aria-label="historial sin leer" aria-live="polite">{% if unread_history_count > 0 %}{{ unread_history_count }}{% endif %}</span>
         </a>
@@ -56,7 +56,7 @@
             <i class="fa-solid fa-sliders" aria-hidden="true"></i> Umbrales
         </a>
         <a href="{% url 'sensor_limits' %}" class="sidebar-link">
-            <i class="fa-solid fa-maximize" aria-hidden="true"></i> Límites
+            <i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Límites
         </a>
         <a href="{% url 'configuration' %}" class="sidebar-link">
             <i class="fa-solid fa-gears" aria-hidden="true"></i> Configuración
@@ -66,7 +66,7 @@
             <i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Panel de control
         </a>
         <a href="{% url 'history' %}" class="sidebar-link">
-            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
             <span>Historial</span>
             <span id="historyBadgeSidebar" class="sidebar-hist-badge{% if unread_history_count > 0 %} visible{% endif %}" aria-label="historial sin leer" aria-live="polite">{% if unread_history_count > 0 %}{{ unread_history_count }}{% endif %}</span>
         </a>
