@@ -243,6 +243,7 @@
             this._pumpFaultInFlight = false;
             this._hasElevator = true;
             this._hasPump = true;
+            this._faultsJustCleared = false;
 
             this._cacheDOMElements();
             this._bindEvents();
@@ -407,6 +408,8 @@
                             self.simPaused = true;
                             self._activeElevFault = '';
                             self._activePumpFault = '';
+                            self._pumpOn = true;
+                            self._elevOn = true;
                             _csVal(document.getElementById('simFaultElevator'), '');
                             _csVal(document.getElementById('simFaultPump'), '');
                             self._updatePauseBtn();
@@ -449,6 +452,7 @@
                     if (allOk) {
                         self._activeElevFault = '';
                         self._activePumpFault = '';
+                        self._faultsJustCleared = true;
                         _csVal(document.getElementById('simFaultElevator'), '');
                         _csVal(document.getElementById('simFaultPump'), '');
                         self._updateFaultUI();
@@ -580,13 +584,17 @@
             }
 
             if (data.sim_faults) {
-                if (!this._elevFaultInFlight) {
-                    this._activeElevFault = data.sim_faults.elevator || '';
+                if (this._faultsJustCleared) {
+                    this._faultsJustCleared = false;
+                } else {
+                    if (!this._elevFaultInFlight) {
+                        this._activeElevFault = data.sim_faults.elevator || '';
+                    }
+                    if (!this._pumpFaultInFlight) {
+                        this._activePumpFault = data.sim_faults.pump || '';
+                    }
+                    this._updateFaultUI();
                 }
-                if (!this._pumpFaultInFlight) {
-                    this._activePumpFault = data.sim_faults.pump || '';
-                }
-                this._updateFaultUI();
             }
 
             if (data.equipment_types) {

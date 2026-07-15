@@ -20,12 +20,6 @@ _CONTEXT_DEFAULT = (
     "establecidos para el presente edificio. A continuación se detallan "
     "los parámetros del evento y la medida correctiva recomendada."
 )
-_RESOLUTION_H1 = "Alerta resuelta"
-_RESOLUTION_CONTEXT = (
-    "Una alerta previamente activa ha sido marcada como resuelta "
-    "por un administrador del sistema."
-)
-
 _ACCENT          = "#2563eb"
 _INK             = "#0a0a0a"
 _BG              = "#f5f5f5"
@@ -180,53 +174,6 @@ def build_activation_email_html(link: str) -> str:
     return _build_email_shell(inner_html)
 
 
-def build_resolution_email_html(
-    variable: str,
-    value: str,
-    original_risk: str,
-    building_name: str,
-    action: str,
-) -> str:
-    from apps.sensors.sensor_config import RISK_RESUELTA
-    import datetime as _dt
-
-    colors = _get_email_colors(RISK_RESUELTA)
-    now_str = _dt.datetime.now().strftime("%d/%m/%Y %H:%M")
-    value_display = f"{value}" if value else "N/A"
-
-    banner = f"""
-          <tr>
-            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: Resuelta</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">{_RESOLUTION_H1}</h1>
-            </td>
-          </tr>"""
-
-    details = {
-        "Fecha y hora": now_str,
-        "Edificio": building_name or "N/A",
-        "Parámetro": variable,
-        "Lectura": value_display,
-        "Severidad original": original_risk,
-        "Estado": "Resuelta",
-    }
-
-    inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{_RESOLUTION_CONTEXT}</p>'
-    inner += _build_details_table(details)
-
-    if action:
-        inner += _build_action_box(action, colors)
-
-    body_row = f"""
-          <tr>
-            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
-              {inner}
-            </td>
-          </tr>"""
-
-    return _build_email_shell(banner + body_row)
-
-
 def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
     ctx = contexto or (
         f"Se adjunta el informe en formato PDF con el estado actual de los "
@@ -342,53 +289,4 @@ def build_compound_alert_email_html(
             </td>
           </tr>"""
 
-    return _build_email_shell(banner + body_row)
 
-
-def build_compound_resolution_email_html(
-    fault_name: str,
-    affected_vars: list,
-    building_name: str = "",
-) -> str:
-    from apps.sensors.sensor_config import RISK_RESUELTA
-    import datetime as _dt
-
-    colors = _get_email_colors(RISK_RESUELTA)
-    now_str = _dt.datetime.now().strftime("%d/%m/%Y %H:%M")
-
-    banner = f"""
-          <tr>
-            <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: Resuelta</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">{_RESOLUTION_H1}</h1>
-            </td>
-          </tr>"""
-
-    contexto = (
-        f"La falla <strong style='color: {_TEXT_PRIMARY};'>{fault_name}</strong> "
-        f"ha sido marcada como resuelta. Los siguientes parámetros fueron restaurados:"
-    )
-    inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{contexto}</p>'
-
-    if building_name:
-        inner += f'<p style="margin: 0 0 16px 0; font-size: 13px; color: {_TEXT_SECONDARY};"><strong style="color: {_TEXT_PRIMARY};">Edificio:</strong> {building_name}</p>'
-
-    details = {
-        "Fecha y hora": now_str,
-        "Edificio": building_name or "N/A",
-        "Falla resuelta": fault_name,
-        "Parámetros restaurados": str(len(affected_vars)),
-        "Estado": "Resuelta",
-    }
-    inner += _build_details_table(details)
-
-    inner += f'<p style="margin: 16px 0 0 0; font-size: 13px; color: {_TEXT_SECONDARY};"><strong style="color: {_TEXT_PRIMARY};">Variables restauradas:</strong> {", ".join(affected_vars)}</p>'
-
-    body_row = f"""
-          <tr>
-            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
-              {inner}
-            </td>
-          </tr>"""
-
-    return _build_email_shell(banner + body_row)

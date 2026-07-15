@@ -205,55 +205,6 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     return json_ok({"message": "History cleared successfully"})
 
 
-def _send_resolution_email(record: History, original_risk: str) -> None:
-    from apps.history.services.email_sender import send_email_raw
-    from apps.history.services.email_recipients import get_building_emails
-    from apps.history.services.email_templates import (
-        build_resolution_email_html,
-        build_compound_resolution_email_html,
-    )
-    try:
-        building_id = (
-            record.monitoring_equipment.building_id
-            if record.monitoring_equipment else None
-        )
-        building_name = (
-            record.monitoring_equipment.building.name
-            if record.monitoring_equipment and record.monitoring_equipment.building
-            else ""
-        )
-        recipients = get_building_emails(building_id)
-        if not recipients:
-            return
-
-        msg = record.message if isinstance(record.message, dict) else {}
-
-        if record.fault_type:
-            from apps.sensors.sensor_config import FAULT_NAMES_ES, FAULT_AFFECTED_VARIABLES
-            fault_name = FAULT_NAMES_ES.get(record.fault_type, record.fault_type)
-            affected_vars = FAULT_AFFECTED_VARIABLES.get(record.fault_type, [])
-            subject = f"Alerta resuelta: {fault_name}"
-            html = build_compound_resolution_email_html(
-                fault_name=fault_name,
-                affected_vars=affected_vars,
-                building_name=building_name,
-            )
-        else:
-            raw_variable = msg.get("variable", "")
-            value = msg.get("value", "")
-            action = msg.get("action", "")
-            from apps.sensors.sensor_config import VAR_NAMES
-            variable = VAR_NAMES.get(raw_variable, raw_variable)
-            subject = f"Alerta resuelta: {variable}"
-            html = build_resolution_email_html(
-                raw_variable, value, original_risk, building_name, action,
-            )
-
-        send_email_raw(to_addrs=recipients, subject=subject, html_body=html)
-    except Exception:
-        logger.exception("Error enviando correo de resolución")
-
-
 @login_required
 @require_http_methods(["POST"])
 def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
@@ -281,9 +232,6 @@ def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
             fault_type=record.fault_type,
             resolved=False,
         ).update(resolved=True)
-
-    import threading
-    threading.Thread(target=_send_resolution_email, args=(record, risk), daemon=True).start()
 
     return json_ok({"message": "Alerta marcada como resuelta"})
 

@@ -2,7 +2,7 @@ import time
 import logging
 from typing import Optional
 
-from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES, RISK_ALTO, RISK_CRITICO
+from apps.sensors.sensor_config import PUMP_VARS, ELEVATOR_VARS, PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS, FAULT_NAMES_ES
 from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
@@ -11,7 +11,6 @@ from apps.sensors.simulation.exceptions import (
     InvalidDeviceError,
     DeviceNotInBuildingError,
     InvalidFaultTypeError,
-    DeviceOffError,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,12 +52,6 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
     }
     if fault_type not in valid_faults[device]:
         raise InvalidFaultTypeError(device, fault_type)
-    # ── FIX-3 (BRECHA-5): Block fault injection when device is powered off.
-    # Injecting a fault on a stopped device creates inconsistent telemetry.
-    if device == "pump" and not sim.pump_on:
-        raise DeviceOffError(device)
-    if device == "elevator" and not sim.elevator_on:
-        raise DeviceOffError(device)
     sim.sim_faults[device] = fault_type
     sim.fault_injected_at[device] = time.time()
     logger.info("Falla inyectada: edificio=%s, device=%s, tipo=%s", edificio_id, device, fault_type)
@@ -82,7 +75,7 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         sim.sim_faults.clear()
         sim.fault_injected_at.clear()
 
-    _notify_faults_resolved(edificio_id, old_faults)
+    _mark_history_resolved(edificio_id, old_faults)
 
     keys_to_remove = [k for k in sim.active_alerts if k.startswith("fault_raw:")]
     for k in keys_to_remove:
@@ -124,58 +117,20 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
     return msg
 
 
-def _notify_faults_resolved(edificio_id: int, old_faults: dict[str, str]) -> None:
+def _mark_history_resolved(edificio_id: int, old_faults: dict[str, str]) -> None:
     if not old_faults:
         return
     try:
         from apps.history.models import History
 
-        for dev, fault_type in old_faults.items():
+        for fault_type in old_faults.values():
             History.objects.filter(
                 monitoring_equipment__building_id=edificio_id,
                 fault_type=fault_type,
                 resolved=False,
             ).update(resolved=True)
-
-            History.objects.filter(
-                monitoring_equipment__building_id=edificio_id,
-                message__variable=fault_type,
-                message__risk__in=[RISK_ALTO, RISK_CRITICO],
-                resolved=False,
-                fault_type__isnull=True,
-            ).update(resolved=True)
-
-            _send_compound_resolution_email(edificio_id, fault_type)
     except Exception as exc:
         logger.warning("No se pudo marcar alertas como resueltas: %s", exc)
-
-
-def _send_compound_resolution_email(edificio_id: int, fault_type: str) -> None:
-    from apps.history.services.email_sender import send_email_raw
-    from apps.history.services.email_recipients import get_building_emails
-    from apps.history.services.email_templates import build_compound_resolution_email_html
-    from apps.sensors.sensor_config import FAULT_NAMES_ES, FAULT_AFFECTED_VARIABLES
-
-    try:
-        fault_name = FAULT_NAMES_ES.get(fault_type, fault_type)
-        affected_vars = FAULT_AFFECTED_VARIABLES.get(fault_type, [])
-        recipients = get_building_emails(edificio_id)
-        if not recipients:
-            return
-
-        from apps.buildings.models import Building
-        building = Building.objects.filter(id=edificio_id).first()
-        building_name = building.name if building else ""
-
-        subject = f"Alerta resuelta: {fault_name}"
-        html = build_compound_resolution_email_html(
-            fault_name=fault_name,
-            affected_vars=affected_vars,
-            building_name=building_name,
-        )
-        send_email_raw(to_addrs=recipients, subject=subject, html_body=html)
-    except Exception:
-        logger.exception("Error enviando correo de resolución compuesta para falla %s", fault_type)
 
 
 def reset_simulator(edificio_id: int) -> str:
@@ -183,8 +138,8 @@ def reset_simulator(edificio_id: int) -> str:
     if not sim:
         raise SimulatorNotFoundError(edificio_id)
     sim.sensor_data = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
-    sim.pump_on = False
-    sim.elevator_on = False
+    sim.pump_on = True
+    sim.elevator_on = True
     sim.manual_pump_override = False
     sim.active_alerts.clear()
     sim.history.clear()
