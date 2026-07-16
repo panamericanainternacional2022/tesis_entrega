@@ -8,8 +8,7 @@ from apps.sensors.sensor_config import (
 def classify_risk(
     variable: str,
     value,
-    thresholds: Optional[dict] = None,
-    active_faults: Optional[dict] = None) -> tuple[str, str]:
+    thresholds: Optional[dict] = None) -> tuple[str, str]:
     """Clasifica el riesgo de un sensor según los umbrales.
 
     La clasificación es puramente numérica/umbral, sin lógica contextual.
@@ -32,30 +31,26 @@ def classify_risk(
     d = cfg["direction"]
 
     if d == "range":
-        # Sensores con rango normal bidireccional:
-        #   cfg["high"]      = límite INFERIOR del rango normal (ej: 210 V)
-        #   cfg["critic"]    = límite SUPERIOR del rango normal (ej: 230 V)
-        #   cfg["crit_low"]  = límite inferior crítico        (ej: 198 V)
-        #   cfg["crit_high"] = límite superior crítico        (ej: 242 V)
-        high_bound   = cfg["high"]
-        critic_bound = cfg["critic"]
-        crit_low     = cfg.get("crit_low")
-        crit_high    = cfg.get("crit_high")
+        low  = cfg["high"]    # límite crítico inferior
+        high = cfg["critic"]  # límite crítico superior
+        margin = (high - low) * 0.20
 
-        # Nivel Crítico: más allá de los límites críticos
-        if crit_low is not None and value < crit_low:
+        if value < low or value > high:
             return RISK_CRITICO, "red"
-        if crit_high is not None and value > crit_high:
-            return RISK_CRITICO, "red"
-        # Nivel Normal: dentro del rango [high, critic]
-        if high_bound <= value <= critic_bound:
+        if low + margin <= value <= high - margin:
             return RISK_NORMAL, "green"
-        # Nivel Alto: fuera del rango normal, pero dentro del crítico
         return RISK_ALTO, "orange"
 
-    # direction == "higher": alerta cuando el valor sube
-    #   cfg["high"]   = umbral entre Normal y Alto
-    #   cfg["critic"] = umbral entre Alto y Crítico
+    if d == "lower":
+        high_thresh   = cfg["high"]
+        critic_thresh = cfg["critic"]
+        if value >= high_thresh:
+            return RISK_NORMAL, "green"
+        elif value >= critic_thresh:
+            return RISK_ALTO, "orange"
+        else:
+            return RISK_CRITICO, "red"
+
     high_thresh   = cfg["high"]
     critic_thresh = cfg["critic"]
     if value <= high_thresh:

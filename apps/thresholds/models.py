@@ -12,6 +12,8 @@ class ThresholdConfig(models.Model):
     direction = models.CharField(max_length=10, default="higher")
     high = models.FloatField()
     critic = models.FloatField()
+    crit_low = models.FloatField(null=True, blank=True)
+    crit_high = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

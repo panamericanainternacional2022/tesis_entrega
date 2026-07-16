@@ -19,12 +19,6 @@ def get_thresholds(building_id: int) -> dict:
             "high": row["high"],
             "critic": row["critic"],
         }
-
-    from apps.buildings.models import Building
-    building = Building.objects.filter(id=building_id).first()
-    if building and building.floors > 0 and "elev_position" in result:
-        result["elev_position"]["critic"] = float(building.floors)
-
     return result
 
 
@@ -34,14 +28,15 @@ class ThresholdPersistenceError(Exception):
 
 def update_threshold(variable: str, config: dict, building_id: int) -> None:
     try:
+        defaults = {
+            "direction": config.get("direction", "higher"),
+            "high": config.get("high", 0),
+            "critic": config.get("critic", 0),
+        }
         ThresholdConfig.objects.update_or_create(
             building_id=building_id,
             variable=variable,
-            defaults={
-                "direction": config.get("direction", "higher"),
-                "high": config.get("high", 0),
-                "critic": config.get("critic", 0),
-            },
+            defaults=defaults,
         )
     except IntegrityError:
         raise ThresholdPersistenceError(f"Could not persist threshold {variable}: integrity error")

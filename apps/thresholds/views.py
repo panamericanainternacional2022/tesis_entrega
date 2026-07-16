@@ -88,12 +88,7 @@ def _validate_threshold_config(
 
     try:
         high = _to_float_or_nan(config.get("high", 0))
-        if direction == "range":
-            if "critic" not in config:
-                return "Missing 'critic' for range direction"
-            critic = _to_float_or_nan(config["critic"])
-        else:
-            critic = _to_float_or_nan(config.get("critic", 0))
+        critic = _to_float_or_nan(config.get("critic", 0))
         if math.isnan(high) or math.isnan(critic):
             return f"Valor numérico inválido (NaN/Inf) en umbrales: config={config}"
     except (ValueError, TypeError) as e:
@@ -107,7 +102,7 @@ def _validate_threshold_config(
             logger.warning(
                 "Threshold range fail for %s: high=%s critic=%s", variable, high, critic
             )
-            return f"Low limit ({high}) must be lower than high limit ({critic})"
+            return f"El límite crítico inferior ({high}) debe ser menor al límite crítico superior ({critic})"
     elif direction == "higher":
         if not (high < critic):
             logger.warning(
@@ -129,7 +124,7 @@ def _validate_threshold_config(
         if direction == "range":
             if high < min_bound or critic > max_bound:
                 return (
-                    f"Los umbrales [{high}, {critic}] deben estar dentro de "
+                    f"Los límites críticos [{high}, {critic}] deben estar dentro de "
                     f"los límites físicos del sensor [{min_bound}, {max_bound}]"
                 )
         elif direction == "higher":

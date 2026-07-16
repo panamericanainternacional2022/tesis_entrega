@@ -17,7 +17,7 @@
             return { valid: false, errorText: 'Introduzca valores numéricos válidos.', errorInputs: errs };
         }
         if (dir === 'range') {
-            if (!(high < critic)) return { valid: false, errorText: 'El mínimo aceptable debe ser menor al máximo aceptable.', errorInputs: ['high', 'critic'] };
+            if (!(high < critic)) return { valid: false, errorText: 'El límite crítico inferior debe ser menor al límite crítico superior.', errorInputs: ['high', 'critic'] };
         } else if (dir === 'higher') {
             if (high >= critic) return { valid: false, errorText: 'Los valores deben estar ordenados: Alto < Crítico.', errorInputs: ['high', 'critic'] };
         } else if (dir === 'lower') {
@@ -37,8 +37,8 @@
             if (high < minBound) return { valid: false, errorText: `El umbral alto no puede ser menor al límite.`, errorInputs: ['high'] };
             if (critic > maxBound) return { valid: false, errorText: `El umbral crítico no puede ser mayor al límite.`, errorInputs: ['critic'] };
         } else {
-            if (high < minBound) return { valid: false, errorText: `El mínimo aceptable no puede ser menor al límite.`, errorInputs: ['high'] };
-            if (critic > maxBound) return { valid: false, errorText: `El máximo aceptable no puede ser mayor al límite.`, errorInputs: ['critic'] };
+            if (high < minBound) return { valid: false, errorText: `El límite crítico inferior no puede ser menor al límite físico.`, errorInputs: ['high'] };
+            if (critic > maxBound) return { valid: false, errorText: `El límite crítico superior no puede ser mayor al límite físico.`, errorInputs: ['critic'] };
         }
         return { valid: true, errorText: '', errorInputs: [] };
     }
@@ -64,8 +64,8 @@
                 const minB = bounds[0], maxB = bounds[1];
                 div.innerHTML = headerHtml + `
                     <div class="thresh-grid-2">
-                        <div class="form-group"><label class="form-label">Mínimo aceptable</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Máximo aceptable</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Lím. crítico inf.</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Lím. crítico sup.</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
                     <input type="hidden" data-var="${k}" data-level="direction" value="range">`;
@@ -249,7 +249,8 @@
                 const v = inp.dataset.var, l = inp.dataset.level;
                 if (!v || !l) return;
                 if (!newTh[v]) newTh[v] = { direction: panel.querySelector(`input[data-var="${v}"][data-level="direction"]`)?.value || 'higher' };
-                newTh[v][l] = parseFloat(inp.value);
+                const parsed = parseFloat(inp.value);
+                if (!isNaN(parsed)) newTh[v][l] = parsed;
             });
         });
         try {

@@ -62,16 +62,13 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         risk, _ = classify_risk("elev_door_status", "open", {})
         self.assertEqual(risk, RISK_NORMAL)
 
-        risk, _ = classify_risk("elev_door_status", "open", {},
-                                active_faults={"elevator": "door_blocked"})
+        risk, _ = classify_risk("elev_door_status", "open", {})
         self.assertEqual(risk, RISK_NORMAL)
 
-        risk, _ = classify_risk("elev_door_status", "open", {},
-                                active_faults={"elevator": "pos_sensor_fail"})
+        risk, _ = classify_risk("elev_door_status", "open", {})
         self.assertEqual(risk, RISK_NORMAL)
 
-        risk, _ = classify_risk("elev_door_status", "closed", {},
-                                active_faults={"elevator": "pos_sensor_fail"})
+        risk, _ = classify_risk("elev_door_status", "closed", {})
         self.assertEqual(risk, RISK_NORMAL)
 
         risk, _ = classify_risk("elev_door_status", "closing", {})

@@ -710,7 +710,7 @@ def _run_elevator_post_fsm(
     from apps.thresholds.services import get_thresholds
     thresh = get_thresholds(sim.edificio_id)
     vib_high = thresh.get("elev_vibration", {}).get("high", 3.0)
-    safe_vib_max = vib_high * 0.9
+    safe_vib_max = vib_high * 0.95
 
     if not sim._elev_power_available and spd == 0:
         sim._elev_vibration = 0.0

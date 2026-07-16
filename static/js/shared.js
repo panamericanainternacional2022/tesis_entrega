@@ -669,6 +669,13 @@ function getRiskClass(varName, value) {
         return { badge: 'badge-high', label: _RISK.alto };
     }
 
+    if (cfg.direction === 'lower') {
+        // cfg.high = umbral Normal→Alto (por encima), cfg.critic = umbral Alto→Crítico
+        if (numVal >= cfg.high) return { badge: 'badge-normal', label: _RISK.normal };
+        if (numVal >= cfg.critic) return { badge: 'badge-high', label: _RISK.alto };
+        return { badge: 'badge-crit', label: _RISK.critico };
+    }
+
     // direction === 'higher': cfg.high = umbral Normal→Alto, cfg.critic = umbral Alto→Crítico
     if (numVal > cfg.critic) return { badge: 'badge-crit', label: _RISK.critico };
     if (numVal > cfg.high) return { badge: 'badge-high', label: _RISK.alto };

@@ -150,19 +150,16 @@ DEFAULT_THRESHOLDS = {
     # ── SISTEMA BOMBA ───────────────────────────────────────────────────────────
     # Normal: 0-18 | Alto: >18 | Crítico: >22
     "pump_flow_rate":    {"direction": "higher", "high": 18.0,  "critic": 22.0},
-    # Normal: 1.0-6.0 | Alto: fuera del rango | Crítico: fuera del rango crítico
-    "pump_pressure":     {"direction": "range",  "high": 1.0,   "critic": 6.0,
-                          "crit_low": 0.5, "crit_high": 8.0},
+    # Normal: 20% medio | Alto: 20% desde extremos | Crítico: fuera de [0.5, 8.0]
+    "pump_pressure":     {"direction": "range",  "high": 0.5,   "critic": 8.0},
     # Normal: 20-60 | Alto: >60 | Crítico: >85
     "pump_temperature":  {"direction": "higher", "high": 60.0,  "critic": 85.0},
     # Normal: 0-4.5 | Alto: >4.5 | Crítico: >7.1
     "pump_vibration":    {"direction": "higher", "high": 4.5,   "critic": 7.1},
-    # Normal: 20-90 | Alto: fuera del rango | Crítico: fuera del rango crítico
-    "pump_tank_level":   {"direction": "range",  "high": 20.0,  "critic": 90.0,
-                          "crit_low": 10.0, "crit_high": 95.0},
-    # Normal: 210-230 | Alto: fuera del rango | Crítico: fuera del rango crítico
-    "pump_voltage":      {"direction": "range",  "high": 210.0, "critic": 230.0,
-                          "crit_low": 198.0, "crit_high": 242.0},
+    # Normal: 20% medio | Alto: 20% desde extremos | Crítico: fuera de [10, 95]
+    "pump_tank_level":   {"direction": "range",  "high": 10.0,  "critic": 95.0},
+    # Normal: 20% medio | Alto: 20% desde extremos | Crítico: fuera de [198, 242]
+    "pump_voltage":      {"direction": "range",  "high": 198.0, "critic": 242.0},
     # Normal: 0-16 | Alto: >16 | Crítico: >22
     "pump_current":      {"direction": "higher", "high": 16.0,  "critic": 22.0},
     # Normal: 0-300 | Alto: >300 | Crítico: >500
@@ -178,9 +175,8 @@ DEFAULT_THRESHOLDS = {
     "elev_current":      {"direction": "higher", "high": 25.0,  "critic": 35.0},
     # Normal: 0-3.0 | Alto: >3.0 | Crítico: >5.0
     "elev_vibration":    {"direction": "higher", "high": 3.0,   "critic": 5.0},
-    # Normal: 360-400 V | Alto: fuera del rango | Crítico: fuera del rango crítico
-    "elev_voltage":      {"direction": "range",  "high": 360.0, "critic": 400.0,
-                          "crit_low": 342.0, "crit_high": 418.0},
+    # Normal: 20% medio | Alto: 20% desde extremos | Crítico: fuera de [342, 418]
+    "elev_voltage":      {"direction": "range",  "high": 342.0, "critic": 418.0},
 }
 
 FALLBACK_ACTION_TEMPLATE: str = "Verifica el sensor {}. Programa inspección preventiva."
@@ -359,7 +355,7 @@ DAILY_RETENTION_DAYS: int = 8
 
 SENSOR_RANGES = {
     # ── SISTEMA BOMBA — Límites físicos destructivos (simulator.md §2) ──────
-    "pump_flow_rate":    (0.0, 50000.0),   # 50000 L/min máx realista industrial
+    "pump_flow_rate":    (0.0, 50000.0),   # 50000 l/s máx realista industrial
     "pump_pressure":     (0.0,   10.0),   # Límite Máx spec = 10.0 bar (antes 12)
     "pump_temperature":  (22.0, 100.0),  # Límite Mín=22°C (T_AMBIENT), Máx=100°C
     "pump_vibration":    (0.0,   15.0),   # sin cambio

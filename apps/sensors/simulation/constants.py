@@ -1,4 +1,3 @@
-from apps.sensors.sensor_config import SENSOR_RANGES as _SR
 MAX_HISTORY_SIZE: int = 500
 LOG_SIM: bool = True
 
@@ -42,6 +41,9 @@ ELEVATOR_MOTOR_TEMP_AMBIENT: float = 25.0
 ELEVATOR_MOTOR_TEMP_ALERT: float = 90.0
 ELEVATOR_MOTOR_RATED_CURRENT: float = 28.0
 
+MIN_SIM_SPEED: float = 0.1
+MAX_SIM_SPEED: float = 10.0
+
 DEFAULT_SENSOR_DATA: dict = {
     # ── SISTEMA BOMBA — Reposo Seguro ──────────────────────────────────────
     "pump_pressure":     1.0,      # Presión atmosférica base (bar)
@@ -64,30 +66,3 @@ DEFAULT_SENSOR_DATA: dict = {
     "elevator_state":    "IDLE",
 }
 
-MIN_SIM_SPEED: float = 0.1
-MAX_SIM_SPEED: float = 10.0
-
-CLEAR_FAULT_MIN_FLOW: float = _SR["pump_flow_rate"][1] * 0.25       # 15.0
-CLEAR_FAULT_MIN_PRESSURE: float = _SR["pump_pressure"][1] * 0.25    # 3.0
-CLEAR_FAULT_MAX_VIBRATION: float = _SR["pump_vibration"][1] * 0.33  # 5.0
-CLEAR_FAULT_VOLTAGE_LOW: float = _SR["pump_voltage"][0] + (_SR["pump_voltage"][1] - _SR["pump_voltage"][0]) * 0.3   # 204.0
-CLEAR_FAULT_VOLTAGE_HIGH: float = _SR["pump_voltage"][0] + (_SR["pump_voltage"][1] - _SR["pump_voltage"][0]) * 0.7  # 236.0
-CLEAR_FAULT_MAX_LOAD: float = _SR["elev_load"][1] * 0.42             # 500.0
-
-MAX_STEPS_PER_SECOND: dict[str, float] = {
-    "pump_flow_rate": 5.0,
-    "pump_pressure": 1.0,
-    "pump_temperature": 5.0,
-    "pump_vibration": 2.0,
-    "pump_tank_level": 10.0,
-    "pump_voltage": 15.0,
-    "pump_current": 5.0,
-    "pump_water_quality": 20.0,
-    "elev_speed": 1.0,
-    "elev_load": 150.0,
-    "elev_position": 1.0,
-    "elev_temperature": 3.0,
-    "elev_current": 8.0,
-    "elev_vibration": 2.0,
-    "elev_voltage": 15.0,
-}

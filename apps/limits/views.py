@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpRequest
@@ -67,10 +67,10 @@ def _validate_limit_input(
         raw = str(max_val_raw)
         raw_clean = raw.replace("-", "").replace(".", "")
         if len(raw_clean) > 10:
-            errors[variable] = "Demasiados dígitos enteros. Máximo 10."
+            errors[variable] = "Demasiados dÃ­gitos enteros. MÃ¡ximo 10."
             continue
         if "." in raw and len(raw.split(".")[1]) > 4:
-            errors[variable] = "Demasiados decimales. Máximo 4."
+            errors[variable] = "Demasiados decimales. MÃ¡ximo 4."
             continue
 
         try:
@@ -79,17 +79,17 @@ def _validate_limit_input(
             errors[variable] = "Value must be numeric"
             continue
 
-        if max_val > 999.0:
+        if max_val > 999999.0:
             errors[variable] = (
-                f"El límite máximo no puede exceder 999.0"
+                f"El lÃ­mite mÃ¡ximo no puede exceder 999999.0"
             )
             continue
 
         default_min = SENSOR_RANGES.get(variable, (0.0, 100.0))[0]
         if max_val <= default_min:
             errors[variable] = (
-                f"El límite máximo ({max_val}) debe ser mayor "
-                f"que el mínimo por defecto ({default_min})"
+                f"El lÃ­mite mÃ¡ximo ({max_val}) debe ser mayor "
+                f"que el mÃ­nimo por defecto ({default_min})"
             )
             continue
 
@@ -99,12 +99,12 @@ def _validate_limit_input(
                 critic_thresh = float(t_config["critic"])
                 if max_val < critic_thresh:
                     label = (
-                        "máximo aceptable"
+                        "mÃ¡ximo aceptable"
                         if t_config.get("direction") == "range"
-                        else "crítico"
+                        else "crÃ­tico"
                     )
                     errors[variable] = (
-                        f"El límite máximo ({max_val}) no puede ser "
+                        f"El lÃ­mite mÃ¡ximo ({max_val}) no puede ser "
                         f"inferior al umbral {label} ({critic_thresh})"
                     )
 
@@ -146,3 +146,4 @@ def view_update_sensor_limits(request: HttpRequest) -> JsonResponse:
     return json_ok({
         "sensor_ranges": get_sensor_limits(building_id),
     })
+

@@ -1,4 +1,4 @@
-import random
+﻿import random
 
 from apps.sensors.sensor_config import PUMP_VARS
 from apps.sensors.simulation.constants import (
@@ -20,7 +20,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
 
-    # ── Tank level physics ──────────────────────────────────────────────────
+    # â”€â”€ Tank level physics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if sim.pump_on:
         is_pumping = "pump" not in sim.sim_faults
         inflow = sd.get("pump_flow_rate", 0.0) if is_pumping else 0.0
@@ -51,9 +51,9 @@ def _update_pump(sim: BuildingSimulator) -> None:
             
         sd["pump_tank_level"] = round(clamp(new_tank, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1]), 1)
 
-    # Float switch automático eliminado — la bomba se controla únicamente de forma manual.
+    # Float switch automÃ¡tico eliminado â€” la bomba se controla Ãºnicamente de forma manual.
 
-    # ── Dispatch to correct operating mode ─────────────────────────────────
+    # â”€â”€ Dispatch to correct operating mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if not sim.pump_on:
         _set_pump_idle(sim, sd, dt)
         return
@@ -174,7 +174,7 @@ def _apply_bearing_failure(sim, sd: dict, dt: float) -> None:
     sd["pump_pressure"]      = 0.0
 
 def _clamp_pump_values(sim, sd: dict) -> None:
-    sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]),       1)
+    sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[1]),       1)
     sd["pump_pressure"]    = round(clamp(sd["pump_pressure"],    sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0],       sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]),       1)
     sd["pump_temperature"] = round(clamp(sd["pump_temperature"], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0],       sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]),       1)
     sd["pump_vibration"]   = round(clamp(sd["pump_vibration"],   sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],        sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)
@@ -187,15 +187,15 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     from apps.thresholds.services import get_thresholds
     thresh = get_thresholds(sim.edificio_id)
     
-    # ── Voltage ────────────────────────────────────────────────────────────
+    # â”€â”€ Voltage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     volt = sd["pump_voltage"] + (220.0 - sd["pump_voltage"]) * 0.05 * dt + random.uniform(-0.5, 0.5) * dt
     sd["pump_voltage"] = round(clamp(volt, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[0], sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1]), 1)
 
     volt = sd["pump_voltage"]
 
-    # Voltage collapse → all outputs drop
+    # Voltage collapse â†’ all outputs drop
     if volt < 50.0:
-        sd["pump_flow_rate"]  = round(clamp(sd["pump_flow_rate"]  - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]), 1)
+        sd["pump_flow_rate"]  = round(clamp(sd["pump_flow_rate"]  - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[1]), 1)
         sd["pump_pressure"]   = round(clamp(sd["pump_pressure"]   - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]), 1)
         sd["pump_vibration"]  = round(clamp(sd["pump_vibration"]  - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),  1)
         sd["pump_current"]    = round(clamp(sd["pump_current"]    - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_current', (0.0, 30.0))[1]),  1)
@@ -205,17 +205,17 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         )
         return
 
-    # ── Tank < 10% → cavitation / starvation mode ──────────────────────────
+    # â”€â”€ Tank < 10% â†’ cavitation / starvation mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     tank = sd["pump_tank_level"]
     if tank < 10.0:
-        sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], 2.0),        1)
+        sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[0], 2.0),        1)
         sd["pump_pressure"]    = round(clamp(sd["pump_pressure"]    - 0.8 * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], 1.0),        1)
         sd["pump_vibration"]   = round(clamp(sd["pump_vibration"]   + 1.2 * dt, 0.5, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)
         sd["pump_temperature"] = round(clamp(sd["pump_temperature"] + 2.0 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1)
         sd["pump_current"]     = round(clamp(sd["pump_current"]     - 2.0 * dt, 0.0, 8.0),   1)
         return
 
-    # ── Normal operating regime ────────────────────────────────────────────
+    # â”€â”€ Normal operating regime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
     target_max = max(5.0, flow_high * 0.85)
     target_min = max(0.0, target_max - 5.0)
@@ -242,9 +242,9 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     temp = sd["pump_temperature"] + temp_diff * 0.02 * dt + random.uniform(-0.1, 0.1) * dt
 
     vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
-    # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)
-    # Modelo eléctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
-    # Opción A: ecuación recalibrada para que el régimen normal quede dentro del umbral (<16 A)
+    # El trabajo mecÃ¡nico incluye el caudal y una resistencia parasita por presiÃ³n (Shutoff head)
+    # Modelo elÃ©ctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
+    # OpciÃ³n A: ecuaciÃ³n recalibrada para que el rÃ©gimen normal quede dentro del umbral (<16 A)
     curr = (flow * pressure * 28.0 + pressure * 120.0) / (volt * 0.85) + random.uniform(-0.5, 0.5) * dt
 
     # Enforce safe normal regime for all pump metrics if no fault is active
@@ -266,7 +266,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         safe_curr_max = curr_t.get("high", 16.0) * 0.95
         curr = min(curr, safe_curr_max)
 
-    sd["pump_flow_rate"]   = round(clamp(flow,     sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]),       1)
+    sd["pump_flow_rate"]   = round(clamp(flow,     sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[1]),       1)
     sd["pump_pressure"]    = round(clamp(pressure, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0],       sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]),       1)
     sd["pump_temperature"] = round(clamp(temp,     sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0],       sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]),       1)
     sd["pump_vibration"]   = round(clamp(vib,      sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],        sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)
@@ -274,3 +274,4 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     qual = sd.get("pump_water_quality", 200.0)
     qual += (200.0 - qual) * 0.05 * dt + random.uniform(-2.0, 2.0) * dt
     sd["pump_water_quality"] = round(clamp(qual, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1)
+
