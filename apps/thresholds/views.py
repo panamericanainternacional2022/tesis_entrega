@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
@@ -13,6 +14,16 @@ from apps.thresholds.services import get_thresholds, bulk_update, ThresholdPersi
 
 logger = logging.getLogger(__name__)
 VALID_DIRECTIONS = frozenset({"higher", "lower", "range"})
+
+
+def _to_float_or_nan(val: object) -> float:
+    try:
+        f = float(val)
+        if math.isnan(f) or math.isinf(f):
+            return float("nan")
+        return f
+    except (ValueError, TypeError):
+        return float("nan")
 
 
 @login_required
@@ -67,13 +78,15 @@ def _validate_threshold_config(
         return f"Invalid direction: {direction}"
 
     try:
-        high = float(config.get("high", 0))
+        high = _to_float_or_nan(config.get("high", 0))
         if direction == "range":
             if "critic" not in config:
                 return "Missing 'critic' for range direction"
-            critic = float(config["critic"])
+            critic = _to_float_or_nan(config["critic"])
         else:
-            critic = float(config.get("critic", 0))
+            critic = _to_float_or_nan(config.get("critic", 0))
+        if math.isnan(high) or math.isnan(critic):
+            return f"Valor numérico inválido (NaN/Inf) en umbrales: config={config}"
     except (ValueError, TypeError) as e:
         logger.warning(
             "Threshold non-numeric for %s: %s — config=%s", variable, e, config

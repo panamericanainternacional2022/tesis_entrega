@@ -45,6 +45,18 @@ def _handle_config_post(
     form_errors = {}
 
     if action == "update_profile":
+        if not verify_password(current_password, user.password):
+            messages.error(request, "Debes ingresar tu contraseña actual para guardar los cambios.")
+            return render(
+                request,
+                "settings/settings.html",
+                {
+                    "usuario": user,
+                    "persona": person,
+                    "form_errors": {},
+                },
+            )
+
         if email == person.email and username == user.username:
             messages.error(request, "No se detectaron cambios en los datos del perfil.")
             return render(

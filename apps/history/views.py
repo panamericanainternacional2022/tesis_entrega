@@ -174,6 +174,11 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
             pass
 
     edificio_id = data.get("edificio")
+    if edificio_id is not None:
+        try:
+            edificio_id = int(edificio_id)
+        except (ValueError, TypeError):
+            return json_error("ID de edificio inválido", status=400)
     severidad = data.get("severidad", "")
     variable_filter = data.get("variable", "")
     fecha_desde = data.get("fecha_desde", "")

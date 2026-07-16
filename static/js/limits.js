@@ -96,10 +96,9 @@
                 if (defaultMin === undefined) return showError('Variable sin rango configurado.');
                 if (val <= defaultMin) return showError(`Debe ser mayor que el mínimo (${defaultMin}).`);
                 const thresh = currentThresholds[v];
-                if (thresh?.high !== undefined && val < thresh.high) {
-                    const label = thresh.direction === 'range' ? 'máximo aceptable' : 'crítico';
+                if (thresh?.critic !== undefined && val < thresh.critic) {
                     const unitStr = getUnit(v) ? ` ${getUnit(v)}` : '';
-                    return showError(`No puede ser menor al umbral ${label} (${thresh.high}${unitStr}).`);
+                    return showError(`No puede ser menor al umbral crítico (${thresh.critic}${unitStr}).`);
                 }
                 if (_originalLimits[v] && val !== _originalLimits[v][1]) hasChanges = true;
             });

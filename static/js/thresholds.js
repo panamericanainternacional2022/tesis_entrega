@@ -29,11 +29,6 @@
     function _validateThresholdBounds(dir, high, critic, bounds, unit) {
         const [minBound, maxBound] = bounds;
         const unitStr = unit ? ` ${unit}` : '';
-        const outOfRange = (dir === 'lower')
-            ? (high > maxBound && critic < minBound)
-            : (high < minBound && critic > maxBound);
-
-        if (outOfRange) return { valid: false, errorText: `Los umbrales deben estar dentro de los límites del sensor (${minBound} - ${maxBound}${unitStr}).`, errorInputs: ['high', 'critic'] };
 
         if (dir === 'lower') {
             if (high > maxBound) return { valid: false, errorText: `El umbral alto no puede ser mayor al límite.`, errorInputs: ['high'] };

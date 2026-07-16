@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import logging
 from typing import Any, Dict, Optional
 
 from django.db.models import Q, QuerySet
@@ -10,6 +11,9 @@ from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_CRITICO, RISK_ALTO, SEVERITY_LEVELS,
 )
 from apps.history.models import History, UserDismissedHistory
+
+
+logger = logging.getLogger(__name__)
 
 
 _RISK_ICONS = {
@@ -150,13 +154,13 @@ def filter_date_range(queryset: QuerySet, period: str, date_from: str, date_to: 
                 naive = dt.datetime.strptime(date_from, "%Y-%m-%d")
                 queryset = queryset.filter(date__gte=tz.make_aware(naive))
             except ValueError:
-                pass
+                logger.warning("Invalid date_from: %s", date_from)
         if date_to:
             try:
                 naive = dt.datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
                 queryset = queryset.filter(date__lte=tz.make_aware(naive))
             except ValueError:
-                pass
+                logger.warning("Invalid date_to: %s", date_to)
     return queryset
 
 

@@ -8,9 +8,10 @@
     function initFormValidation() {
         const REGEX = {
             soloLetras: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/,
+            soloLetrasNumeros: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]*$/,
             soloDigitos: /^\d*$/,
             rif: /^J\d{7,9}\d$/,
-            cedula: /^[VE]\d{6,9}$/,
+            cedula: /^[VE]\d{6,14}$/,
             email: /^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$/,
             password: /(?=.*[a-zA-Z])(?=.*\d)/,
             direccion: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,\.#\-\/()]*$/,
@@ -18,6 +19,7 @@
 
         const KEYPRESS_CONFIG = {
             'solo-letras': { regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]$/, useUpper: false, allowDelete: false },
+            'solo-letras-numeros': { regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]$/, useUpper: false, allowDelete: false },
             'solo-numeros': { regex: /^\d$/, useUpper: false, allowDelete: true },
             'username': { regex: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]$/, useUpper: false, allowDelete: false },
             'email': { regex: /^[a-zA-Z0-9.@]$/, useUpper: false, allowDelete: false },
@@ -78,6 +80,23 @@
             toggleSubmit(input.form);
         };
 
+        const validarSoloLetrasNumeros = (input) => {
+            const valor = input.value;
+            const maximo = input.maxLength > 0 ? input.maxLength : 100;
+            const minimo = 3;
+            if (valor && !REGEX.soloLetrasNumeros.test(valor)) {
+                input.value = valor.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]/g, '');
+                mostrarError(input, 'Este campo solo acepta letras, números y espacios.');
+            } else if (valor.length > maximo) {
+                input.value = valor.slice(0, maximo); mostrarError(input, `Máximo ${maximo} caracteres.`);
+            } else if (valor.length > 0 && valor.length < minimo) {
+                mostrarError(input, `El campo debe tener al menos ${minimo} caracteres.`);
+            } else if (valor.length > 0 && valor.trim().length === 0) {
+                mostrarError(input, 'Completa este campo correctamente.');
+            } else { limpiarError(input); }
+            toggleSubmit(input.form);
+        };
+
         const validarSoloNumeros = (input) => {
             const valor = input.value;
             const maximo = input.maxLength > 0 ? input.maxLength : 999;
@@ -92,6 +111,22 @@
             toggleSubmit(input.form);
         };
 
+        const _abortControllers = {};
+
+        const _fetchWithCancel = (input, url) => {
+            const key = input.name || input.id;
+            if (_abortControllers[key]) _abortControllers[key].abort();
+            const ac = new AbortController();
+            _abortControllers[key] = ac;
+            return fetch(url, { signal: ac.signal })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.exists) mostrarError(input, 'Este RIF ya está registrado en otro edificio.');
+                    else limpiarError(input);
+                    toggleSubmit(input.form);
+                }).catch(() => { });
+        };
+
         const validarRIF = (input) => {
             let valor = input.value.toUpperCase().replace(/[^J\d\-]/g, '');
             if (input.value !== valor) input.value = valor;
@@ -102,13 +137,7 @@
                 limpiarError(input);
                 const excludeId = input.getAttribute('data-exclude-id') || '';
                 const checkUrl = input.getAttribute('data-url') || '/api/check-rif/';
-                fetch(`${checkUrl}?rif=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.exists) mostrarError(input, 'Este RIF ya está registrado en otro edificio.');
-                        else limpiarError(input);
-                        toggleSubmit(input.form);
-                    }).catch(() => { });
+                _fetchWithCancel(input, `${checkUrl}?rif=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`);
             } else { limpiarError(input); }
             toggleSubmit(input.form);
         };
@@ -118,18 +147,12 @@
             if (input.value !== valor) input.value = valor;
             const cleaned = valor.replace(/[.\-\s]/g, '');
             if (valor && !REGEX.cedula.test(cleaned)) {
-                mostrarError(input, 'Formato: V o E + 6-9 dígitos. Ej: V-12345678');
+                mostrarError(input, 'Formato: V o E + 6-14 dígitos. Ej: V-12345678');
             } else if (valor) {
                 limpiarError(input);
                 const excludeId = input.getAttribute('data-exclude-id') || '';
                 const checkUrl = input.getAttribute('data-url') || '/api/check-cedula/';
-                fetch(`${checkUrl}?cedula=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.exists) mostrarError(input, 'Esta cédula ya está registrada por otro usuario.');
-                        else limpiarError(input);
-                        toggleSubmit(input.form);
-                    }).catch(() => { });
+                _fetchWithCancel(input, `${checkUrl}?cedula=${encodeURIComponent(valor)}&exclude_id=${encodeURIComponent(excludeId)}`);
             } else { limpiarError(input); }
             toggleSubmit(input.form);
         };
@@ -139,6 +162,7 @@
             const valido = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]+$/;
             if (valor && !valido.test(valor)) { input.value = valor.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, ''); mostrarError(input, 'Solo se permiten letras y números, sin espacios.'); }
             else if (valor && valor.length < 4) mostrarError(input, 'El nombre de usuario debe tener al menos 4 caracteres.');
+            else if (valor && valor.length > 20) { input.value = valor.slice(0, 20); mostrarError(input, 'Máximo 20 caracteres.'); }
             else limpiarError(input);
             toggleSubmit(input.form);
         };
@@ -156,7 +180,7 @@
 
         const validarPassword = (input) => {
             const valor = input.value;
-            if (valor && valor.length < 6) mostrarError(input, 'La contraseña debe tener al menos 6 caracteres.');
+            if (valor && valor.length < 8) mostrarError(input, 'La contraseña debe tener al menos 8 caracteres.');
             else if (valor && !REGEX.password.test(valor)) mostrarError(input, 'Debe contener letras y números.');
             else limpiarError(input);
             toggleSubmit(input.form);
@@ -213,6 +237,7 @@
 
         const VALIDATORS = {
             'solo-letras': validarSoloLetras,
+            'solo-letras-numeros': validarSoloLetrasNumeros,
             'solo-numeros': validarSoloNumeros,
             'rif': validarRIF,
             'cedula': validarCedula,

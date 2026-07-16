@@ -622,7 +622,8 @@
                     const faultType = li ? li.getAttribute('data-fault-type') : null;
                     // Mark ALL history items with the same fault_type as resolved
                     if (faultType) {
-                        document.querySelectorAll('#live-history-list .hist-item[data-fault-type="' + faultType + '"]').forEach(function (item) {
+                        var escaped = faultType.replace(/"/g, '\\"');
+                        document.querySelectorAll('#live-history-list .hist-item[data-fault-type="' + escaped + '"]').forEach(function (item) {
                             item.classList.remove('risk-high', 'risk-crit');
                             item.classList.add('risk-resolved');
                             var badge = item.querySelector('.risk-icon');

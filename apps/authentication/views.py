@@ -2,13 +2,17 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
 from django.core import signing
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
-from apps.core.constants import MIN_PASSWORD_LENGTH
+from apps.core.constants import MIN_PASSWORD_LENGTH, MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH
 from apps.core.utils import verify_password
 from apps.users.models import Usuario
 from apps.users.validators import REGEX_USERNAME
+
+import logging
+logger = logging.getLogger(__name__)
 
 ERROR_INVALID_CREDENTIALS = "Usuario o contraseña incorrectos."
 
@@ -25,7 +29,20 @@ def login_view(request: HttpRequest) -> HttpResponse:
             success = str(msg)
             break
 
+    ip = request.META.get("REMOTE_ADDR", "")
+    rate_key = f"login_rate_{ip}"
+    attempts = cache.get(rate_key, 0)
+
     if request.method == "POST":
+        if attempts >= 5:
+            form_error = "Demasiados intentos. Intenta de nuevo en 1 minuto."
+            return render(request, "authentication/login.html", {
+                "form_error": form_error,
+                "form_errors": form_errors,
+                "username_val": username_val,
+                "success": None,
+            })
+
         password = request.POST.get("password", "").strip()
 
         _validate_login_fields(username_val, password, form_errors)
@@ -37,9 +54,12 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 .first()
             )
             if user and verify_password(password, user):
+                cache.delete(rate_key)
                 _setup_session(request, user)
                 return redirect("monitor")
             form_error = ERROR_INVALID_CREDENTIALS
+            cache.set(rate_key, attempts + 1, 60)
+            logger.warning("Login fallido para usuario '%s' desde IP %s", username_val, ip)
 
     return render(request, "authentication/login.html", {
         "form_error": form_error,
@@ -168,6 +188,10 @@ def _validate_registration_form(
 
     if not REGEX_USERNAME.match(username):
         errors["username"] = "El nombre de usuario solo acepta letras y números."
+    elif len(username) < MIN_USERNAME_LENGTH:
+        errors["username"] = f"El nombre de usuario debe tener al menos {MIN_USERNAME_LENGTH} caracteres."
+    elif len(username) > MAX_USERNAME_LENGTH:
+        errors["username"] = f"El nombre de usuario debe tener máximo {MAX_USERNAME_LENGTH} caracteres."
     elif (
         Usuario.objects.filter(username=username)
         .exclude(id_usuario=user.id_usuario)

@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import smtplib
 import time as time_module
 from typing import Any
@@ -98,6 +99,8 @@ def send_test_email(request: HttpRequest) -> JsonResponse:
     email = data.get("email", "")
     if not email:
         return json_error("Missing field 'email'")
+    if not re.match(r"^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$", email):
+        return json_error("El correo electrónico no tiene un formato válido.")
 
     error = _send_report_to_recipients([email], None, request)
     return error if error else json_ok({"message": f"Reporte enviado a {email}"})

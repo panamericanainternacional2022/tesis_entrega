@@ -219,17 +219,36 @@ function showCustomModal({ title, message, type = 'info', showCancel = false }) 
 
         const container = document.createElement('div');
         container.className = 'custom-modal-container';
-        container.innerHTML = `
-                <div class="custom-modal-header">
-                    ${iconHtml}
-                    <span class="custom-modal-title">${title}</span>
-                </div>
-                <div class="custom-modal-body">${message}</div>
-                <div class="custom-modal-actions">
-                    ${showCancel ? '<button id="customModalCancelBtn" class="btn btn-secondary">Cancelar</button>' : ''}
-                    <button id="customModalConfirmBtn" class="btn btn-primary">Aceptar</button>
-                </div>
-            `;
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'custom-modal-header';
+        headerDiv.innerHTML = iconHtml;
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'custom-modal-title';
+        titleSpan.textContent = title;
+        headerDiv.appendChild(titleSpan);
+        container.appendChild(headerDiv);
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'custom-modal-body';
+        bodyDiv.textContent = message;
+        container.appendChild(bodyDiv);
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'custom-modal-actions';
+        if (showCancel) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.id = 'customModalCancelBtn';
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.textContent = 'Cancelar';
+            actionsDiv.appendChild(cancelBtn);
+        }
+        const confirmBtn = document.createElement('button');
+        confirmBtn.id = 'customModalConfirmBtn';
+        confirmBtn.className = 'btn btn-primary';
+        confirmBtn.textContent = 'Aceptar';
+        actionsDiv.appendChild(confirmBtn);
+        container.appendChild(actionsDiv);
 
         backdrop.appendChild(container);
         document.body.appendChild(backdrop);
@@ -277,10 +296,18 @@ const showToast = (message, type = 'info') => {
     const toast = document.createElement('div');
     toast.className = `toast-item toast-${type}${hasClose ? ' has-close' : ''}`;
     toast.setAttribute('data-toast', '');
-    toast.innerHTML = `
-            ${hasClose ? '<button type="button" class="btn btn-icon toast-close" data-toast-close><i class="fa-solid fa-xmark"></i></button>' : ''}
-            <div class="toast-body-content">${message}</div>
-        `;
+    if (hasClose) {
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-icon toast-close';
+        closeBtn.setAttribute('data-toast-close', '');
+        closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        toast.appendChild(closeBtn);
+    }
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'toast-body-content';
+    bodyDiv.textContent = message;
+    toast.appendChild(bodyDiv);
     container.appendChild(toast);
     requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; toast.style.opacity = '1'; });
     setTimeout(() => {
@@ -862,6 +889,15 @@ window.csrfFetch = csrfFetch;
 window.closeAllDropdowns = closeAllDropdowns;
 window.initDropdowns = initDropdowns;
 window.initConfirmDelete = initConfirmDelete;
+
+// Double-click prevention
+document.addEventListener('submit', function (e) {
+    var btn = e.submitter || e.target.querySelector('button[type="submit"]');
+    if (btn && !btn.disabled) {
+        btn.disabled = true;
+        setTimeout(function () { btn.disabled = false; }, 2000);
+    }
+});
 
 // Config y estado global (accesible por limits.js, thresholds.js, monitoring.js, script.js)
 window._CONFIG = _CONFIG;

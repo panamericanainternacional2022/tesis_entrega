@@ -16,7 +16,11 @@ logger = logging.getLogger(__name__)
 @require_GET
 @login_required
 def daily_summary(request, building_id: int) -> JsonResponse:
-    days = min(int(request.GET.get("days", 7)), 30)
+    raw_days = request.GET.get("days", 7)
+    try:
+        days = max(1, min(int(raw_days), 30))
+    except (ValueError, TypeError):
+        days = 7
     cutoff = timezone.now() - timedelta(days=days)
 
     readings = (

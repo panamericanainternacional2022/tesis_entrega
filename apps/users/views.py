@@ -120,8 +120,12 @@ def user_create_view(request: HttpRequest) -> HttpResponse:
                     messages.error(request, "No se pudo generar el nombre de usuario. Verifique los datos ingresados.")
                     return render(request, "users/user_register.html", {"form_errors": form_errors, "edificios": Building.objects.all()})
 
-                if post_data.get("id_edificio"):
-                    UserBuilding.objects.create(user=created_user, building_id=post_data["id_edificio"])
+                edificio_id = post_data.get("id_edificio")
+                if edificio_id:
+                    if not Building.objects.filter(id_edificio=edificio_id).exists():
+                        messages.error(request, "El edificio seleccionado no existe.")
+                        return redirect("user_register")
+                    UserBuilding.objects.create(user=created_user, building_id=edificio_id)
 
                 try:
                     activation_link = send_activation_email(
