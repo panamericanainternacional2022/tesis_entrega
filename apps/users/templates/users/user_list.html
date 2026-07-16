@@ -71,8 +71,8 @@
         <th>Nombre</th>
         <th>Apellido</th>
         <th>Edificio</th>
-        <th>Correo</th>
-        <th>Acciones</th>
+        <th class="col-email">Correo</th>
+        <th class="col-actions">Acciones</th>
     </tr>
 </thead>
 <tbody>
@@ -83,8 +83,8 @@
                 <td>{{ usuario.nombre }}</td>
                 <td>{{ usuario.last_name }}</td>
                 <td title="{{ usuario.edificio_nombre }}">{{ usuario.edificio_nombre }}</td>
-                <td>{{ usuario.email|default:'—' }}</td>
-                <td>
+                <td class="col-email">{{ usuario.email|default:'—' }}</td>
+                <td class="col-actions">
                     <div class="actions-dropdown">
                         <button type="button" class="btn btn-icon" aria-label="Acciones" aria-haspopup="true" aria-expanded="false" title="Acciones">
                             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>

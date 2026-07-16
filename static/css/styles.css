@@ -1130,6 +1130,28 @@ button {
     background: var(--color-accent-bg);
 }
 
+/* Anchos de columna para evitar que contenido largo desborde celdas vecinas */
+.report-table .col-rif {
+    white-space: nowrap;
+}
+
+.report-table .col-address {
+    max-width: 0;
+    width: 35%;
+    word-break: break-word;
+}
+
+.report-table .col-actions {
+    white-space: nowrap;
+    width: 1%;
+}
+
+.report-table .col-email {
+    max-width: 0;
+    width: 22%;
+    word-break: break-word;
+}
+
 .report-table td a:not(.btn):not(.dropdown-item) {
     color: var(--color-ink);
     text-decoration: none;

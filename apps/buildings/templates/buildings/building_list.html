@@ -47,9 +47,9 @@
     <tr>
         <th>Nombre</th>
         <th>Equipamiento</th>
-        <th>RIF</th>
-        <th>Direcci&#243;n</th>
-        <th>Acciones</th>
+        <th class="col-rif">RIF</th>
+        <th class="col-address">Direcci&#243;n</th>
+        <th class="col-actions">Acciones</th>
     </tr>
 </thead>
 <tbody>
@@ -67,9 +67,9 @@
                         {% endfor %}
                     {% endwith %}
                 </td>
-                <td title="{{ building.rif }}">{{ building.rif }}</td>
-                <td title="{{ building.address }}">{{ building.address }}</td>
-                <td>
+                <td class="col-rif" title="{{ building.rif }}">{{ building.rif }}</td>
+                <td class="col-address" title="{{ building.address }}">{{ building.address }}</td>
+                <td class="col-actions">
                     <div class="actions-dropdown">
                         <button type="button" class="btn btn-icon" aria-label="Acciones para {{ building.name }}" aria-haspopup="true" aria-expanded="false" title="Acciones">
                             <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
