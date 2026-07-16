@@ -9,6 +9,7 @@ from apps.core.constants import MIN_PASSWORD_LENGTH
 from apps.core.auth_decorators import login_required
 from apps.core.utils import verify_password
 from apps.users.models import Usuario
+from apps.users.validators import REGEX_PASSWORD
 
 
 @login_required
@@ -94,7 +95,19 @@ def _handle_config_post(
         )
 
     elif action == "change_password":
-        if not current_password.strip() or not new_password.strip() or not confirm_password.strip():
+        if not current_password.strip():
+            messages.error(request, "Debes ingresar tu contraseña actual.")
+            form_errors["current_password"] = "Este campo es obligatorio."
+            return render(
+                request,
+                "settings/settings.html",
+                {
+                    "usuario": user,
+                    "persona": person,
+                    "form_errors": form_errors,
+                },
+            )
+        if not new_password.strip() or not confirm_password.strip():
             messages.error(request, "Todos los campos de contraseña son obligatorios.")
             return render(
                 request,
@@ -189,6 +202,8 @@ def _validate_config_new_password(
             f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres."
     elif len(new_password) > 128:
         form_errors["new_password"] = "Máximo 128 caracteres."
+    elif not REGEX_PASSWORD.match(new_password):
+        form_errors["new_password"] = "La contraseña debe contener letras y números."
     elif new_password != confirm_password:
         form_errors["confirm_password"] = \
             "Las contraseñas nuevas no coinciden."

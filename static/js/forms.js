@@ -7,12 +7,12 @@
 
     function initFormValidation() {
         const REGEX = {
-            soloLetras: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]*$/,
-            soloLetrasNumeros: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]*$/,
+            soloLetras: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/,
+            soloLetrasNumeros: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]+$/,
             soloDigitos: /^\d*$/,
             rif: /^J\d{7,9}\d$/,
             cedula: /^[VE]\d{6,14}$/,
-            email: /^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$/,
+            email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$/,
             password: /(?=.*[a-zA-Z])(?=.*\d)/,
             direccion: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,\.#\-\/()]*$/,
         };
@@ -167,8 +167,16 @@
             toggleSubmit(input.form);
         };
 
+        const validarLoginPassword = (input) => {
+            const valor = input.value;
+            if (valor && valor.length > 128) { input.value = valor.slice(0, 128); mostrarError(input, 'Máximo 128 caracteres.'); }
+            else limpiarError(input);
+            toggleSubmit(input.form);
+        };
+
         const validarEmail = (input) => {
             const valor = input.value;
+            if (valor && valor.length > 75) { input.value = valor.slice(0, 75); mostrarError(input, 'Máximo 75 caracteres.'); toggleSubmit(input.form); return; }
             if (valor && valor.includes('@') && valor.split('@')[0].length > 30) {
                 mostrarError(input, 'Máximo 30 caracteres antes del @.'); toggleSubmit(input.form); return;
             }
@@ -244,6 +252,7 @@
             'cedula': validarCedula,
             'email': validarEmail,
             'password': validarPassword,
+            'login-password': validarLoginPassword,
             'confirm-password': validarConfirmPassword,
             'username': validarUsername,
             'cantidad-pisos': validarCantidadPisos,

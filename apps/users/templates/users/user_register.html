@@ -22,7 +22,7 @@
                         <input placeholder="Tu primer nombre" type="text" id="primerNombre" name="primerNombre" value="{{ user.primerNombre|default:'' }}" data-validate="solo-letras" maxlength="40" required class="form-input {% if form_errors.primerNombre or form_errors.primerNombre_long %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
-                    <div class="error-msg">{% if form_errors.primerNombre %}{{ form_errors.primerNombre }}{% elif form_errors.primerNombre_long %}{{ form_errors.primerNombre_long }}{% endif %}</div>
+                    <div class="error-msg">{% if form_errors.primerNombre %}{{ form_errors.primerNombre }}{% elif form_errors.primerNombre_min %}{{ form_errors.primerNombre_min }}{% elif form_errors.primerNombre_long %}{{ form_errors.primerNombre_long }}{% endif %}</div>
                 </div>
                 <div class="form-group">
                     <label for="segundoNombre">Segundo nombre</label>
@@ -30,7 +30,7 @@
                         <input placeholder="Opcional" type="text" id="segundoNombre" name="segundoNombre" value="{{ user.segundoNombre|default:'' }}" data-validate="solo-letras" maxlength="40" class="form-input {% if form_errors.segundoNombre or form_errors.segundoNombre_long %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
-                    <div class="error-msg">{% if form_errors.segundoNombre %}{{ form_errors.segundoNombre }}{% elif form_errors.segundoNombre_long %}{{ form_errors.segundoNombre_long }}{% endif %}</div>
+                    <div class="error-msg">{% if form_errors.segundoNombre %}{{ form_errors.segundoNombre }}{% elif form_errors.segundoNombre_min %}{{ form_errors.segundoNombre_min }}{% elif form_errors.segundoNombre_long %}{{ form_errors.segundoNombre_long }}{% endif %}</div>
                 </div>
             </div>
 
@@ -41,7 +41,7 @@
                         <input placeholder="Tu primer apellido" type="text" id="primerApellido" name="primerApellido" value="{{ user.primerApellido|default:'' }}" data-validate="solo-letras" maxlength="40" required class="form-input {% if form_errors.primerApellido or form_errors.primerApellido_long %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
-                    <div class="error-msg">{% if form_errors.primerApellido %}{{ form_errors.primerApellido }}{% elif form_errors.primerApellido_long %}{{ form_errors.primerApellido_long }}{% endif %}</div>
+                    <div class="error-msg">{% if form_errors.primerApellido %}{{ form_errors.primerApellido }}{% elif form_errors.primerApellido_min %}{{ form_errors.primerApellido_min }}{% elif form_errors.primerApellido_long %}{{ form_errors.primerApellido_long }}{% endif %}</div>
                 </div>
                 <div class="form-group">
                     <label for="segundoApellido">Segundo apellido</label>
@@ -49,7 +49,7 @@
                         <input placeholder="Opcional" type="text" id="segundoApellido" name="segundoApellido" value="{{ user.segundoApellido|default:'' }}" data-validate="solo-letras" maxlength="40" class="form-input {% if form_errors.segundoApellido or form_errors.segundoApellido_long %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-pen input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
-                    <div class="error-msg">{% if form_errors.segundoApellido %}{{ form_errors.segundoApellido }}{% elif form_errors.segundoApellido_long %}{{ form_errors.segundoApellido_long }}{% endif %}</div>
+                    <div class="error-msg">{% if form_errors.segundoApellido %}{{ form_errors.segundoApellido }}{% elif form_errors.segundoApellido_min %}{{ form_errors.segundoApellido_min }}{% elif form_errors.segundoApellido_long %}{{ form_errors.segundoApellido_long }}{% endif %}</div>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@
                         <input placeholder="V-12345678" type="text" id="cedula" name="cedula" value="{{ user.cedula|default:'' }}" data-validate="cedula" data-exclude-id="{% if editing %}{{ persona_id }}{% endif %}" data-url="{% url 'check_cedula' %}" maxlength="16" required class="form-input {% if form_errors.cedula or form_errors.cedula_long or form_errors.cedula_unico %}input-error-state{% endif %}" />
                         <i class="fa-solid fa-id-card input-icon input-icon--right" aria-hidden="true"></i>
                     </div>
-                    <div class="error-msg">{% if form_errors.cedula %}{{ form_errors.cedula }}{% elif form_errors.cedula_long %}{{ form_errors.cedula_long }}{% elif form_errors.cedula_unico %}{{ form_errors.cedula_unico }}{% endif %}</div>
+                    <div class="error-msg">{% if form_errors.cedula %}{{ form_errors.cedula }}{% elif form_errors.cedula_min %}{{ form_errors.cedula_min }}{% elif form_errors.cedula_long %}{{ form_errors.cedula_long }}{% elif form_errors.cedula_unico %}{{ form_errors.cedula_unico }}{% endif %}</div>
                 </div>
             </div>
 

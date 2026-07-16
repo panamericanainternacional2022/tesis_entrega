@@ -7,7 +7,7 @@ from apps.users.models import Persona
 
 REGEX_ONLY_LETTERS: re.Pattern = re.compile(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$")
 _REGEX_EMAIL: re.Pattern = re.compile(
-    r"^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$"
+    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$"
 )
 _REGEX_VENEZUELAN_CI: re.Pattern = re.compile(r"^[VEve]\-?\d{6,14}$")
 _REGEX_BUILDING_RIF: re.Pattern = re.compile(r"^[Jj]\-?\d{7,9}\-?\d$")
@@ -15,6 +15,7 @@ REGEX_ADDRESS: re.Pattern = re.compile(
     r"^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\,\.\#\-\/\(\)]+$"
 )
 REGEX_USERNAME: re.Pattern = re.compile(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9]+$")
+REGEX_PASSWORD: re.Pattern = re.compile(r"(?=.*[a-zA-Z])(?=.*\d)")
 
 
 _FIELD_SPECS = [

@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from apps.core.constants import MIN_PASSWORD_LENGTH, MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH
 from apps.core.utils import verify_password
 from apps.users.models import Usuario
-from apps.users.validators import REGEX_USERNAME
+from apps.users.validators import REGEX_USERNAME, REGEX_PASSWORD
 
 import logging
 logger = logging.getLogger(__name__)
@@ -189,6 +189,8 @@ def _validate_registration_form(
         errors["password"] = f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres."
     elif len(password) > 128:
         errors["password"] = "Máximo 128 caracteres."
+    elif not REGEX_PASSWORD.match(password):
+        errors["password"] = "La contraseña debe contener letras y números."
 
     if not REGEX_USERNAME.match(username):
         errors["username"] = "El nombre de usuario solo acepta letras y números."
