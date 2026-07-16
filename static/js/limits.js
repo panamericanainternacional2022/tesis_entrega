@@ -1,5 +1,5 @@
 ﻿// =============================================================================
-// limits.js â€” LÃ³gica especÃ­fica de la pÃ¡gina de lÃ­mites de sensores
+// limits.js — Lógica específica de la página de límites de sensores
 // =============================================================================
 
 (function (window, document) {
@@ -25,7 +25,7 @@
             const thresh = currentThresholds[k];
             let refText = '';
             if (thresh?.high !== undefined) {
-                const label = thresh.direction === 'range' ? 'MÃ¡ximo aceptable' : 'CrÃ­tico';
+                const label = thresh.direction === 'range' ? 'Máximo aceptable' : 'Crítico';
                 refText = `${label}: ${thresh.high}${unit ? ' ' + unit : ''}`;
             }
             const headerHtml = `<div class="thresh-card-header">
@@ -35,11 +35,11 @@
             div.innerHTML = headerHtml + `
                 <div class="thresh-grid-2">
                     <div class="form-group">
-                        <label class="form-label">LÃ­mite mÃ­nimo</label>
+                        <label class="form-label">Límite mínimo</label>
                         <input type="number" step="any" value="${r[0]}" class="form-input" disabled>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">LÃ­mite mÃ¡ximo</label>
+                        <label class="form-label">Límite máximo</label>
                         <input type="number" step="any" min="${(defaultMin + 0.01).toFixed(2)}" max="${hardCap}" data-var="${k}" data-level="max" value="${maxVal}" class="form-input">
                     </div>
                 </div>
@@ -94,14 +94,14 @@
                     if (errorMsgEl) { errorMsgEl.textContent = text; errorMsgEl.style.visibility = 'visible'; }
                 };
 
-                if (isNaN(val)) return showError('Introduzca un nÃºmero vÃ¡lido.');
+                if (isNaN(val)) return showError('Introduzca un número válido.');
                 const defaultMin = _originalLimits[v]?.[0];
                 if (defaultMin === undefined) return showError('Variable sin rango configurado.');
-                if (val <= defaultMin) return showError(`Debe ser mayor que el mÃ­nimo (${defaultMin}).`);
+                if (val <= defaultMin) return showError(`Debe ser mayor que el mínimo (${defaultMin}).`);
                 const thresh = currentThresholds[v];
                 if (thresh?.critic !== undefined && val < thresh.critic) {
                     const unitStr = getUnit(v) ? ` ${getUnit(v)}` : '';
-                    return showError(`No puede ser menor al umbral crÃ­tico (${thresh.critic}${unitStr}).`);
+                    return showError(`No puede ser menor al umbral crítico (${thresh.critic}${unitStr}).`);
                 }
                 if (_originalLimits[v] && val !== _originalLimits[v][1]) hasChanges = true;
             });
@@ -129,10 +129,10 @@
                 _SENSOR_RANGES = res.sensor_ranges;
                 renderLimitsPanel(res.sensor_ranges);
             } else {
-                showToast(`Error al guardar: ${res.message || 'IntÃ©ntelo de nuevo.'}`, 'error');
+                showToast(`Error al guardar: ${res.message || 'Inténtelo de nuevo.'}`, 'error');
             }
         } catch (_) {
-            showToast('Error de conexiÃ³n. IntÃ©ntelo de nuevo.', 'error');
+            showToast('Error de conexión. Inténtelo de nuevo.', 'error');
         }
     }
 
@@ -203,7 +203,7 @@
     }
 
     async function resetAllLimits() {
-        if (!await showConfirm('Â¿EstÃ¡s seguro de que deseas restablecer todos los lÃ­mites a sus valores originales?')) return;
+        if (!await showConfirm('¿Estás seguro de que deseas restablecer todos los límites a sus valores originales?')) return;
         resetPanelLimits('bomba');
         resetPanelLimits('elevador');
     }

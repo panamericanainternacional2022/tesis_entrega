@@ -51,7 +51,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
             
         sd["pump_tank_level"] = round(clamp(new_tank, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1]), 1)
 
-    # Float switch automÃ¡tico eliminado â€” la bomba se controla Ãºnicamente de forma manual.
+    # Float switch automático eliminado — la bomba se controla únicamente de forma manual.
 
     # â”€â”€ Dispatch to correct operating mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if not sim.pump_on:
@@ -242,9 +242,9 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     temp = sd["pump_temperature"] + temp_diff * 0.02 * dt + random.uniform(-0.1, 0.1) * dt
 
     vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
-    # El trabajo mecÃ¡nico incluye el caudal y una resistencia parasita por presiÃ³n (Shutoff head)
-    # Modelo elÃ©ctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
-    # OpciÃ³n A: ecuaciÃ³n recalibrada para que el rÃ©gimen normal quede dentro del umbral (<16 A)
+    # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)
+    # Modelo eléctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
+    # Opción A: ecuación recalibrada para que el régimen normal quede dentro del umbral (<16 A)
     curr = (flow * pressure * 28.0 + pressure * 120.0) / (volt * 0.85) + random.uniform(-0.5, 0.5) * dt
 
     # Enforce safe normal regime for all pump metrics if no fault is active

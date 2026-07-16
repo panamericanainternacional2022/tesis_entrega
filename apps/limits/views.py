@@ -67,10 +67,10 @@ def _validate_limit_input(
         raw = str(max_val_raw)
         raw_clean = raw.replace("-", "").replace(".", "")
         if len(raw_clean) > 10:
-            errors[variable] = "Demasiados dÃ­gitos enteros. MÃ¡ximo 10."
+            errors[variable] = "Demasiados dígitos enteros. Máximo 10."
             continue
         if "." in raw and len(raw.split(".")[1]) > 4:
-            errors[variable] = "Demasiados decimales. MÃ¡ximo 4."
+            errors[variable] = "Demasiados decimales. Máximo 4."
             continue
 
         try:
@@ -81,15 +81,15 @@ def _validate_limit_input(
 
         if max_val > 999999.0:
             errors[variable] = (
-                f"El lÃ­mite mÃ¡ximo no puede exceder 999999.0"
+                f"El límite máximo no puede exceder 999999.0"
             )
             continue
 
         default_min = SENSOR_RANGES.get(variable, (0.0, 100.0))[0]
         if max_val <= default_min:
             errors[variable] = (
-                f"El lÃ­mite mÃ¡ximo ({max_val}) debe ser mayor "
-                f"que el mÃ­nimo por defecto ({default_min})"
+                f"El límite máximo ({max_val}) debe ser mayor "
+                f"que el mínimo por defecto ({default_min})"
             )
             continue
 
@@ -99,12 +99,12 @@ def _validate_limit_input(
                 critic_thresh = float(t_config["critic"])
                 if max_val < critic_thresh:
                     label = (
-                        "mÃ¡ximo aceptable"
+                        "máximo aceptable"
                         if t_config.get("direction") == "range"
-                        else "crÃ­tico"
+                        else "crítico"
                     )
                     errors[variable] = (
-                        f"El lÃ­mite mÃ¡ximo ({max_val}) no puede ser "
+                        f"El límite máximo ({max_val}) no puede ser "
                         f"inferior al umbral {label} ({critic_thresh})"
                     )
 
