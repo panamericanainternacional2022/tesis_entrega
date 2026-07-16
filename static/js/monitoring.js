@@ -461,28 +461,21 @@
             const resp = await csrfFetch(url, { method: 'POST', body: '{}' });
             const data = await resp.json();
             if (data.status === 'ok') {
-                if (device === 'pump') {
-                    currentPumpOn = data.pump_on;
-                    updateEquipmentPowerBtns(data.pump_on, undefined);
-                } else {
-                    currentElevOn = data.elevator_on;
-                    updateEquipmentPowerBtns(undefined, data.elevator_on);
-                }
+                currentPumpOn = data.pump_on;
+                currentElevOn = data.elevator_on;
+                updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
                 updateSummaryValues({pump_on: currentPumpOn, elevator_on: currentElevOn});
                 if (data.faults) {
                     _currentFaults = data.faults;
                 }
                 var ctrl = window.SimulationController;
                 if (ctrl) {
-                    if (device === 'pump') {
-                        ctrl._pumpOn = data.pump_on;
-                        ctrl._activePumpFault = (data.faults && data.faults.pump) || '';
-                        if (window._csSetValue) window._csSetValue(document.getElementById('simFaultPump'), ctrl._activePumpFault);
-                    } else {
-                        ctrl._elevOn = data.elevator_on;
-                        ctrl._activeElevFault = (data.faults && data.faults.elevator) || '';
-                        if (window._csSetValue) window._csSetValue(document.getElementById('simFaultElevator'), ctrl._activeElevFault);
-                    }
+                    ctrl._pumpOn = data.pump_on;
+                    ctrl._elevOn = data.elevator_on;
+                    ctrl._activePumpFault = (data.faults && data.faults.pump) || '';
+                    ctrl._activeElevFault = (data.faults && data.faults.elevator) || '';
+                    if (window._csSetValue) window._csSetValue(document.getElementById('simFaultPump'), ctrl._activePumpFault);
+                    if (window._csSetValue) window._csSetValue(document.getElementById('simFaultElevator'), ctrl._activeElevFault);
                     ctrl._updateControlStates();
                     ctrl._updateFaultUI();
                 }
@@ -623,21 +616,55 @@
             btn.disabled = true;
             try {
                 const resp = await csrfFetch(API.resolveAlert(recordId), { method: 'POST' });
-                if (resp.ok) {
+                const data = resp.ok ? await resp.json().catch(function () { return {}; }) : {};
+                if (data.status === 'ok' || resp.ok) {
                     const li = btn.closest('.hist-item');
-                    if (li) {
+                    const faultType = li ? li.getAttribute('data-fault-type') : null;
+                    // Mark ALL history items with the same fault_type as resolved
+                    if (faultType) {
+                        document.querySelectorAll('#live-history-list .hist-item[data-fault-type="' + faultType + '"]').forEach(function (item) {
+                            item.classList.remove('risk-high', 'risk-crit');
+                            item.classList.add('risk-resolved');
+                            var badge = item.querySelector('.risk-icon');
+                            if (badge) {
+                                badge.classList.remove('risk-high', 'risk-crit');
+                                badge.classList.add('risk-resolved');
+                                badge.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resuelta';
+                            }
+                            var rBtn = item.querySelector('.hist-resolve-btn');
+                            if (rBtn) rBtn.remove();
+                        });
+                    } else if (li) {
                         li.classList.remove('risk-high', 'risk-crit');
                         li.classList.add('risk-resolved');
-                        const badge = li.querySelector('.risk-icon');
+                        var badge = li.querySelector('.risk-icon');
                         if (badge) {
                             badge.classList.remove('risk-high', 'risk-crit');
                             badge.classList.add('risk-resolved');
                             badge.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Resuelta';
                         }
+                        btn.remove();
                     }
-                    btn.remove();
                     unreadHistoryCount = Math.max(0, unreadHistoryCount - 1);
                     setHistoryBadge(unreadHistoryCount);
+                    // Sync simulation state if server returned updated faults
+                    if (data.faults) {
+                        _currentFaults = data.faults;
+                        var ctrl = window.SimulationController;
+                        if (ctrl) {
+                            ctrl._activePumpFault = data.faults.pump || '';
+                            ctrl._activeElevFault = data.faults.elevator || '';
+                            if (window._csSetValue) {
+                                window._csSetValue(document.getElementById('simFaultPump'), ctrl._activePumpFault);
+                                window._csSetValue(document.getElementById('simFaultElevator'), ctrl._activeElevFault);
+                            }
+                            ctrl._updateControlStates();
+                            ctrl._updateFaultUI();
+                        }
+                        if (typeof window.updateCards === 'function') {
+                            window.updateCards(currentReadings);
+                        }
+                    }
                 }
             } catch (_) { btn.disabled = false; }
         });

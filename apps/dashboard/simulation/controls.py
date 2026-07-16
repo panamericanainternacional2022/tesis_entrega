@@ -53,7 +53,7 @@ def sim_pause(request, building_id: int) -> JsonResponse:
     if not sim.sim_paused and not sim.sim_started:
         sim.sim_started = True
 
-    return json_ok({"paused": sim.sim_paused, "started": sim.sim_started})
+    return json_ok({"paused": sim.sim_paused, "started": sim.sim_started, "pump_on": sim.pump_on, "elevator_on": sim.elevator_on, "faults": dict(sim.sim_faults)})
 
 
 @require_http_methods(["POST"])
@@ -175,7 +175,7 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
             except Exception:
                 logger.warning("Could not auto-clear pump fault on power-off (building=%s)", building_id)
 
-    return json_ok({"pump_on": sim.pump_on, "faults": dict(sim.sim_faults)})
+    return json_ok({"pump_on": sim.pump_on, "elevator_on": sim.elevator_on, "faults": dict(sim.sim_faults)})
 
 
 @require_http_methods(["POST"])
@@ -205,5 +205,5 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
             except Exception:
                 logger.warning("Could not auto-clear elevator fault on power-off (building=%s)", building_id)
 
-    return json_ok({"elevator_on": sim.elevator_on, "faults": dict(sim.sim_faults)})
+    return json_ok({"pump_on": sim.pump_on, "elevator_on": sim.elevator_on, "faults": dict(sim.sim_faults)})
 

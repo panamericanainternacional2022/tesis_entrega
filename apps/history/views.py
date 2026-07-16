@@ -233,7 +233,25 @@ def resolve_alert_view(request: HttpRequest, record_id: int) -> JsonResponse:
             resolved=False,
         ).update(resolved=True)
 
-    return json_ok({"message": "Alerta marcada como resuelta"})
+        # Also clear the simulation fault so sensors return to normal
+        try:
+            from apps.sensors.simulation.controls import clear_fault as sim_clear_fault
+            from apps.dashboard.simulation.shared import get_simulator
+            equip = record.monitoring_equipment
+            if equip and equip.building_id:
+                device = "pump" if equip.equipment_type == "bomba" else "elevator"
+                sim_clear_fault(equip.building_id, device)
+                sim = get_simulator(equip.building_id)
+                sim_faults = dict(sim.sim_faults) if sim else {}
+            else:
+                sim_faults = {}
+        except Exception:
+            logger.warning("No se pudo limpiar la falla de simulacion al resolver alerta", exc_info=True)
+            sim_faults = {}
+    else:
+        sim_faults = {}
+
+    return json_ok({"message": "Alerta marcada como resuelta", "faults": sim_faults})
 
 
 @login_required

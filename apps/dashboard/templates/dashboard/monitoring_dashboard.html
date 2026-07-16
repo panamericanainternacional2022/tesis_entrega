@@ -237,6 +237,8 @@
             this._hasElevator = true;
             this._hasPump = true;
             this._faultsJustCleared = false;
+            this._pumpOn = true;
+            this._elevOn = true;
 
             this._cacheDOMElements();
             this._bindEvents();
@@ -300,9 +302,23 @@
                     if (data.status === 'ok') {
                         self.simPaused = data.paused;
                         if (!data.paused && !self.simStarted) self.simStarted = true;
+                        self._pumpOn = data.pump_on;
+                        self._elevOn = data.elevator_on;
+                        self._activePumpFault = (data.faults && data.faults.pump) || '';
+                        self._activeElevFault = (data.faults && data.faults.elevator) || '';
+                        _currentFaults = data.faults || {};
+                        currentPumpOn = data.pump_on;
+                        currentElevOn = data.elevator_on;
                         self._updatePauseBtn();
                         self._updateControlStates();
                         self._updateSpeedButtons(self.currentSpeed);
+                        self._updateFaultUI();
+                        if (typeof window.updateCards === 'function') {
+                            window.updateCards(currentReadings);
+                        }
+                        if (typeof window.updateEquipmentPowerBtns === 'function') {
+                            window.updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
+                        }
                         var lastUpd = document.getElementById('lastUpdate');
                         if (lastUpd) lastUpd.innerText = data.started ? new Date().toLocaleTimeString() : '--:--:--';
                     } else {
@@ -398,6 +414,12 @@
                         if (device === 'elevator') self._activeElevFault = prevFault;
                         else self._activePumpFault = prevFault;
                         _csVal(document.getElementById(selId), prevFault);
+                        _currentFaults = {};
+                        if (self._activeElevFault) _currentFaults['elevator'] = self._activeElevFault;
+                        if (self._activePumpFault) _currentFaults['pump'] = self._activePumpFault;
+                        if (typeof window.updateCards === 'function') {
+                            window.updateCards(currentReadings);
+                        }
                     }
                     self._updateControlStates();
                 })
@@ -409,6 +431,12 @@
                     if (device === 'elevator') self._activeElevFault = prevFault;
                     else self._activePumpFault = prevFault;
                     self._updateFaultUI();
+                    _currentFaults = {};
+                    if (self._activeElevFault) _currentFaults['elevator'] = self._activeElevFault;
+                    if (self._activePumpFault) _currentFaults['pump'] = self._activePumpFault;
+                    if (typeof window.updateCards === 'function') {
+                        window.updateCards(currentReadings);
+                    }
                     self._updateControlStates();
                 });
         };
