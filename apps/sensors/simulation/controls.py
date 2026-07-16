@@ -86,8 +86,6 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
     for k in keys_to_remove:
         sim.active_alerts.pop(k, None)
 
-    for attr in ("manual_overrides", "manual_targets"):
-        _clear_device_attrs(sim, device, attr, old_faults)
     _clear_device_attrs(sim, device, "last_email_sent_time_per_var", old_faults)
     _clear_device_attrs(sim, device, "_alert_consecutive", old_faults)
 
@@ -98,14 +96,6 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         sim.active_alerts.pop(fault_alert_key, None)
         if hasattr(sim, "_alert_consecutive"):
             sim._alert_consecutive.pop(fault_alert_key, None)
-
-    if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, set):
-        if device == "pump":
-            sim._manual_triggered_faults.discard("pump")
-        elif device == "elevator":
-            sim._manual_triggered_faults.discard("elevator")
-        else:
-            sim._manual_triggered_faults.clear()
 
     from apps.sensors.simulation.fault_recovery import apply_pump_recovery, apply_elevator_recovery
     if device in (None, "pump"):
@@ -145,22 +135,15 @@ def reset_simulator(edificio_id: int) -> str:
     sim.sensor_data = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
     sim.pump_on = True
     sim.elevator_on = True
-    sim.manual_pump_override = False
     sim.active_alerts.clear()
     sim.history.clear()
     sim.pending_alerts.clear()
     sim.sim_faults.clear()
     sim.fault_injected_at.clear()
-    if hasattr(sim, "manual_overrides") and isinstance(sim.manual_overrides, dict):
-        sim.manual_overrides.clear()
-    if hasattr(sim, "manual_targets") and isinstance(sim.manual_targets, dict):
-        sim.manual_targets.clear()
     if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
         sim.last_email_sent_time_per_var.clear()
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
-    if hasattr(sim, "_manual_triggered_faults") and isinstance(sim._manual_triggered_faults, set):
-        sim._manual_triggered_faults.clear()
     sim.sim_paused = True
     sim.sim_started = False
     sim.sim_speed = 1.0

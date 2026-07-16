@@ -2,8 +2,7 @@ from typing import Optional
 
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
-    ENUM_VARS,
-    FAULT_FORCED_RISK)
+    ENUM_VARS)
 
 
 def classify_risk(
@@ -11,32 +10,16 @@ def classify_risk(
     value,
     thresholds: Optional[dict] = None,
     active_faults: Optional[dict] = None) -> tuple[str, str]:
-    """Clasifica el riesgo de un sensor según los umbrales de simulator.md.
+    """Clasifica el riesgo de un sensor según los umbrales.
 
     La clasificación es puramente numérica/umbral, sin lógica contextual.
     Los escenarios de falla combinada se manejan por el sistema de alertas
     compuestas (engine.py → send_compound_alert), no aquí.
 
-    Args:
-        variable:      Identificador del sensor (ej: "pump_voltage").
-        value:         Valor actual del sensor.
-        thresholds:    Diccionario de umbrales del edificio. Si es None o no
-                       contiene la variable, se devuelve RISK_NORMAL.
-        active_faults: Dict {device: fault_type} de fallas activas. Si una
-                       variable tiene riesgo forzado por un fallo activo,
-                       se retorna ese riesgo sin evaluar el valor.
-
     Returns:
         Tupla (nivel_riesgo, color_css): uno de
           (RISK_NORMAL, "green"), (RISK_ALTO, "orange"), (RISK_CRITICO, "red").
     """
-    # Riesgo forzado por fallo activo (antes de cualquier clasificación por valor)
-    if active_faults:
-        for fault_type in active_faults.values():
-            forced = FAULT_FORCED_RISK.get((fault_type, variable))
-            if forced:
-                return forced
-
     # Sensores de enumeración (ej: elev_door_status)
     if variable in ENUM_VARS:
         return RISK_NORMAL, "green"

@@ -5,7 +5,7 @@ from apps.sensors.simulation.constants import (
     PUMP_P0, PUMP_K, T_AMBIENT,
 )
 from apps.sensors.simulation.models import BuildingSimulator
-from apps.sensors.simulation.utils import clamp, is_locked
+from apps.sensors.simulation.utils import clamp
 
 
 # Tank physics constants
@@ -21,7 +21,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
     dt = sim.sim_speed
 
     # ── Tank level physics ──────────────────────────────────────────────────
-    if not is_locked(sim, "pump_tank_level") and sim.pump_on:
+    if sim.pump_on:
         is_pumping = "pump" not in sim.sim_faults
         inflow = sd.get("pump_flow_rate", 0.0) if is_pumping else 0.0
 
@@ -66,32 +66,24 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    if not is_locked(sim, "pump_flow_rate"):
-        sd["pump_flow_rate"] = 0.0
-    if not is_locked(sim, "pump_pressure"):
-        sd["pump_pressure"] = 0.0
-    if not is_locked(sim, "pump_vibration"):
-        sd["pump_vibration"] = 0.0
-    if not is_locked(sim, "pump_current"):
-        sd["pump_current"] = 0.0
-    if not is_locked(sim, "pump_temperature"):
-        sd["pump_temperature"] = round(
-            clamp(sd["pump_temperature"] - 0.5 * dt, T_AMBIENT, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
-        )
-    if not is_locked(sim, "pump_voltage"):
-        volt = sd["pump_voltage"]
-        # Red monofásica disponible aunque el motor esté parado — converge a 220 V (spec: voltage_inicial=220 V)
-        volt_diff = 220.0 - volt
-        sd["pump_voltage"] = round(
-            clamp(
-                volt + volt_diff * 0.1 * dt,
-                0.0, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1],
-            ), 1
-        )
-    if not is_locked(sim, "pump_water_quality"):
-        sd["pump_water_quality"] = round(
-            clamp(sd.get("pump_water_quality", 200.0) + random.uniform(-1.0, 1.0) * dt, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1
-        )
+    sd["pump_flow_rate"] = 0.0
+    sd["pump_pressure"] = 0.0
+    sd["pump_vibration"] = 0.0
+    sd["pump_current"] = 0.0
+    sd["pump_temperature"] = round(
+        clamp(sd["pump_temperature"] - 0.5 * dt, T_AMBIENT, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
+    )
+    volt = sd["pump_voltage"]
+    volt_diff = 220.0 - volt
+    sd["pump_voltage"] = round(
+        clamp(
+            volt + volt_diff * 0.1 * dt,
+            0.0, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1],
+        ), 1
+    )
+    sd["pump_water_quality"] = round(
+        clamp(sd.get("pump_water_quality", 200.0) + random.uniform(-1.0, 1.0) * dt, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1
+    )
 
 
 def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -196,60 +188,45 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     thresh = get_thresholds(sim.edificio_id)
     
     # ── Voltage ────────────────────────────────────────────────────────────
-    if not is_locked(sim, "pump_voltage"):
-        volt = sd["pump_voltage"] + (220.0 - sd["pump_voltage"]) * 0.05 * dt + random.uniform(-0.5, 0.5) * dt
-        sd["pump_voltage"] = round(clamp(volt, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[0], sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1]), 1)
+    volt = sd["pump_voltage"] + (220.0 - sd["pump_voltage"]) * 0.05 * dt + random.uniform(-0.5, 0.5) * dt
+    sd["pump_voltage"] = round(clamp(volt, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[0], sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1]), 1)
 
     volt = sd["pump_voltage"]
 
     # Voltage collapse → all outputs drop
     if volt < 50.0:
-        if not is_locked(sim, "pump_flow_rate"):
-            sd["pump_flow_rate"]  = round(clamp(sd["pump_flow_rate"]  - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]), 1)
-        if not is_locked(sim, "pump_pressure"):
-            sd["pump_pressure"]   = round(clamp(sd["pump_pressure"]   - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]), 1)
-        if not is_locked(sim, "pump_vibration"):
-            sd["pump_vibration"]  = round(clamp(sd["pump_vibration"]  - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),  1)
-        if not is_locked(sim, "pump_current"):
-            sd["pump_current"]    = round(clamp(sd["pump_current"]    - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_current', (0.0, 30.0))[1]),  1)
-        if not is_locked(sim, "pump_temperature"):
-            sd["pump_temperature"] = round(
-                clamp(sd["pump_temperature"] + (T_AMBIENT - sd["pump_temperature"]) * 0.02 * dt,
-                       sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
-            )
+        sd["pump_flow_rate"]  = round(clamp(sd["pump_flow_rate"]  - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]), 1)
+        sd["pump_pressure"]   = round(clamp(sd["pump_pressure"]   - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]), 1)
+        sd["pump_vibration"]  = round(clamp(sd["pump_vibration"]  - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),  1)
+        sd["pump_current"]    = round(clamp(sd["pump_current"]    - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_current', (0.0, 30.0))[1]),  1)
+        sd["pump_temperature"] = round(
+            clamp(sd["pump_temperature"] + (T_AMBIENT - sd["pump_temperature"]) * 0.02 * dt,
+                   sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
+        )
         return
 
     # ── Tank < 10% → cavitation / starvation mode ──────────────────────────
     tank = sd["pump_tank_level"]
     if tank < 10.0:
-        if not is_locked(sim, "pump_flow_rate"):
-            sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], 2.0),        1)  # 2.0 = techo de inanición
-        if not is_locked(sim, "pump_pressure"):
-            sd["pump_pressure"]    = round(clamp(sd["pump_pressure"]    - 0.8 * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], 1.0),        1)  # 1.0 bar = presión residual
-        if not is_locked(sim, "pump_vibration"):
-            sd["pump_vibration"]   = round(clamp(sd["pump_vibration"]   + 1.2 * dt, 0.5, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)  # 0.5 = vibración mínima en cavitación
-        if not is_locked(sim, "pump_temperature"):
-            sd["pump_temperature"] = round(clamp(sd["pump_temperature"] + 2.0 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1)
-        if not is_locked(sim, "pump_current"):
-            sd["pump_current"]     = round(clamp(sd["pump_current"]     - 2.0 * dt, 0.0, 8.0),   1)
+        sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0], 2.0),        1)
+        sd["pump_pressure"]    = round(clamp(sd["pump_pressure"]    - 0.8 * dt, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0], 1.0),        1)
+        sd["pump_vibration"]   = round(clamp(sd["pump_vibration"]   + 1.2 * dt, 0.5, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)
+        sd["pump_temperature"] = round(clamp(sd["pump_temperature"] + 2.0 * dt, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1)
+        sd["pump_current"]     = round(clamp(sd["pump_current"]     - 2.0 * dt, 0.0, 8.0),   1)
         return
 
     # ── Normal operating regime ────────────────────────────────────────────
-    if is_locked(sim, "pump_flow_rate"):
-        sim._pump_demand = sd["pump_flow_rate"]
-        flow = sim._pump_demand
-    else:
-        flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
-        target_max = max(5.0, flow_high * 0.85)
-        target_min = max(0.0, target_max - 5.0)
-        sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, target_min, target_max)
-        flow = sim._pump_demand
-        current_flow = sd.get("pump_flow_rate", 0)
-        max_flow_ramp = 3.0 * dt
-        if flow > current_flow + max_flow_ramp:
-            flow = current_flow + max_flow_ramp
-        elif flow < current_flow - max_flow_ramp:
-            flow = current_flow - max_flow_ramp
+    flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
+    target_max = max(5.0, flow_high * 0.85)
+    target_min = max(0.0, target_max - 5.0)
+    sim._pump_demand = _rand_walk(sim._pump_demand, 0.5 * dt, target_min, target_max)
+    flow = sim._pump_demand
+    current_flow = sd.get("pump_flow_rate", 0)
+    max_flow_ramp = 3.0 * dt
+    if flow > current_flow + max_flow_ramp:
+        flow = current_flow + max_flow_ramp
+    elif flow < current_flow - max_flow_ramp:
+        flow = current_flow - max_flow_ramp
 
     pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
     current_press = sd.get("pump_pressure", 0)
@@ -289,17 +266,11 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         safe_curr_max = curr_t.get("high", 16.0) * 0.95
         curr = min(curr, safe_curr_max)
 
-    if not is_locked(sim, "pump_flow_rate"):
-        sd["pump_flow_rate"]   = round(clamp(flow,     sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]),       1)
-    if not is_locked(sim, "pump_pressure"):
-        sd["pump_pressure"]    = round(clamp(pressure, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0],       sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]),       1)
-    if not is_locked(sim, "pump_temperature"):
-        sd["pump_temperature"] = round(clamp(temp,     sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0],       sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]),       1)
-    if not is_locked(sim, "pump_vibration"):
-        sd["pump_vibration"]   = round(clamp(vib,      sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],        sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)
-    if not is_locked(sim, "pump_current"):
-        sd["pump_current"]     = round(clamp(curr,     sim.sensor_limits.get('pump_current', (0.0, 30.0))[0],       sim.sensor_limits.get('pump_current', (0.0, 30.0))[1]),       1)
-    if not is_locked(sim, "pump_water_quality"):
-        qual = sd.get("pump_water_quality", 200.0)
-        qual += (200.0 - qual) * 0.05 * dt + random.uniform(-2.0, 2.0) * dt
-        sd["pump_water_quality"] = round(clamp(qual, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1)
+    sd["pump_flow_rate"]   = round(clamp(flow,     sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 60.0))[1]),       1)
+    sd["pump_pressure"]    = round(clamp(pressure, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0],       sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]),       1)
+    sd["pump_temperature"] = round(clamp(temp,     sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0],       sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]),       1)
+    sd["pump_vibration"]   = round(clamp(vib,      sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[0],        sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),        1)
+    sd["pump_current"]     = round(clamp(curr,     sim.sensor_limits.get('pump_current', (0.0, 30.0))[0],       sim.sensor_limits.get('pump_current', (0.0, 30.0))[1]),       1)
+    qual = sd.get("pump_water_quality", 200.0)
+    qual += (200.0 - qual) * 0.05 * dt + random.uniform(-2.0, 2.0) * dt
+    sd["pump_water_quality"] = round(clamp(qual, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1)

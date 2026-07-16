@@ -162,12 +162,8 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
         sim.pump_on = not sim.pump_on
 
     if sim.pump_on:
-        sim.manual_pump_override = False
         sim._pump_start_grace_ticks = 5
     else:
-        sim.manual_pump_override = True
-        # ── FIX-1 (BRECHA-1): Clear pump faults when pump is powered off.
-        # A manual shutdown is an intentional resolution of any active fault.
         if sim.sim_faults.get("pump"):
             from apps.sensors.simulation.controls import clear_fault
             try:

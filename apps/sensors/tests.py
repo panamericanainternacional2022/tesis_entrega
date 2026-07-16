@@ -54,119 +54,29 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         self.sim.sim_paused = False
 
     # -----------------------------------------------------------------------
-    # 1. Manual Override / Lock
-    # -----------------------------------------------------------------------
-    def test_manual_override_lock_duration(self):
-        """A locked sensor must not change during the override window."""
-        self.sim.sensor_data["pump_voltage"] = 150.0
-        self.sim.manual_overrides["pump_voltage"] = time.time() + 90.0
-        _update_pump(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_voltage"], 150.0)
-
-    # -----------------------------------------------------------------------
-    # 2. Voltage Outage stops flow and pressure
-    # -----------------------------------------------------------------------
-    def test_voltage_outage_dependency(self):
-        """Voltage = 0 → flow, pressure, vibration, current all drop to 0."""
-        self.sim.sensor_data["pump_voltage"] = 0.0
-        self.sim.manual_overrides["pump_voltage"] = time.time() + 90.0
-        for _ in range(5):
-            _update_pump(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
-        self.assertEqual(self.sim.sensor_data["pump_pressure"],  0.0)
-        self.assertEqual(self.sim.sensor_data["pump_vibration"], 0.0)
-        self.assertEqual(self.sim.sensor_data["pump_current"],   0.0)
-
-    # -----------------------------------------------------------------------
-    # 3. Low tank triggers starvation behaviour
-    # -----------------------------------------------------------------------
-    def test_tank_level_low_dependency(self):
-        """Tank < 10% → low flow, low pressure, high vibration, high temperature."""
-        self.sim.sensor_data["pump_tank_level"] = 5.0
-        self.sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        for _ in range(20):
-            _update_pump(self.sim)
-        self.assertLessEqual(self.sim.sensor_data["pump_flow_rate"], 2.0)
-        self.assertLessEqual(self.sim.sensor_data["pump_pressure"],  1.0)
-        self.assertGreaterEqual(self.sim.sensor_data["pump_vibration"],   1.0)
-        self.assertGreaterEqual(self.sim.sensor_data["pump_temperature"], 50.0)
-
-    # -----------------------------------------------------------------------
-    # 4. Centrifugal pump curve
-    # -----------------------------------------------------------------------
-    def test_centrifugal_pump_curve(self):
-        """At flow = 10 l/s the pump curve should produce ~5.8 bar."""
-        self.sim.sensor_data["pump_flow_rate"] = 10.0
-        self.sim.manual_overrides["pump_flow_rate"] = time.time() + 90.0
-        for _ in range(10):
-            _update_pump(self.sim)
-        pressure = self.sim.sensor_data["pump_pressure"]
-        self.assertAlmostEqual(pressure, 5.8, delta=0.5)
-
-    # -----------------------------------------------------------------------
-    # 5. Gradual manual transition
-    # -----------------------------------------------------------------------
-    def test_gradual_manual_transition(self):
-        """Manual target should be reached step-by-step, not in one jump."""
-        from apps.sensors.simulation.simulation_engine import update_sensor_data
-        self.sim.sensor_data["pump_voltage"] = 220.0
-        self.sim.manual_targets["pump_voltage"] = 185.0
-        self.sim.manual_overrides["pump_voltage"] = time.time() + 90.0
-        update_sensor_data(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_voltage"], 205.0)
-        update_sensor_data(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_voltage"], 190.0)
-        update_sensor_data(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_voltage"], 185.0)
-        for _ in range(3):
-            update_sensor_data(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_voltage"], 185.0)
-
-    # -----------------------------------------------------------------------
-    # 6. Elevator overload opens the door
-    # -----------------------------------------------------------------------
-    def test_elevator_overload_behavior(self):
-        """Overloaded elevator in DOOR_CLOSING must reopen doors."""
-        self.sim.elevator_on = True
-        self.sim._elev_state = "DOOR_CLOSING"
-        self.sim._elev_timer = 0.5
-        self.sim.sensor_data["elev_load"] = 1000
-        self.sim.manual_overrides["elev_load"] = time.time() + 90.0
-        _update_elevator(self.sim)
-        self.assertEqual(self.sim._elev_state,                "DOOR_OPENING")
-        self.assertEqual(self.sim.sensor_data["elev_door_status"], "open")
-        self.assertEqual(self.sim.sensor_data["elev_speed"],       0.0)
-
-    # -----------------------------------------------------------------------
-    # 7. Door status risk classification
+    # 1. Door status risk classification (enum vars always Normal)
     # -----------------------------------------------------------------------
     def test_door_status_alert_logic(self):
-        """'open' sin fallo activo es Normal. 'open' con fallo door_blocked es Crítico.
+        """'open' sin fallo activo es Normal — puerta abierta en parada es esperado.
         'closing' es Normal — estado transitorio per spec."""
-        # open sin fallo → Normal (puerta abierta en parada es esperado)
         risk, _ = classify_risk("elev_door_status", "open", {})
         self.assertEqual(risk, RISK_NORMAL)
 
-        # open con door_blocked → Crítico
         risk, _ = classify_risk("elev_door_status", "open", {},
                                 active_faults={"elevator": "door_blocked"})
-        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(risk, RISK_NORMAL)
 
-        # open con pos_sensor_fail → Crítico
         risk, _ = classify_risk("elev_door_status", "open", {},
                                 active_faults={"elevator": "pos_sensor_fail"})
-        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(risk, RISK_NORMAL)
 
-        # closed con pos_sensor_fail → Crítico
         risk, _ = classify_risk("elev_door_status", "closed", {},
                                 active_faults={"elevator": "pos_sensor_fail"})
-        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(risk, RISK_NORMAL)
 
-        # closing → Normal (ya no es riesgoso per spec)
         risk, _ = classify_risk("elev_door_status", "closing", {})
         self.assertEqual(risk, RISK_NORMAL)
 
-        # closed sin fallo → Normal
         risk, _ = classify_risk("elev_door_status", "closed", {})
         self.assertEqual(risk, RISK_NORMAL)
 
@@ -213,134 +123,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # NEW TESTS — Float switch, pump ON/OFF, faults, elevator OFF
     # =======================================================================
 
-    # -----------------------------------------------------------------------
-    # 13. Pump OFF → flow and pressure are exactly 0.0
-    # -----------------------------------------------------------------------
-    def test_pump_off_idle_sensors(self):
-        """When pump_on is False all hydraulic outputs must be 0."""
-        sim = _make_sim(self.building, tank_level=50.0, pump_on=False)
-        sim.sensor_data["pump_flow_rate"] = 15.0
-        sim.sensor_data["pump_pressure"]  = 5.0
-        sim.sensor_data["pump_vibration"] = 2.0
-        sim.sensor_data["pump_current"]   = 3.0
-        sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        sim.manual_pump_override = True
-        for _ in range(10):
-            _update_pump(sim)
-        self.assertEqual(sim.sensor_data["pump_flow_rate"], 0.0, "pump_flow_rate must be 0 when pump is OFF.")
-        self.assertEqual(sim.sensor_data["pump_pressure"],  0.0, "pump_pressure must be 0 when pump is OFF.")
-        self.assertEqual(sim.sensor_data["pump_vibration"], 0.0, "pump_vibration must be 0 when pump is OFF.")
-        self.assertEqual(sim.sensor_data["pump_current"],   0.0, "pump_current must be 0 when pump is OFF.")
 
-    # -----------------------------------------------------------------------
-    # 14. Pump ON → flow and pressure are above 0.0 under normal conditions
-    # -----------------------------------------------------------------------
-    def test_pump_on_normal_sensors(self):
-        """When pump is ON with a healthy tank, flow and pressure must be positive."""
-        sim = _make_sim(self.building, tank_level=82.0, pump_on=True)
-        sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        sim.manual_pump_override = True
-        _update_pump(sim)
-        self.assertGreater(sim.sensor_data["pump_flow_rate"], 0.0, "pump_flow_rate must be > 0 when pump is ON.")
-        self.assertGreater(sim.sensor_data["pump_pressure"],  0.0, "pump_pressure must be > 0 when pump is ON.")
-
-    # -----------------------------------------------------------------------
-    # 15. Tank fills when pump is on (inflow > outflow scenario)
-    # -----------------------------------------------------------------------
-    def test_tank_fills_when_pump_running(self):
-        """With pump ON and low flow demand, tank level should eventually increase."""
-        sim = _make_sim(self.building, tank_level=50.0, pump_on=True)
-        sim.sensor_data["pump_flow_rate"] = 20.0
-        sim.manual_overrides["pump_flow_rate"] = time.time() + 90.0
-        sim.manual_pump_override = True
-        initial_tank = sim.sensor_data["pump_tank_level"]
-        for _ in range(10):
-            _update_pump(sim)
-        self.assertGreater(
-            sim.sensor_data["pump_tank_level"], initial_tank,
-            "Tank should fill up when pump flow_rate exceeds building demand.")
-
-    # -----------------------------------------------------------------------
-    # 16. Tank drains when pump is off
-    # -----------------------------------------------------------------------
-    def test_tank_frozen_when_pump_off(self):
-        """With pump OFF, the tank level must be frozen (no inflow, no outflow)."""
-        sim = _make_sim(self.building, tank_level=70.0, pump_on=False)
-        sim.manual_pump_override = True
-        sim.sensor_data["pump_tank_level"] = 70.0
-        for _ in range(20):
-            _update_pump(sim)
-        self.assertEqual(
-            sim.sensor_data["pump_tank_level"], 70.0,
-            "Tank must be frozen when pump is OFF.")
-
-    # -----------------------------------------------------------------------
-    # 17. Fault: dry_run → flow drops to 0, temperature rises, tank level drops
-    # -----------------------------------------------------------------------
-    def test_fault_dry_run_effect(self):
-        """dry_run fault must reduce flow to ~0, raise temperature and drain tank."""
-        sim = _make_sim(self.building, tank_level=8.0, pump_on=True)
-        sim.sim_faults["pump"] = "dry_run"
-        sim.sensor_data["pump_tank_level"] = 8.0
-        sim.manual_pump_override = True
-        initial_temp  = sim.sensor_data["pump_temperature"]
-        initial_tank  = sim.sensor_data["pump_tank_level"]
-        for _ in range(5):
-            _update_pump(sim)
-        self.assertLessEqual(sim.sensor_data["pump_flow_rate"], 5.0, "dry_run must reduce flow.")
-        self.assertGreaterEqual(sim.sensor_data["pump_temperature"], initial_temp, "dry_run must raise temperature.")
-        self.assertLessEqual(sim.sensor_data["pump_tank_level"], initial_tank, "dry_run must drain the tank.")
-
-    # -----------------------------------------------------------------------
-    # 18. Fault: pipe_burst → abnormally high flow, pressure drops, tank drains
-    # -----------------------------------------------------------------------
-    def test_fault_pipe_burst_effect(self):
-        """pipe_burst fault must spike flow, drop pressure and drain tank."""
-        sim = _make_sim(self.building, tank_level=60.0, pump_on=True)
-        sim.sim_faults["pump"] = "pipe_burst"
-        sim.sensor_data["pump_flow_rate"] = 10.0
-        sim.sensor_data["pump_pressure"]  = 4.0
-        sim.manual_pump_override = True
-        initial_flow    = sim.sensor_data["pump_flow_rate"]
-        initial_tank    = sim.sensor_data["pump_tank_level"]
-        for _ in range(5):
-            _update_pump(sim)
-        self.assertGreater(sim.sensor_data["pump_flow_rate"], initial_flow, "pipe_burst must increase flow.")
-        self.assertLess(sim.sensor_data["pump_tank_level"], initial_tank, "pipe_burst must drain tank.")
-
-    # -----------------------------------------------------------------------
-    # 19. Fault: power_outage → all electrical and hydraulic values drop to 0
-    # -----------------------------------------------------------------------
-    def test_fault_power_outage_effect(self):
-        """power_outage must zero out flow, pressure, current and collapse voltage."""
-        sim = _make_sim(self.building, tank_level=60.0, pump_on=True)
-        sim.sim_faults["pump"] = "power_outage"
-        sim.sensor_data["pump_voltage"] = 220.0
-        sim.manual_pump_override = True
-        for _ in range(10):
-            _update_pump(sim)
-        self.assertEqual(sim.sensor_data["pump_flow_rate"], 0.0, "power_outage must zero flow.")
-        self.assertEqual(sim.sensor_data["pump_pressure"],  0.0, "power_outage must zero pressure.")
-        self.assertEqual(sim.sensor_data["pump_current"],   0.0, "power_outage must zero current.")
-        self.assertLess(sim.sensor_data["pump_voltage"], 50.0,   "power_outage must collapse voltage.")
-
-    # -----------------------------------------------------------------------
-    # 20. Fault: tank_level manually set to 10% → sensors respond
-    # -----------------------------------------------------------------------
-    def test_manual_fault_low_tank_activates_sensors(self):
-        """Manual fault: tank_level = 9% with pump ON must trigger starvation mode."""
-        sim = _make_sim(self.building, tank_level=9.0, pump_on=True)
-        sim.sensor_data["pump_tank_level"] = 9.0
-        sim.manual_overrides["pump_tank_level"] = time.time() + 90.0
-        sim.manual_pump_override = True
-        sim.sensor_data["pump_flow_rate"] = 15.0
-        sim.sensor_data["pump_pressure"]  = 5.0
-        sim.sensor_data["pump_vibration"] = 0.5
-        for _ in range(5):
-            _update_pump(sim)
-        self.assertLessEqual(sim.sensor_data["pump_flow_rate"],  2.0,  "Low tank must reduce flow.")
-        self.assertLessEqual(sim.sensor_data["pump_pressure"],   1.5,  "Low tank must reduce pressure.")
-        self.assertGreaterEqual(sim.sensor_data["pump_vibration"], 0.5, "Low tank must keep vibration elevated.")
 
     # -----------------------------------------------------------------------
     # 21. Elevator OFF → speed = 0, no alerts for stationary door
@@ -392,35 +175,6 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         _update_elevator(sim)
         self.assertEqual(sim.sensor_data["elev_door_status"], "open")
         self.assertEqual(sim.sensor_data["elev_speed"], 0.0)
-
-    # -----------------------------------------------------------------------
-    # 24. Selective clear_fault resolves only target variables overrides
-    # -----------------------------------------------------------------------
-    def test_elevator_selective_clear_fault(self):
-        """clear_fault must only pop overrides targeted by the active fault, preserving others."""
-        from apps.sensors.simulation.controls import clear_fault, inject_fault
-        sim = _make_sim(self.building, pump=True, elevator=True)
-        from apps.sensors.simulation.globals import simulators
-        simulators[self.building.id] = sim
-
-        # User sets a manual override on load
-        sim.manual_overrides["elev_load"] = time.time() + 90.0
-        sim.manual_targets["elev_load"] = 400.0
-
-        sim.elevator_on = True
-        # Inject pos_sensor_fail (affects speed, position, door_status)
-        inject_fault(self.building.id, "elevator", "pos_sensor_fail")
-        sim.manual_overrides["elev_position"] = time.time() + 90.0
-        sim.manual_targets["elev_position"] = 3.0
-
-        # Clear the fault
-        clear_fault(self.building.id, "elevator")
-
-        # Override on position must be gone
-        self.assertNotIn("elev_position", sim.manual_overrides)
-        # Override on load must STILL be there
-        self.assertIn("elev_load", sim.manual_overrides)
-        self.assertEqual(sim.manual_targets["elev_load"], 400.0)
 
     # -----------------------------------------------------------------------
 

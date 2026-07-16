@@ -19,12 +19,8 @@ class BuildingSimulator:
         self.history: list = []
         self.pending_alerts: deque = deque(maxlen=500)
         self.last_email_sent_time_per_var: dict = {}
-        self.manual_overrides: dict = {}
-        self.manual_targets: dict = {}
 
         self.sensor_limits: dict[str, tuple[float, float]] = get_sensor_limits(self.edificio_id)
-
-        self.manual_pump_override: bool = False
 
         self.sim_paused: bool = True
         self.sim_started: bool = False

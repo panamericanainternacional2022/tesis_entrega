@@ -7,7 +7,7 @@
 
     // These variables reference globals defined in shared.js:
     // EDIFICIO_ID, API, IS_ADMIN, _BOMBA_VARS, _ELEVADOR_VARS
-    // _RISK, _currentFaults, _FAULT_FORCED_RISK, currentThresholds
+    // _RISK, _currentFaults, currentThresholds
     // currentPumpOn, currentElevOn, currentReadings
     // _elevTargetFloor, _pumpDemand, _faultInjectedAt
     // chart1, chart2, sseSource, monitorConnectionTimeout, unreadHistoryCount

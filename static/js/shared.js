@@ -574,10 +574,6 @@ const _VALUE_DISPLAY = _CONFIG.value_display_es || {};
 let _SENSOR_RANGES = _CONFIG.sensor_ranges || {};
 
 let _currentFaults = {};
-const _FAULT_FORCED_RISK = {
-    "door_blocked|elev_door_status": true,
-    "pos_sensor_fail|elev_door_status": true,
-};
 
 const CHART_PUMP_VARS = _BOMBA_VARS.filter(v => v !== 'pump_tank_level');
 const CHART_ELEV_VARS = _ELEVADOR_VARS.filter(
@@ -650,11 +646,6 @@ function translateSensorValue(variable, value) {
 }
 
 function getRiskClass(varName, value) {
-    for (const faultType of Object.values(_currentFaults)) {
-        if (_FAULT_FORCED_RISK[`${faultType}|${varName}`]) {
-            return { badge: 'badge-crit', label: _RISK.critico };
-        }
-    }
     if (_ENUM_VARS.includes(varName)) {
         return { badge: 'badge-normal', label: _RISK.normal };
     }

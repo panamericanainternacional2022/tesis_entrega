@@ -49,8 +49,6 @@ def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
 
 
 def _should_skip(sim: BuildingSimulator, var: str) -> bool:
-    if var in getattr(sim, "manual_overrides", {}):
-        return True
     if var in PUMP_VARS and getattr(sim, "_pump_start_grace_ticks", 0) > 0 and not sim.sim_faults.get("pump"):
         return True
     return False
