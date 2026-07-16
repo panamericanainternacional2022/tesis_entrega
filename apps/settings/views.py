@@ -187,6 +187,8 @@ def _validate_config_new_password(
     if len(new_password) < MIN_PASSWORD_LENGTH:
         form_errors["new_password"] = \
             f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres."
+    elif len(new_password) > 128:
+        form_errors["new_password"] = "Máximo 128 caracteres."
     elif new_password != confirm_password:
         form_errors["confirm_password"] = \
             "Las contraseñas nuevas no coinciden."

@@ -77,6 +77,15 @@ def _validate_threshold_config(
     if direction not in VALID_DIRECTIONS:
         return f"Invalid direction: {direction}"
 
+    raw_high = str(config.get("high", ""))
+    raw_critic = str(config.get("critic", ""))
+    for raw, label in [(raw_high, "high"), (raw_critic, "critic")]:
+        raw_clean = raw.replace("-", "").replace(".", "")
+        if len(raw_clean) > 10:
+            return f"El valor '{label}' tiene demasiados dígitos enteros ({len(raw_clean)}). Máximo 10."
+        if "." in raw and len(raw.split(".")[1]) > 4:
+            return f"El valor '{label}' tiene demasiados decimales. Máximo 4."
+
     try:
         high = _to_float_or_nan(config.get("high", 0))
         if direction == "range":

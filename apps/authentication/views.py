@@ -162,6 +162,8 @@ def _validate_login_fields(
 ) -> None:
     if not username:
         errors["username"] = "Este campo es obligatorio."
+    elif len(username) > MAX_USERNAME_LENGTH:
+        errors["username"] = f"Máximo {MAX_USERNAME_LENGTH} caracteres."
     if not password:
         errors["password"] = "Este campo es obligatorio."
 
@@ -185,6 +187,8 @@ def _validate_registration_form(
         errors["confirm_password"] = "Las contraseñas no coinciden."
     elif len(password) < MIN_PASSWORD_LENGTH:
         errors["password"] = f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres."
+    elif len(password) > 128:
+        errors["password"] = "Máximo 128 caracteres."
 
     if not REGEX_USERNAME.match(username):
         errors["username"] = "El nombre de usuario solo acepta letras y números."

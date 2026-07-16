@@ -64,10 +64,25 @@ def _validate_limit_input(
     cleaned: dict[str, float] = {}
 
     for variable, max_val_raw in data.items():
+        raw = str(max_val_raw)
+        raw_clean = raw.replace("-", "").replace(".", "")
+        if len(raw_clean) > 10:
+            errors[variable] = "Demasiados dígitos enteros. Máximo 10."
+            continue
+        if "." in raw and len(raw.split(".")[1]) > 4:
+            errors[variable] = "Demasiados decimales. Máximo 4."
+            continue
+
         try:
             max_val = float(max_val_raw)
         except (ValueError, TypeError):
             errors[variable] = "Value must be numeric"
+            continue
+
+        if max_val > 999.0:
+            errors[variable] = (
+                f"El límite máximo no puede exceder 999.0"
+            )
             continue
 
         default_min = SENSOR_RANGES.get(variable, (0.0, 100.0))[0]

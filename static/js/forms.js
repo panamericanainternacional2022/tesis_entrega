@@ -181,6 +181,7 @@
         const validarPassword = (input) => {
             const valor = input.value;
             if (valor && valor.length < 8) mostrarError(input, 'La contraseña debe tener al menos 8 caracteres.');
+            else if (valor && valor.length > 128) { input.value = valor.slice(0, 128); mostrarError(input, 'Máximo 128 caracteres.'); }
             else if (valor && !REGEX.password.test(valor)) mostrarError(input, 'Debe contener letras y números.');
             else limpiarError(input);
             toggleSubmit(input.form);

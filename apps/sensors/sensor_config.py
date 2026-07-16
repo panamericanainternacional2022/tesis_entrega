@@ -366,18 +366,18 @@ DAILY_RETENTION_DAYS: int = 8
 
 SENSOR_RANGES = {
     # ── SISTEMA BOMBA — Límites físicos destructivos (simulator.md §2) ──────
-    "pump_flow_rate":    (0.0, 999999.0),   # sin límite explícito (excluido de UI)
+    "pump_flow_rate":    (0.0, 50000.0),   # 50000 L/min máx realista industrial
     "pump_pressure":     (0.0,   10.0),   # Límite Máx spec = 10.0 bar (antes 12)
     "pump_temperature":  (22.0, 100.0),  # Límite Mín=22°C (T_AMBIENT), Máx=100°C
     "pump_vibration":    (0.0,   15.0),   # sin cambio
-    "pump_tank_level":   (0.0, 999999.0), # sin límite explícito (excluido de UI)
+    "pump_tank_level":   (0.0, 100.0),    # % de nivel de tanque
     "pump_voltage":      (0.0,  300.0),   # Límite Mín=0 (corte), Máx=300 V spec (antes 180-260)
     "pump_current":      (0.0,   30.0),   # Límite Máx spec = 30.0 A (antes 70)
     "pump_water_quality":(0.0, 1000.0),   # sin cambio
     # ── SISTEMA ELEVADOR — Límites físicos destructivos (simulator.md §2) ───
     "elev_speed":        (0.0,    3.0),   # Límite Máx spec = 3.0 m/s (antes 6)
     "elev_load":         (0.0, 1200.0),   # sin cambio
-    "elev_position":     (0.0, 999999.0), # sin límite explícito (excluido de UI)
+    "elev_position":     (0.0, 50.0),     # máximo 50 pisos realista
     "elev_temperature":  (22.0,  90.0),  # Límite Mín=22°C (T_AMBIENT), Máx=90°C
     "elev_current":      (0.0,   40.0),   # Límite Máx spec = 40.0 A (antes 80)
     "elev_vibration":    (0.0,   10.0),   # Límite Máx spec = 10.0 mm/s (antes 20)

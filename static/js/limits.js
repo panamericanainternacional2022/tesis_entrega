@@ -18,6 +18,9 @@
             div.className = 'thresh-card';
             const name = getVariableName(k);
             const unit = getUnit(k);
+            const defaultMin = r[0];
+            const maxBound = r[1];
+            const hardCap = Math.min(maxBound, 999.0);
             const maxVal = r[1];
             const thresh = currentThresholds[k];
             let refText = '';
@@ -37,7 +40,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Límite máximo</label>
-                        <input type="number" step="any" data-var="${k}" data-level="max" value="${maxVal}" class="form-input">
+                        <input type="number" step="any" min="${(defaultMin + 0.01).toFixed(2)}" max="${hardCap}" data-var="${k}" data-level="max" value="${maxVal}" class="form-input">
                     </div>
                 </div>
                 <div class="error-msg"></div>`;
@@ -225,6 +228,20 @@
         })();
     };
 
+    function _truncateNumberInput(inp) {
+        var str = inp.value;
+        var parts = str.split('.');
+        if (parts[0] && parts[0].replace('-', '').length > 10) {
+            inp.value = str.slice(0, -1);
+            return true;
+        }
+        if (parts[1] && parts[1].length > 4) {
+            inp.value = parts[0] + '.' + parts[1].slice(0, 4);
+            return true;
+        }
+        return false;
+    }
+
     // Admin event setup for limits
     window.AppLimitsSetupEvents = function setupLimitsAdminEvents() {
         const saveLimitsBombaBtn = document.getElementById('saveLimitsBombaBtn');
@@ -232,9 +249,9 @@
         const saveLimitsElevadorBtn = document.getElementById('saveLimitsElevadorBtn');
         const limitsElevadorPanel = document.getElementById('limitsElevadorPanel');
         if (saveLimitsBombaBtn) saveLimitsBombaBtn.addEventListener('click', () => saveLimits('bomba'));
-        if (limitsBombaPanel) limitsBombaPanel.addEventListener('input', () => validateLimitInputs('bomba'));
+        if (limitsBombaPanel) limitsBombaPanel.addEventListener('input', function (e) { _truncateNumberInput(e.target); validateLimitInputs('bomba'); });
         if (saveLimitsElevadorBtn) saveLimitsElevadorBtn.addEventListener('click', () => saveLimits('elevador'));
-        if (limitsElevadorPanel) limitsElevadorPanel.addEventListener('input', () => validateLimitInputs('elevador'));
+        if (limitsElevadorPanel) limitsElevadorPanel.addEventListener('input', function (e) { _truncateNumberInput(e.target); validateLimitInputs('elevador'); });
         const resetAllLimitsBtn = document.getElementById('resetAllLimitsBtn');
         if (resetAllLimitsBtn) resetAllLimitsBtn.addEventListener('click', resetAllLimits);
     };

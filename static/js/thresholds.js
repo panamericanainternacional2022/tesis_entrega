@@ -61,18 +61,20 @@
             </div>`;
 
             if (cfg.direction === 'range') {
+                const minB = bounds[0], maxB = bounds[1];
                 div.innerHTML = headerHtml + `
                     <div class="thresh-grid-2">
-                        <div class="form-group"><label class="form-label">Mínimo aceptable</label><input type="number" step="any" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Máximo aceptable</label><input type="number" step="any" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Mínimo aceptable</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Máximo aceptable</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
                     <input type="hidden" data-var="${k}" data-level="direction" value="range">`;
             } else {
+                const minB = bounds[0], maxB = bounds[1];
                 div.innerHTML = headerHtml + `
                     <div class="thresh-grid-2">
-                        <div class="form-group"><label class="form-label">Alto</label><input type="number" step="any" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
-                        <div class="form-group"><label class="form-label">Crítico</label><input type="number" step="any" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Alto</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="high" value="${cfg.high}" class="form-input"></div>
+                        <div class="form-group"><label class="form-label">Crítico</label><input type="number" step="any" min="${minB}" max="${maxB}" data-var="${k}" data-level="critic" value="${cfg.critic}" class="form-input"></div>
                     </div>
                     <div class="error-msg"></div>
                     <input type="hidden" data-var="${k}" data-level="direction" value="${cfg.direction}">`;
@@ -302,6 +304,20 @@
         })();
     };
 
+    function _truncateNumberInput(inp) {
+        var str = inp.value;
+        var parts = str.split('.');
+        if (parts[0] && parts[0].replace('-', '').length > 10) {
+            inp.value = str.slice(0, -1);
+            return true;
+        }
+        if (parts[1] && parts[1].length > 4) {
+            inp.value = parts[0] + '.' + parts[1].slice(0, 4);
+            return true;
+        }
+        return false;
+    }
+
     // Admin event setup for thresholds
     window.AppThresholdsSetupEvents = function setupThresholdsAdminEvents() {
         const saveThreshBombaBtn = document.getElementById('saveThresholdsBombaBtn');
@@ -310,9 +326,9 @@
         const threshElevadorPanel = document.getElementById('thresholdsElevadorPanel');
         const resetAllBtn = document.getElementById('resetAllThresholdsBtn');
         if (saveThreshBombaBtn) saveThreshBombaBtn.addEventListener('click', () => saveThresholds('bomba'));
-        if (threshBombaPanel) threshBombaPanel.addEventListener('input', () => validateThresholdInputs('bomba'));
+        if (threshBombaPanel) threshBombaPanel.addEventListener('input', function (e) { _truncateNumberInput(e.target); validateThresholdInputs('bomba'); });
         if (saveThreshElevadorBtn) saveThreshElevadorBtn.addEventListener('click', () => saveThresholds('elevador'));
-        if (threshElevadorPanel) threshElevadorPanel.addEventListener('input', () => validateThresholdInputs('elevador'));
+        if (threshElevadorPanel) threshElevadorPanel.addEventListener('input', function (e) { _truncateNumberInput(e.target); validateThresholdInputs('elevador'); });
         if (resetAllBtn) resetAllBtn.addEventListener('click', resetAllThresholds);
     };
 
