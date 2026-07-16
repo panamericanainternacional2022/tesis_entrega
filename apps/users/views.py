@@ -122,7 +122,7 @@ def user_create_view(request: HttpRequest) -> HttpResponse:
 
                 edificio_id = post_data.get("id_edificio")
                 if edificio_id:
-                    if not Building.objects.filter(id_edificio=edificio_id).exists():
+                    if not Building.objects.filter(id=edificio_id).exists():
                         messages.error(request, "El edificio seleccionado no existe.")
                         return redirect("user_register")
                     UserBuilding.objects.create(user=created_user, building_id=edificio_id)
