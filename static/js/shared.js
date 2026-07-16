@@ -121,6 +121,22 @@ class CustomSelect {
         this.menu.classList.add('open');
         this.trigger.classList.add('open');
         this.trigger.setAttribute('aria-expanded', 'true');
+
+        // Dentro de filter-panel: usar position:fixed para escapar del overflow:auto
+        const panel = this.wrapper.closest('.filter-panel-body');
+        if (panel) {
+            const rect = this.trigger.getBoundingClientRect();
+            this.menu.style.position = 'fixed';
+            this.menu.style.top = rect.bottom + 'px';
+            this.menu.style.right = (window.innerWidth - rect.right) + 'px';
+            this.menu.style.left = 'auto';
+            this.menu.style.minWidth = rect.width + 'px';
+            this.menu.style.width = 'max-content';
+            // Cerrar al hacer scroll dentro del panel
+            this._panelScrollHandler = () => { if (this.menu.classList.contains('open')) this.close(); };
+            panel.addEventListener('scroll', this._panelScrollHandler);
+        }
+
         const selected = this._items.find(el => el.classList.contains('selected'));
         if (selected) { selected.scrollIntoView({ block: 'nearest' }); selected.focus(); }
     }
@@ -129,6 +145,21 @@ class CustomSelect {
         this.menu.classList.remove('open');
         this.trigger.classList.remove('open');
         this.trigger.setAttribute('aria-expanded', 'false');
+
+        // Limpiar position:fixed si se aplicó
+        if (this.menu.style.position === 'fixed') {
+            this.menu.style.position = '';
+            this.menu.style.top = '';
+            this.menu.style.right = '';
+            this.menu.style.left = '';
+            this.menu.style.minWidth = '';
+            this.menu.style.width = '';
+        }
+        if (this._panelScrollHandler) {
+            const panel = this.wrapper.closest('.filter-panel-body');
+            if (panel) panel.removeEventListener('scroll', this._panelScrollHandler);
+            this._panelScrollHandler = null;
+        }
     }
 
     toggle() {

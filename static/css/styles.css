@@ -828,8 +828,10 @@ button {
 .custom-select-menu {
     position: absolute;
     left: 0;
-    right: 0;
+    right: auto;
     top: calc(100% + 4px);
+    min-width: 100%;
+    width: max-content;
     background: var(--color-surface);
     border: var(--border-brutal);
     box-shadow: var(--shadow-brutal);
@@ -847,16 +849,19 @@ button {
 .custom-select-item {
     display: flex;
     align-items: center;
+    gap: var(--sp-2);
     padding: 11px var(--sp-4);
     font-size: var(--text-sm);
     font-family: var(--font);
     font-weight: var(--weight-medium);
+    line-height: var(--leading-tight);
     color: var(--color-text-primary);
     background: var(--color-surface);
     border: none;
     border-bottom: var(--border-brutal);
     width: 100%;
     text-align: left;
+    white-space: nowrap;
     cursor: pointer;
     transition: background var(--transition-fast);
 }
@@ -879,6 +884,11 @@ button {
     opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+/* ─── CustomSelect dentro de filter-panel: anclar a la derecha y abrir hacia afuera ─── */
+.filter-panel-body .custom-select-menu {
+    z-index: 1300;
 }
 
 /* ─── Validación ─── */
@@ -1040,6 +1050,7 @@ button {
     right: 0;
     top: calc(100% + 4px);
     min-width: 180px;
+    width: max-content;
     border: var(--border-brutal);
     box-shadow: var(--shadow-brutal);
     z-index: 100;
@@ -1058,6 +1069,8 @@ button {
     padding: 11px var(--sp-4);
     font-size: var(--text-sm);
     font-family: var(--font);
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-tight);
     white-space: nowrap;
     text-decoration: none;
     color: var(--color-text-primary);
