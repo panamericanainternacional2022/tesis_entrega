@@ -12,6 +12,7 @@ from apps.sensors.simulation.exceptions import (
     DeviceNotInBuildingError,
     InvalidFaultTypeError,
 )
+from apps.sensors.engine import ALERT_DEBOUNCE_TICKS
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,10 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
         raise InvalidFaultTypeError(device, fault_type)
     sim.sim_faults[device] = fault_type
     sim.fault_injected_at[device] = time.time()
+    if not hasattr(sim, "_alert_consecutive"):
+        sim._alert_consecutive = {}
+    fault_key = f"fault_raw:{fault_type}"
+    sim._alert_consecutive[fault_key] = ALERT_DEBOUNCE_TICKS
     logger.info("Falla inyectada: edificio=%s, device=%s, tipo=%s", edificio_id, device, fault_type)
     nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
     nombre_dispositivo = _DEVICE_ES.get(device, device)

@@ -64,7 +64,15 @@ def sim_reset(request, building_id: int) -> JsonResponse:
 
     try:
         message = reset_simulator(building_id)
-        return json_ok({"message": message})
+        return json_ok({
+            "message": message,
+            "pump_on": True,
+            "elevator_on": True,
+            "faults": {},
+            "speed": 1.0,
+            "paused": True,
+            "started": False,
+        })
     except SimulatorError as e:
         return json_error(e.message, e.status_code)
 
@@ -87,7 +95,8 @@ def sim_inject_fault(request, building_id: int) -> JsonResponse:
 
     try:
         message = inject_fault(building_id, device, fault_type)
-        return json_ok({"message": message})
+        sim = get_simulator(building_id)
+        return json_ok({"message": message, "faults": dict(sim.sim_faults)})
     except SimulatorError as e:
         return json_error(e.message)
 
@@ -107,7 +116,8 @@ def sim_clear_fault(request, building_id: int) -> JsonResponse:
 
     try:
         message = clear_fault(building_id, device)
-        return json_ok({"message": message})
+        sim = get_simulator(building_id)
+        return json_ok({"message": message, "faults": dict(sim.sim_faults)})
     except SimulatorError as e:
         return json_error(e.message, e.status_code)
 
@@ -165,7 +175,7 @@ def sim_toggle_pump(request, building_id: int) -> JsonResponse:
             except Exception:
                 logger.warning("Could not auto-clear pump fault on power-off (building=%s)", building_id)
 
-    return json_ok({"pump_on": sim.pump_on})
+    return json_ok({"pump_on": sim.pump_on, "faults": dict(sim.sim_faults)})
 
 
 @require_http_methods(["POST"])
@@ -195,5 +205,5 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
             except Exception:
                 logger.warning("Could not auto-clear elevator fault on power-off (building=%s)", building_id)
 
-    return json_ok({"elevator_on": sim.elevator_on})
+    return json_ok({"elevator_on": sim.elevator_on, "faults": dict(sim.sim_faults)})
 

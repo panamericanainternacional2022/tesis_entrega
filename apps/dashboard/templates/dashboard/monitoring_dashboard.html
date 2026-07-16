@@ -104,9 +104,6 @@
                         <option value="{{ key }}">{{ name }}</option>
                         {% endfor %}
                     </select>
-                    <div class="form-group-messages">
-                        <span id="faultWarningPump" class="fault-warning"></span>
-                    </div>
                 </div>
                 <div class="form-group" id="simToggleElevatorGroup">
                     <span class="form-label">Elevador</span>
@@ -124,9 +121,6 @@
                         <option value="{{ key }}">{{ name }}</option>
                         {% endfor %}
                     </select>
-                    <div class="form-group-messages">
-                        <span id="faultWarningElevator" class="fault-warning"></span>
-                    </div>
                 </div>
                 <div class="form-group col-stack gap-1 self-end pb-6">
                     <button type="button" id="clearFaultsBtn" class="btn btn-secondary" disabled
@@ -219,7 +213,6 @@
             setSpeed:  '/api/sim/' + BID + '/set-speed/',
         };
 
-        window.updateFaultWarnings = window.updateFaultWarnings || function () {};
         window.fetchInitialData = window.fetchInitialData || function () {};
 
         var _csVal = function (el, val) {
@@ -255,9 +248,7 @@
             this.btnReset       = document.getElementById('simResetBtn');
             this.clearFaultsBtn = document.getElementById('clearFaultsBtn');
             this.selFaultElev   = document.getElementById('simFaultElevator');
-            this.warnFaultElev  = document.getElementById('faultWarningElevator');
             this.selFaultPump   = document.getElementById('simFaultPump');
-            this.warnFaultPump  = document.getElementById('faultWarningPump');
         };
 
         SimulationController.prototype._bindEvents = function () {
@@ -311,6 +302,9 @@
                         if (!data.paused && !self.simStarted) self.simStarted = true;
                         self._updatePauseBtn();
                         self._updateControlStates();
+                        self._updateSpeedButtons(self.currentSpeed);
+                        var lastUpd = document.getElementById('lastUpdate');
+                        if (lastUpd) lastUpd.innerText = data.started ? new Date().toLocaleTimeString() : '--:--:--';
                     } else {
                         window.showToast(data.message || 'Error al cambiar estado.', 'error');
                     }
@@ -328,7 +322,13 @@
             window.csrfFetch(URLS.setSpeed, {
                 method: 'POST',
                 body: JSON.stringify({ speed: speed })
-            }).catch(function () {});
+            }).then(function (r) { return r.json(); })
+              .then(function (data) {
+                  if (data.status === 'ok' && data.speed !== undefined && data.speed !== speed) {
+                      self.currentSpeed = data.speed;
+                      self._updateSpeedButtons(data.speed);
+                  }
+              }).catch(function () {});
         };
 
         // ─────────────── FAULT MANAGEMENT ───────────────
@@ -352,6 +352,23 @@
             var chain = window.csrfFetch(URLS.clear, {
                 method: 'POST',
                 body: JSON.stringify({ device: device })
+            }).then(function (resp) {
+                // Mark history items as resolved for the cleared fault type
+                if (prevFault) {
+                    document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
+                        if (item.getAttribute('data-fault-type') === prevFault) {
+                            item.classList.add('risk-resolved');
+                            var badge = item.querySelector('.sensor-badge');
+                            if (badge) {
+                                badge.className = 'sensor-badge risk-resolved';
+                                badge.textContent = 'Resuelta';
+                            }
+                            var resolveBtn = item.querySelector('.hist-resolve-btn');
+                            if (resolveBtn) resolveBtn.remove();
+                        }
+                    });
+                }
+                return resp;
             });
 
             if (newFault) {
@@ -371,6 +388,10 @@
 
                     if (data.status === 'ok') {
                         self._updateFaultUI();
+                        _currentFaults = data.faults || {};
+                        if (typeof window.updateCards === 'function') {
+                            window.updateCards(currentReadings);
+                        }
                     } else {
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
                         var selId = device === 'elevator' ? 'simFaultElevator' : 'simFaultPump';
@@ -416,6 +437,12 @@
                             self._updateSpeedButtons(1.0);
                             self._updateControlStates();
                             self._updateFaultUI();
+                            _currentFaults = {};
+                            currentPumpOn = true;
+                            currentElevOn = true;
+                            _elevTargetFloor = 0;
+                            _pumpDemand = 15.0;
+                            _faultInjectedAt = {};
                             if (window.clearCurrentReadings) window.clearCurrentReadings();
                             document.getElementById('lastUpdate').innerText = '--:--:--';
                             window.fetchInitialData();
@@ -456,6 +483,25 @@
                         _csVal(document.getElementById('simFaultElevator'), '');
                         _csVal(document.getElementById('simFaultPump'), '');
                         self._updateFaultUI();
+                        _currentFaults = {};
+                        if (typeof window.updateCards === 'function') {
+                            window.updateCards(currentReadings);
+                        }
+                        // Mark all compound fault items in live history as resolved
+                        document.querySelectorAll('#live-history-list .hist-item[data-fault-type]').forEach(function (item) {
+                            item.classList.add('risk-resolved');
+                            var badge = item.querySelector('.sensor-badge');
+                            if (badge) {
+                                badge.className = 'sensor-badge risk-resolved';
+                                badge.textContent = 'Resuelta';
+                            }
+                            var resolveBtn = item.querySelector('.hist-resolve-btn');
+                            if (resolveBtn) resolveBtn.remove();
+                        });
+                        // Refresh badge count from server
+                        fetch('/history/api/count/').then(function (r) { return r.json(); }).then(function (d) {
+                            if (d.count !== undefined) setHistoryBadge(d.count);
+                        }).catch(function () {});
                     }
                     self._updateControlStates();
                 })
@@ -502,9 +548,9 @@
             _csDis(document.getElementById('togglePumpBtn'), !running);
             _csDis(document.getElementById('toggleElevatorBtn'), !running);
 
-            // Fault selects - disabled when not running or when a fault is being injected
-            _csDis(document.getElementById('simFaultPump'), !running || this._pumpFaultInFlight);
-            _csDis(document.getElementById('simFaultElevator'), !running || this._elevFaultInFlight);
+            // Fault selects - disabled when not running, fault in flight, or equipment is off
+            _csDis(document.getElementById('simFaultPump'), !running || this._pumpFaultInFlight || !this._pumpOn);
+            _csDis(document.getElementById('simFaultElevator'), !running || this._elevFaultInFlight || !this._elevOn);
 
             // Clear faults button - enabled only when there are active faults
             if (this.clearFaultsBtn) {
@@ -513,9 +559,6 @@
 
             // Reset button - disabled when not started
             if (this.btnReset) this.btnReset.disabled = !started;
-
-            // Notify other modules
-            window.updateFaultWarnings();
         };
 
         SimulationController.prototype._updateEquipmentVisibility = function () {
@@ -532,7 +575,6 @@
         SimulationController.prototype._updateFaultUI = function () {
             _csVal(document.getElementById('simFaultElevator'), this._activeElevFault);
             _csVal(document.getElementById('simFaultPump'), this._activePumpFault);
-            window.updateFaultWarnings();
         };
 
         // ─────────────── INITIAL LOAD ───────────────
@@ -566,8 +608,6 @@
 
                     _csVal(document.getElementById('simFaultElevator'), self._activeElevFault);
                     _csVal(document.getElementById('simFaultPump'), self._activePumpFault);
-
-                    window.updateFaultWarnings();
                 })
                 .catch(function () {});
         };

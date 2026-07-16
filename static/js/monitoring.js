@@ -290,34 +290,6 @@
             .catch(function () {});
     }
 
-    function updateFaultWarnings() {
-        if (!IS_ADMIN) return;
-        const pumpEl = document.getElementById('faultWarningPump');
-        const elevEl = document.getElementById('faultWarningElevator');
-        const pumpFault = document.getElementById('simFaultPump')?.value;
-        const elevFault = document.getElementById('simFaultElevator')?.value;
-        const simCtrl = window.SimulationController;
-        const pumpOn = currentPumpOn || (simCtrl && simCtrl._pumpOn);
-        const elevOn = currentElevOn || (simCtrl && simCtrl._elevOn);
-
-        if (pumpEl) {
-            if (pumpFault && !pumpOn) {
-                pumpEl.textContent = 'Se activará al encender el equipo';
-                pumpEl.style.display = 'block';
-            } else {
-                pumpEl.style.display = 'none';
-            }
-        }
-        if (elevEl) {
-            if (elevFault && !elevOn) {
-                elevEl.textContent = 'Se activará al encender el equipo';
-                elevEl.style.display = 'block';
-            } else {
-                elevEl.style.display = 'none';
-            }
-        }
-    }
-
     function updateAdminControlsByEquipment(equipTypes) {
         if (!IS_ADMIN) return;
         const et = equipTypes || [];
@@ -328,11 +300,10 @@
         const simStarted = ctrl ? ctrl.simStarted : false;
         const simPaused = ctrl ? ctrl.simPaused : true;
         const simDisabled = !simStarted || simPaused;
-        _csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled);
-        _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled);
-
-        updateFaultWarnings();
-
+        const pumpOff = ctrl ? !ctrl._pumpOn : false;
+        const elevOff = ctrl ? !ctrl._elevOn : false;
+        _csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled || pumpOff);
+        _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled || elevOff);
     }
 
     function connectSSE() {
@@ -479,7 +450,6 @@
             const elevSpan = elevBtn.querySelector('span');
             if (elevSpan) elevSpan.textContent = elevOn ? 'Apagar' : 'Encender';
         }
-        updateFaultWarnings();
     }
 
     async function toggleEquipmentPower(device) {
@@ -497,6 +467,24 @@
                 } else {
                     currentElevOn = data.elevator_on;
                     updateEquipmentPowerBtns(undefined, data.elevator_on);
+                }
+                updateSummaryValues({pump_on: currentPumpOn, elevator_on: currentElevOn});
+                if (data.faults) {
+                    _currentFaults = data.faults;
+                }
+                var ctrl = window.SimulationController;
+                if (ctrl) {
+                    if (device === 'pump') {
+                        ctrl._pumpOn = data.pump_on;
+                        ctrl._activePumpFault = (data.faults && data.faults.pump) || '';
+                        if (window._csSetValue) window._csSetValue(document.getElementById('simFaultPump'), ctrl._activePumpFault);
+                    } else {
+                        ctrl._elevOn = data.elevator_on;
+                        ctrl._activeElevFault = (data.faults && data.faults.elevator) || '';
+                        if (window._csSetValue) window._csSetValue(document.getElementById('simFaultElevator'), ctrl._activeElevFault);
+                    }
+                    ctrl._updateControlStates();
+                    ctrl._updateFaultUI();
                 }
             } else {
                 setSimMessage(data.message || 'Error al cambiar el estado del equipo.', 'error');
@@ -536,6 +524,7 @@
         var badgeClass = BADGE_MAP[_riskUpper] || 'sensor-normal';
 
         if (data.fault_type) {
+            li.setAttribute('data-fault-type', data.fault_type);
             const faultName = data.fault_name || _faultTypeToDisplay(data.fault_type);
             const varsList = (data.variables || []).map(v => {
                 const varName = typeof v === 'string' ? v : (v.display_name || getVariableName(v.variable));
@@ -647,18 +636,20 @@
                         }
                     }
                     btn.remove();
+                    unreadHistoryCount = Math.max(0, unreadHistoryCount - 1);
+                    setHistoryBadge(unreadHistoryCount);
                 }
             } catch (_) { btn.disabled = false; }
         });
     }
 
     // Expose to window for SimulationController (in monitoring_dashboard.html inline script)
-    window.updateFaultWarnings = updateFaultWarnings;
     window.fetchInitialData = fetchInitialData_monitoring;
     window.initLiveHistory = initLiveHistory;
     window.connectSSE = connectSSE;
     window.addLiveHistoryEvent = addLiveHistoryEvent;
     window.updateEquipmentPowerBtns = updateEquipmentPowerBtns;
+    window.updateCards = updateCards;
 
     function fetchInitialData_monitoring() {
         // This is the monitoring-specific fetchInitialData (lines 1719-1733)
