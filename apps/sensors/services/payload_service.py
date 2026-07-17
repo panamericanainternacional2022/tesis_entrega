@@ -27,7 +27,6 @@ class PayloadContext:
     active_edificio_id: int = None
     django_connected: bool = False
     sim_faults: dict = None
-    active_alerts: dict = None
 
     elev_state: str = None
     elev_target_floor: int = None
@@ -63,7 +62,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)
     _maybe_sync_equipment_status(
-        ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults, ctx.active_alerts
+        ctx.django_connected, ctx.active_edificio_id, ctx.sim_faults
     )
     alert_log = _get_alert_log_cached(ctx.active_edificio_id)
     latest_ts = ctx.history[-1]["timestamp"] if ctx.history else None
@@ -115,7 +114,6 @@ def _maybe_sync_equipment_status(
     django_connected: bool,
     active_edificio_id: int,
     sim_faults: dict = None,
-    active_alerts: dict = None,
 ) -> None:
     if not django_connected or not active_edificio_id:
         return
@@ -126,30 +124,17 @@ def _maybe_sync_equipment_status(
     if now - last_sync < _EQUIPMENT_SYNC_INTERVAL:
         return
     cache.set(cache_key, now, timeout=_EQUIPMENT_SYNC_INTERVAL + 5)
-    _sync_equipment_status(django_connected, active_edificio_id, sim_faults, active_alerts)
+    _sync_equipment_status(django_connected, active_edificio_id, sim_faults)
 
 
 def _sync_equipment_status(
     django_connected: bool,
     active_edificio_id: int,
-    sim_faults: dict = None,
-    active_alerts: dict = None) -> None:
-    has_pump_fault = False
-    if sim_faults and "pump" in sim_faults:
-        has_pump_fault = True
-    elif active_alerts:
-        if any(var in PUMP_VARS for var in active_alerts):
-            has_pump_fault = True
-
+    sim_faults: dict = None) -> None:
+    has_pump_fault = bool(sim_faults and "pump" in sim_faults)
     dynamic_pump = "falla" if has_pump_fault else "operativo"
 
-    has_elev_fault = False
-    if sim_faults and "elevator" in sim_faults:
-        has_elev_fault = True
-    elif active_alerts:
-        if any(var in ELEVATOR_VARS for var in active_alerts):
-            has_elev_fault = True
-
+    has_elev_fault = bool(sim_faults and "elevator" in sim_faults)
     dynamic_elev = "falla" if has_elev_fault else "operativo"
 
     if django_connected and active_edificio_id:

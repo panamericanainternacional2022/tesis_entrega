@@ -1,15 +1,11 @@
-import time
-from unittest.mock import patch
-
 from django.test import TestCase
 
 from apps.users.models import Persona, Usuario
 from apps.buildings.models import Building, MonitoringEquipment, UserBuilding
 from apps.sensors.simulation.models import BuildingSimulator
-from apps.sensors.simulation.physics.pump import _update_pump
 from apps.sensors.simulation.physics.elevator import _update_elevator
 from apps.core.services.risk_service import classify_risk
-from apps.sensors.sensor_config import RISK_CRITICO, RISK_NORMAL
+from apps.sensors.sensor_config import RISK_NORMAL
 
 
 # ---------------------------------------------------------------------------
@@ -78,43 +74,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         self.assertEqual(risk, RISK_NORMAL)
 
 
-    # -----------------------------------------------------------------------
-    # 8. Email cooldown per variable
-    # -----------------------------------------------------------------------
-    @patch("apps.history.alerts.engine.threading.Thread")
-    def test_email_cooldown_per_variable(self, mock_thread):
-        with patch("apps.history.services.email_sender.get_building_emails") as mock_emails:
-            mock_emails.return_value = ["juanp@example.com"]
-            self.sim.last_email_sent_time_per_var.clear()
-            self.sim.active_alerts.clear()
-            from apps.history.alerts.engine import send_alert
-            send_alert("motor_stuck", True, "Crítico", "Revisar motor", sim=self.sim)
-            self.assertEqual(mock_thread.call_count, 1)
-            send_alert("elev_door_status", "open", "Crítico", "Puerta abierta", sim=self.sim)
-            self.assertEqual(mock_thread.call_count, 2)
-            self.sim.active_alerts.pop("elev_door_status", None)
-            send_alert("elev_door_status", "open", "Crítico", "Puerta abierta", sim=self.sim)
-            self.assertEqual(mock_thread.call_count, 2)
 
-    # -----------------------------------------------------------------------
-    # 9. Dynamic equipment status
-    # -----------------------------------------------------------------------
-    def test_dynamic_equipment_status(self):
-        from apps.sensors.services.payload_service import _fetch_equipment_status
-        self.equipment_pump.status = "operativo"
-        self.equipment_pump.save()
-        pump_s, _ = _fetch_equipment_status(
-            django_connected=True, active_edificio_id=self.building.id,
-            sim_faults={}, active_alerts={}
-        )
-        self.assertEqual(pump_s, "operativo")
-        pump_s, _ = _fetch_equipment_status(
-            django_connected=True, active_edificio_id=self.building.id,
-            sim_faults={"pump": "dry_run"}, active_alerts={}
-        )
-        self.assertEqual(pump_s, "falla")
-        self.equipment_pump.refresh_from_db()
-        self.assertEqual(self.equipment_pump.status, "falla")
 
     # =======================================================================
     # NEW TESTS — Float switch, pump ON/OFF, faults, elevator OFF

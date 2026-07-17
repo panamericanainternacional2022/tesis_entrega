@@ -15,19 +15,11 @@ from apps.sensors.simulation.globals import simulators
 from apps.sensors.simulation.simulation_engine import update_sensor_data
 from apps.core.services.risk_service import classify_risk
 from apps.thresholds.services import get_thresholds
-from apps.history.alerts.engine import send_alert
-from apps.sensors.services.professional_action import get_professional_action
 
 
 logger = logging.getLogger(__name__)
 
 _MAX_BACKOFF_TICKS: int = 30
-
-# Minimum consecutive ticks a sensor must stay in Alto/Crítico before an
-# alert is generated.  At sim_speed=1 each tick ≈ 1 second.
-# This eliminates single-tick pressure/flow spikes caused by pump start-up
-# or minor demand oscillations from creating spurious alerts.
-ALERT_DEBOUNCE_TICKS: int = 3
 
 
 def _run_sim_tick(sim: BuildingSimulator) -> None:
@@ -48,50 +40,17 @@ def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
     return alert_vars
 
 
-def _should_skip(sim: BuildingSimulator, var: str) -> bool:
-    if var in PUMP_VARS and getattr(sim, "_pump_start_grace_ticks", 0) > 0 and not sim.sim_faults.get("pump"):
-        return True
-    return False
-
-
-def _clear_alert(sim: BuildingSimulator, var: str) -> None:
-    sim.active_alerts.pop(var, None)
-    sim._alert_consecutive.pop(var, None)
-
-
-def _ensure_debounce_counter(sim: BuildingSimulator) -> None:
-    if not hasattr(sim, "_alert_consecutive"):
-        sim._alert_consecutive = {}
-
-
 def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict:
     thresholds = get_thresholds(sim.edificio_id)
     risk_cache: dict[str, str] = {}
-    _ensure_debounce_counter(sim)
-
-    has_active_fault = bool(sim.sim_faults)
 
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
             continue
-
-        if _should_skip(sim, var):
-            _clear_alert(sim, var)
-            continue
-
         risk, _ = classify_risk(var, value, thresholds)
         risk_cache[var] = risk
 
-        if risk in (RISK_ALTO, RISK_CRITICO):
-            consecutive = sim._alert_consecutive.get(var, 0) + sim.sim_speed
-            sim._alert_consecutive[var] = consecutive
-            if consecutive >= ALERT_DEBOUNCE_TICKS and not has_active_fault:
-                action = get_professional_action(var, risk, value)
-                send_alert(var, value, risk, action, sim=sim)
-        else:
-            _clear_alert(sim, var)
-
-    if has_active_fault:
+    if sim.sim_faults:
         _send_compound_alerts_for_faults(sim, risk_cache)
 
     return risk_cache
@@ -99,6 +58,10 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
 
 def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[str, str]) -> None:
     """Envía UNA sola alerta por cada falla activa con todas las variables afectadas."""
+    # Minimum consecutive ticks before a compound alert is generated.
+    # At sim_speed=1 each tick ≈ 1 second.
+    DEBOUNCE_TICKS: int = 3
+
     for device, fault_type in sim.sim_faults.items():
         affected_vars_defs = FAULT_AFFECTED_VARIABLES.get(fault_type, [])
 
@@ -122,10 +85,11 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
         if sim.active_alerts.get(fault_key) == worst_risk:
             continue
 
-        _ensure_debounce_counter(sim)
+        if not hasattr(sim, "_alert_consecutive"):
+            sim._alert_consecutive = {}
         consecutive = sim._alert_consecutive.get(fault_key, 0) + sim.sim_speed
         sim._alert_consecutive[fault_key] = consecutive
-        if consecutive < ALERT_DEBOUNCE_TICKS:
+        if consecutive < DEBOUNCE_TICKS:
             continue
 
         sim.active_alerts[fault_key] = worst_risk
@@ -142,7 +106,8 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
             continue
-        if _should_skip(sim, var):
+        # Skip pump readings during start-up grace period (no pump fault active)
+        if var in PUMP_VARS and getattr(sim, "_pump_start_grace_ticks", 0) > 0 and not sim.sim_faults.get("pump"):
             continue
         if var in ENUM_VARS:
             continue
