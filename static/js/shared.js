@@ -659,16 +659,15 @@ function getRiskClass(varName, value) {
     const numVal = Number(value);
 
     if (cfg.direction === 'range') {
-        // cfg.high   = límite INFERIOR del rango normal (ej: 210 V, 20% tank)
-        // cfg.critic = límite SUPERIOR del rango normal (ej: 230 V, 85% tank)
-        // cfg.crit_low / cfg.crit_high = límites críticos externos
         const lo = cfg.high;
         const hi = cfg.critic;
-        const critLo = cfg.crit_low;
-        const critHi = cfg.crit_high;
-        if (critLo !== undefined && numVal < critLo) return { badge: 'badge-crit', label: _RISK.critico };
-        if (critHi !== undefined && numVal > critHi) return { badge: 'badge-crit', label: _RISK.critico };
-        if (numVal >= lo && numVal <= hi) return { badge: 'badge-normal', label: _RISK.normal };
+        const margin = (hi - lo) * 0.20;
+        if (numVal < lo || numVal > hi) {
+            return { badge: 'badge-crit', label: _RISK.critico };
+        }
+        if (numVal >= lo + margin && numVal <= hi - margin) {
+            return { badge: 'badge-normal', label: _RISK.normal };
+        }
         return { badge: 'badge-high', label: _RISK.alto };
     }
 

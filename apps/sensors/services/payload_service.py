@@ -58,6 +58,7 @@ def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[s
 
 def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     from apps.thresholds.services import get_thresholds
+    from apps.core.services.risk_service import classify_risk
     stats = _compute_stats(ctx.history)
     relevant_vars = _build_relevant_vars(ctx.equipment_types)
     thresholds = get_thresholds(ctx.active_edificio_id)
@@ -66,8 +67,18 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     )
     alert_log = _get_alert_log_cached(ctx.active_edificio_id)
     latest_ts = ctx.history[-1]["timestamp"] if ctx.history else None
+
+    current = {k: v for k, v in ctx.sensor_data.items() if k in relevant_vars}
+
+    _BADGE_MAP = {"Normal": "badge-normal", "Alto": "badge-high", "Crítico": "badge-crit"}
+    risk = {}
+    for var, val in current.items():
+        level, _color = classify_risk(var, val, thresholds)
+        risk[var] = {"label": level, "badge": _BADGE_MAP.get(level, "badge-normal")}
+
     return {
-        "current": {k: v for k, v in ctx.sensor_data.items() if k in relevant_vars},
+        "current": current,
+        "risk": risk,
         "history": [h for h in ctx.history[-PAYLOAD_HISTORY_SLICE:] if h.get("variable") in relevant_vars],
         "thresholds": thresholds,
         "alert_log": alert_log,

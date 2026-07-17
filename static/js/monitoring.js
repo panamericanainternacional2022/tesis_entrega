@@ -16,13 +16,13 @@
     let _persistCounter = 0;
     const _PERSIST_INTERVAL = 30;
 
-    function updateCards(data) {
+    function updateCards(readings, riskData) {
         const bombaContainer = document.getElementById('bombaCards');
         const elevadorContainer = document.getElementById('elevadorCards');
         if (!bombaContainer || !elevadorContainer) return;
 
-        for (const [k, v] of Object.entries(data)) {
-            const ri = getRiskClass(k, v);
+        for (const [k, v] of Object.entries(readings)) {
+            const ri = riskData?.[k] || { badge: 'badge-normal', label: _RISK.normal };
             const displayValue = translateSensorValue(k, v) ?? `${formatNumeric(v, k)} ${getUnit(k)}`;
 
             let card = document.getElementById(`sensor-card-${k}`);
@@ -372,7 +372,7 @@
 
         if (simPaused && !isFirstLoad) return;
 
-        if (data.current) { currentReadings = data.current; updateCards(data.current); }
+        if (data.current) { currentReadings = data.current; updateCards(data.current, data.risk); }
 
         const lastUpd = document.getElementById('lastUpdate');
         if (lastUpd) {
