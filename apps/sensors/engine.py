@@ -8,7 +8,7 @@ from apps.sensors.sensor_config import (
     RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
     SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
     DAILY_PERSIST_INTERVAL, DAILY_RETENTION_DAYS,
-    ENUM_VARS)
+    ENUM_VARS, VAR_NAMES, UNITS)
 from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.globals import simulators
@@ -69,6 +69,8 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
                 alert_vars[var] = {
                     "value": sim.sensor_data.get(var, 0),
                     "risk": risk_cache[var],
+                    "display_name": VAR_NAMES.get(var, var),
+                    "unit": UNITS.get(var, ""),
                 }
                 if risk_cache[var] == RISK_CRITICO:
                     worst_risk = RISK_CRITICO

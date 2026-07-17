@@ -32,8 +32,8 @@ _BORDER_LIGHT    = "#f3f4f6"
 
 
 def _get_email_colors(risk_level: str) -> Dict[str, str]:
-    from apps.sensors.sensor_config import EMAIL_COLOR_PALETTE, EMAIL_FALLBACK_COLORS
-    return EMAIL_COLOR_PALETTE.get(risk_level, EMAIL_FALLBACK_COLORS)
+    from apps.sensors.sensor_config import RISK_COLORS
+    return RISK_COLORS.get(risk_level, {}).get("email", {"bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569"})
 
 
 def _build_email_shell(inner_html: str) -> str:
@@ -198,30 +198,6 @@ def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
     return _build_email_shell(inner_html)
 
 
-def build_standard_email_body(
-    titulo: str,
-    detalles: Optional[Dict[str, str]] = None,
-    accion: str = "",
-    contexto: str = "",
-) -> str:
-    lines = [titulo, ""]
-    if contexto:
-        lines.append(contexto)
-        lines.append("")
-    if detalles:
-        lines.append("DETALLES DEL EVENTO:")
-        lines.append("-" * 44)
-        for k, v in detalles.items():
-            lines.append(f"{k}:{' ' * max(1, 18 - len(k))}{v}")
-        lines.append("")
-    if accion:
-        lines.append("MEDIDA CORRECTIVA RECOMENDADA:")
-        lines.append("-" * 44)
-        lines.append(f"Acción: {accion}")
-        lines.append("")
-    return "\n".join(lines)
-
-
 def build_compound_alert_email_html(
     fault_name: str,
     risk_level: str,
@@ -267,7 +243,7 @@ def build_compound_alert_email_html(
 
     inner += f"""
         <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border-top: 2px solid {_INK}; margin-bottom: 24px;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 2px solid {_INK}; margin-bottom: 24px;">
           <tr style="background-color: {_BG};">
             <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">Parámetro</td>
             <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Lectura</td>

@@ -7,11 +7,6 @@ from apps.core.auth_decorators import ADMIN_ROLES
 logger = logging.getLogger(__name__)
 
 
-def get_unit(variable: str) -> str:
-    from apps.sensors.sensor_config import UNITS
-    return UNITS.get(variable, "")
-
-
 def get_building_emails(edificio_id: Optional[int] = None) -> List[str]:
     try:
         from apps.buildings.models import Building, MonitoringEquipment, UserBuilding

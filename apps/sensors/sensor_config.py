@@ -84,13 +84,6 @@ RISK_STYLES: dict[str, tuple[tuple[int, int, int], tuple[int, int, int]]] = {
     for risk, v in RISK_COLORS.items()
 }
 
-EMAIL_COLOR_PALETTE: dict[str, dict[str, str]] = {
-    risk: v["email"]
-    for risk, v in RISK_COLORS.items()
-}
-EMAIL_FALLBACK_COLORS: dict[str, str] = {
-    "bg": "#f1f5f9", "border": "#cbd5e1", "text": "#475569",
-}
 
 USER_STATS_COLORS = {
     "total":      {"fill": (235, 241, 249), "text": (30, 58, 95)},

@@ -56,6 +56,28 @@ def _send_email_smtp(config: EmailConfig) -> None:
         )
         return
 
+    attachment_bytes = None
+    attachment_filename = "report.pdf"
+    if config.attachment:
+        config.attachment.pdf_data.seek(0)
+        attachment_bytes = config.attachment.pdf_data.read()
+        attachment_filename = config.attachment.filename
+
+    body_stripped = config.body.strip()
+    if body_stripped.startswith("<!DOCTYPE") or body_stripped.startswith("<html"):
+        msg = _build_mime_message(
+            html_body=config.body,
+            plain_body="",
+            subject=config.subject,
+            from_addr=smtp_user,
+            attachment_pdf=attachment_bytes,
+            attachment_name=attachment_filename,
+        )
+        from apps.sensors.sensor_config import SMTP_TIMEOUT
+        _smtp_send(msg, config.recipients or [], smtp_server, smtp_port, smtp_user, smtp_password, SMTP_TIMEOUT)
+        logger.info("Real email sent to %s (risk %s)", config.recipients, config.risk_level)
+        return
+
     from apps.history.services.email_templates import _CONTEXT_DEFAULT, _build_alert_html
 
     details = {}
@@ -97,13 +119,6 @@ def _send_email_smtp(config: EmailConfig) -> None:
         details=details or None,
         action_text=action_text,
     )
-
-    attachment_bytes = None
-    attachment_filename = "report.pdf"
-    if config.attachment:
-        config.attachment.pdf_data.seek(0)
-        attachment_bytes = config.attachment.pdf_data.read()
-        attachment_filename = config.attachment.filename
 
     msg = _build_mime_message(
         html_body=html_content,
