@@ -648,42 +648,6 @@ function translateSensorValue(variable, value) {
     return null;
 }
 
-function getRiskClass(varName, value) {
-    if (_ENUM_VARS.includes(varName)) {
-        return { badge: 'badge-normal', label: _RISK.normal };
-    }
-
-    const cfg = currentThresholds[varName];
-    if (!cfg) return { badge: 'badge-normal', label: _RISK.normal };
-
-    const numVal = Number(value);
-
-    if (cfg.direction === 'range') {
-        const lo = cfg.high;
-        const hi = cfg.critic;
-        const margin = (hi - lo) * 0.20;
-        if (numVal < lo || numVal > hi) {
-            return { badge: 'badge-crit', label: _RISK.critico };
-        }
-        if (numVal >= lo + margin && numVal <= hi - margin) {
-            return { badge: 'badge-normal', label: _RISK.normal };
-        }
-        return { badge: 'badge-high', label: _RISK.alto };
-    }
-
-    if (cfg.direction === 'lower') {
-        // cfg.high = umbral Normal→Alto (por encima), cfg.critic = umbral Alto→Crítico
-        if (numVal >= cfg.high) return { badge: 'badge-normal', label: _RISK.normal };
-        if (numVal >= cfg.critic) return { badge: 'badge-high', label: _RISK.alto };
-        return { badge: 'badge-crit', label: _RISK.critico };
-    }
-
-    // direction === 'higher': cfg.high = umbral Normal→Alto, cfg.critic = umbral Alto→Crítico
-    if (numVal > cfg.critic) return { badge: 'badge-crit', label: _RISK.critico };
-    if (numVal > cfg.high) return { badge: 'badge-high', label: _RISK.alto };
-    return { badge: 'badge-normal', label: _RISK.normal };
-}
-
 const getCSSVar = (name) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '';
 
@@ -746,7 +710,6 @@ window._csSetValue = _csSetValue;
 window._csSetDisabled = _csSetDisabled;
 window.getVariableName = getVariableName;
 window.getUnit = getUnit;
-window.getRiskClass = getRiskClass;
 window.setEquipmentState = (pumpOn, elevOn) => {
     currentPumpOn = pumpOn;
     currentElevOn = elevOn;
