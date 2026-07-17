@@ -66,6 +66,13 @@ def _update_pump(sim: BuildingSimulator) -> None:
     # Float switch automático eliminado — la bomba se controla únicamente de forma manual.
 
     # â”€â”€ Dispatch to correct operating mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Recovery countdown (debe ejecutarse incluso con bomba apagada,
+    # de lo contrario auto-proteccion deja fault_transition atascado en "recovering")
+    if sim.fault_transition_pump == "recovering":
+        sim._fault_transition_ticks_pump -= 1
+        if sim._fault_transition_ticks_pump <= 0:
+            sim.fault_transition_pump = "stable"
+
     if not sim.pump_on:
         _set_pump_idle(sim, sd, dt)
         return
@@ -76,11 +83,6 @@ def _update_pump(sim: BuildingSimulator) -> None:
         sim._pump_start_grace_ticks -= 1
     _run_pump_normal(sim, sd, dt)
 
-    if sim.fault_transition_pump == "recovering":
-        sim._fault_transition_ticks_pump -= 1
-        if sim._fault_transition_ticks_pump <= 0:
-            sim.fault_transition_pump = "stable"
-
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["pump_flow_rate"] = 0.0
@@ -88,7 +90,8 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["pump_vibration"] = 0.0
     sd["pump_current"] = 0.0
     sd["pump_temperature"] = round(
-        clamp(sd["pump_temperature"] - 0.5 * dt, T_AMBIENT, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
+        clamp(sd["pump_temperature"] + (T_AMBIENT - sd["pump_temperature"]) * 0.05 * dt,
+               T_AMBIENT, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
     )
     volt = sd["pump_voltage"]
     volt_diff = 220.0 - volt
@@ -237,7 +240,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sd["pump_vibration"]  = round(clamp(sd["pump_vibration"]  - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_vibration', (0.0, 15.0))[1]),  1)
         sd["pump_current"]    = round(clamp(sd["pump_current"]    - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_current', (0.0, 30.0))[1]),  1)
         sd["pump_temperature"] = round(
-            clamp(sd["pump_temperature"] + (T_AMBIENT - sd["pump_temperature"]) * 0.02 * dt,
+            clamp(sd["pump_temperature"] + (T_AMBIENT - sd["pump_temperature"]) * 0.05 * dt,
                    sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[0], sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1
         )
         return
@@ -276,7 +279,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     # First-order thermal model
     target_temp = 50.0 + (flow * pressure * 0.1)
     temp_diff   = target_temp - sd["pump_temperature"]
-    temp = sd["pump_temperature"] + temp_diff * 0.02 * dt + random.uniform(-0.1, 0.1) * dt
+    temp = sd["pump_temperature"] + temp_diff * 0.05 * dt + random.uniform(-0.1, 0.1) * dt
 
     vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
     # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)

@@ -114,6 +114,12 @@ def _restore_protected(sd: dict, protected: dict) -> None:
 def _update_elevator(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
+    # Recovery countdown (debe ejecutarse incluso con elevador apagado)
+    if sim.fault_transition_elev == "recovering":
+        sim._fault_transition_ticks_elev -= 1
+        if sim._fault_transition_ticks_elev <= 0:
+            sim.fault_transition_elev = "stable"
+
     if not sim.elevator_on:
         _set_elevator_idle(sim, sd, dt)
         _clear_elevator_fault_params(sim)
@@ -132,11 +138,6 @@ def _update_elevator(sim: BuildingSimulator) -> None:
 
     if "elevator" in sim.sim_faults:
         _force_elevator_fault_telemetry(sim, sd)
-
-    if sim.fault_transition_elev == "recovering":
-        sim._fault_transition_ticks_elev -= 1
-        if sim._fault_transition_ticks_elev <= 0:
-            sim.fault_transition_elev = "stable"
 
 
 def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
@@ -283,6 +284,8 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["elev_load"] = int(max(0, sd["elev_load"] - 50 * dt))
     sd["elev_voltage"] = 380.0
     sd["elev_vibration"] = 0.5
+    sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
+    sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1]), 1)
     sim._elev_state = "IDLE"
     sim._elev_current_accel = 0.0
 
@@ -715,7 +718,7 @@ def _run_elevator_post_fsm(
         if current_state in ("ACCELERATING", "DECELERATING"):
             target_temp += 5.0
         temp_diff = target_temp - sim._elev_motor_temp
-        sim._elev_motor_temp += temp_diff * 0.03 * dt + random.uniform(-0.2, 0.2) * dt
+        sim._elev_motor_temp += temp_diff * 0.05 * dt + random.uniform(-0.2, 0.2) * dt
 
         # Enforce safe normal regime if no fault
         if "elevator" not in sim.sim_faults:
