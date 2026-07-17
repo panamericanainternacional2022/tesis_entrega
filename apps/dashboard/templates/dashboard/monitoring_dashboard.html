@@ -276,7 +276,13 @@
         // ─────────────── FIRE-AND-FORGET API COMMANDS ───────────────
 
         SimulationController.prototype._togglePause = function () {
+            var self = this;
             if (!BID) return;
+            self.simPaused = !self.simPaused;
+            if (!self.simPaused && !self.simStarted) self.simStarted = true;
+            self._updatePauseBtn();
+            self._updateControlStates();
+            self._updateSpeedButtons(self.currentSpeed);
             window.csrfFetch(URLS.pause, { method: 'POST', body: '{}' })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
@@ -312,6 +318,14 @@
             if (!BID) return;
 
             var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
+
+            if (device === 'elevator') {
+                self._activeElevFault = newFault;
+            } else {
+                self._activePumpFault = newFault;
+            }
+            self._updateFaultUI();
+            self._updateControlStates();
 
             if (prevFault) {
                 document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
@@ -383,6 +397,11 @@
         SimulationController.prototype._clearFaults = function () {
             var self = this;
             if (!BID) return;
+
+            self._activeElevFault = '';
+            self._activePumpFault = '';
+            self._updateFaultUI();
+            self._updateControlStates();
 
             Promise.all([
                 window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) }),

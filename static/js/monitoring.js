@@ -457,6 +457,12 @@
         const url = device === 'pump'
             ? API.simTogglePump(EDIFICIO_ID)
             : API.simToggleElevator(EDIFICIO_ID);
+        if (device === 'pump') {
+            currentPumpOn = !currentPumpOn;
+        } else {
+            currentElevOn = !currentElevOn;
+        }
+        updateEquipmentPowerBtns(currentPumpOn, currentElevOn);
         try {
             const resp = await csrfFetch(url, { method: 'POST', body: '{}' });
             const data = await resp.json();
