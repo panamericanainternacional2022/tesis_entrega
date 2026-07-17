@@ -158,6 +158,10 @@ def reset_simulator(edificio_id: int) -> str:
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
 
+    sim.protection_on = False
+    sim._protection_grace_ticks_pump = 0
+    sim._protection_grace_ticks_elev = 0
+
     sim.fault_transition_pump = "stable"
     sim.fault_transition_elev = "stable"
     sim._fault_transition_ticks_pump = 0

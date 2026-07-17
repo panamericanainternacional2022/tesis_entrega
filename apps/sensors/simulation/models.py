@@ -29,12 +29,16 @@ class BuildingSimulator:
         self.fault_injected_at: dict = {}
 
         # Transición progresiva de fallas
+        self.protection_on: bool = False
+
         self.fault_transition_pump: str = "stable"   # "stable" | "injecting" | "recovering"
         self.fault_transition_elev: str = "stable"
         self._fault_transition_ticks_pump: int = 0
         self._fault_transition_ticks_elev: int = 0
         self._fault_targets_pump: dict = {}
         self._fault_targets_elev: dict = {}
+        self._protection_grace_ticks_pump: int = 0
+        self._protection_grace_ticks_elev: int = 0
 
         self._pump_demand: float = 15.0
         self._pump_start_grace_ticks: int = 0

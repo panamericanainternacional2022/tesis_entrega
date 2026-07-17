@@ -35,6 +35,7 @@ class PayloadContext:
     fault_injected_at: dict = None
     fault_transition_pump: str = "stable"
     fault_transition_elev: str = "stable"
+    protection_on: bool = False
 
 
 def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[str, Any]:
@@ -104,6 +105,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
             "pump": ctx.fault_transition_pump,
             "elevator": ctx.fault_transition_elev,
         },
+        "protection_on": ctx.protection_on,
     }
 
 

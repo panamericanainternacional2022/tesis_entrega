@@ -33,14 +33,17 @@
         </div>
         <div class="divider-v"></div>
         {% endif %}
-        <span id="lastUpdate" class="badge badge-dark">--:--:--</span>
-        {% if is_admin %}
-        <div class="divider-v"></div>
+            {% if is_admin %}
+        <button type="button" id="protectionToggleBtn" class="btn btn-secondary"
+                title="Activar protecci\u00f3n autom\u00e1tica: apaga el equipo cuando se detecte una falla.">
+            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> <span>Activar protecci\u00f3n</span>
+        </button>
         <button type="button" id="simResetBtn" class="btn btn-critical" disabled
                 title="Reinicio completo: restaura TODO el simulador a su estado inicial.">
             <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reiniciar simulador
         </button>
         {% endif %}
+        <span id="lastUpdate" class="badge badge-dark ml-auto">--:--:--</span>
     </div>
 
     {% if not edificios %}
@@ -212,6 +215,7 @@
             setSpeed:     '/api/sim/' + BID + '/set-speed/',
             togglePump:   '/api/sim/' + BID + '/toggle-pump/',
             toggleElev:   '/api/sim/' + BID + '/toggle-elevator/',
+            toggleProt:   '/api/sim/' + BID + '/toggle-protection/',
         };
 
         window.fetchInitialData = window.fetchInitialData || function () {};
@@ -220,6 +224,7 @@
             this.simStarted = false;
             this.simPaused = true;
             this.currentSpeed = 1.0;
+            this.protectionOn = false;
             this._activeElevFault = '';
             this._activePumpFault = '';
             this._hasElevator = true;
@@ -236,6 +241,7 @@
         SimulationController.prototype._cacheDOMElements = function () {
             this.btnPause        = document.getElementById('simPauseBtn');
             this.btnReset        = document.getElementById('simResetBtn');
+            this.btnProtection   = document.getElementById('protectionToggleBtn');
             this.clearFaultsBtn  = document.getElementById('clearFaultsBtn');
             this.selFaultElev    = document.getElementById('simFaultElevator');
             this.selFaultPump    = document.getElementById('simFaultPump');
@@ -252,6 +258,10 @@
 
             if (this.btnReset) {
                 this.btnReset.addEventListener('click', function () { self._resetSim(); });
+            }
+
+            if (this.btnProtection) {
+                this.btnProtection.addEventListener('click', function () { self._toggleProtection(); });
             }
 
             if (this.clearFaultsBtn) {
@@ -322,6 +332,51 @@
                       window.showToast(data.message || 'Error al cambiar velocidad.', 'error');
                   }
               }).catch(function () {});
+        };
+
+        // ─────────────── PROTECTION TOGGLE ───────────────
+
+        SimulationController.prototype._toggleProtection = function () {
+            var self = this;
+            if (self._pendingRequest) return;
+            self._pendingRequest = true;
+            if (self.btnProtection) self.btnProtection.disabled = true;
+
+            window.csrfFetch(URLS.toggleProt, { method: 'POST', body: '{}' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.status === 'ok') {
+                        self.protectionOn = data.protection_on === true;
+                        self._updateProtectionBtn();
+                    } else {
+                        window.showToast(data.message || 'Error al cambiar protecci\u00f3n.', 'error');
+                    }
+                }, function () {
+                    window.showToast('Error de conexi\u00f3n al cambiar protecci\u00f3n.', 'error');
+                })
+                .then(function () {
+                    self._pendingRequest = false;
+                    if (self.btnProtection) self.btnProtection.disabled = false;
+                });
+        };
+
+        SimulationController.prototype._updateProtectionBtn = function () {
+            var btn = this.btnProtection;
+            if (!btn) return;
+
+            var icon = btn.querySelector('i');
+            var span = btn.querySelector('span');
+            if (this.protectionOn) {
+                btn.className = 'btn btn-primary';
+                btn.title = 'Desactivar protecci\u00f3n autom\u00e1tica: las fallas ya no apagar\u00e1n el equipo.';
+                if (icon) icon.className = 'fa-solid fa-shield-halved';
+                if (span) span.textContent = 'Desactivar protecci\u00f3n';
+            } else {
+                btn.className = 'btn btn-secondary';
+                btn.title = 'Activar protecci\u00f3n autom\u00e1tica: apaga el equipo cuando se detecte una falla.';
+                if (icon) icon.className = 'fa-solid fa-shield-halved';
+                if (span) span.textContent = 'Activar protecci\u00f3n';
+            }
         };
 
         // ─────────────── FAULT MANAGEMENT (fire-and-forget) ───────────────
@@ -544,6 +599,11 @@
                 this._activeElevFault = data.sim_faults.elevator || '';
                 this._activePumpFault = data.sim_faults.pump || '';
                 this._updateFaultUI();
+            }
+
+            if (data.protection_on !== undefined) {
+                this.protectionOn = data.protection_on === true;
+                this._updateProtectionBtn();
             }
 
             if (data.equipment_types) {

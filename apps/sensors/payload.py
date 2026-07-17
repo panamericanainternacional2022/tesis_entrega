@@ -22,5 +22,6 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
         fault_injected_at=getattr(sim, 'fault_injected_at', None),
         fault_transition_pump=getattr(sim, 'fault_transition_pump', 'stable'),
         fault_transition_elev=getattr(sim, 'fault_transition_elev', 'stable'),
+        protection_on=getattr(sim, 'protection_on', False),
     )
     return _build_live_payload(ctx)

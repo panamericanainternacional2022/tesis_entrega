@@ -203,3 +203,19 @@ def sim_toggle_elevator(request, building_id: int) -> JsonResponse:
 
     return json_ok({"pump_on": sim.pump_on, "elevator_on": sim.elevator_on, "faults": dict(sim.sim_faults)})
 
+
+@require_http_methods(["POST"])
+@login_required
+@admin_required
+def sim_toggle_protection(request, building_id: int) -> JsonResponse:
+    sim = get_simulator(building_id)
+    if sim is None:
+        return json_error("No hay simulador activo para este edificio", 404)
+
+    sim.protection_on = not sim.protection_on
+    if not sim.protection_on:
+        sim._protection_grace_ticks_pump = 0
+        sim._protection_grace_ticks_elev = 0
+
+    return json_ok({"protection_on": sim.protection_on})
+

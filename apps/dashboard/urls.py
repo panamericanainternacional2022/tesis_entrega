@@ -13,6 +13,7 @@ from .simulation.controls import (
     sim_set_speed,
     sim_toggle_pump,
     sim_toggle_elevator,
+    sim_toggle_protection,
 )
 
 urlpatterns = [
@@ -59,5 +60,10 @@ urlpatterns = [
         "api/sim/<int:building_id>/toggle-elevator/",
         sim_toggle_elevator,
         name="api_sim_toggle_elevator",
+    ),
+    path(
+        "api/sim/<int:building_id>/toggle-protection/",
+        sim_toggle_protection,
+        name="api_sim_toggle_protection",
     ),
 ]

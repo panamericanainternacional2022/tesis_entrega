@@ -44,6 +44,8 @@ ELEVATOR_MOTOR_RATED_CURRENT: float = 28.0
 MIN_SIM_SPEED: float = 0.1
 MAX_SIM_SPEED: float = 10.0
 
+PROTECTION_GRACE_TICKS: int = 5
+
 DEFAULT_SENSOR_DATA: dict = {
     # ── SISTEMA BOMBA — Reposo Seguro ──────────────────────────────────────
     "pump_pressure":     1.0,      # Presión atmosférica base (bar)
