@@ -12,8 +12,6 @@ from apps.sensors.simulation.exceptions import (
     DeviceNotInBuildingError,
     InvalidFaultTypeError,
 )
-from apps.sensors.engine import ALERT_DEBOUNCE_TICKS
-
 logger = logging.getLogger(__name__)
 
 _DEVICE_ES = {"pump": "Bomba", "elevator": "Elevador"}
@@ -55,10 +53,6 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
         raise InvalidFaultTypeError(device, fault_type)
     sim.sim_faults[device] = fault_type
     sim.fault_injected_at[device] = time.time()
-    if not hasattr(sim, "_alert_consecutive"):
-        sim._alert_consecutive = {}
-    fault_key = f"fault_raw:{fault_type}"
-    sim._alert_consecutive[fault_key] = ALERT_DEBOUNCE_TICKS
 
     # Iniciar transición progresiva
     if device == "pump":
@@ -94,6 +88,10 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
     keys_to_remove = [k for k in sim.active_alerts if k.startswith("fault_raw:")]
     for k in keys_to_remove:
         sim.active_alerts.pop(k, None)
+
+    if hasattr(sim, "_compound_alert_sent"):
+        for old_fault in old_faults.values():
+            sim._compound_alert_sent.discard(f"fault_raw:{old_fault}")
 
     _clear_device_attrs(sim, device, "last_email_sent_time_per_var", old_faults)
     _clear_device_attrs(sim, device, "_alert_consecutive", old_faults)
@@ -161,6 +159,8 @@ def reset_simulator(edificio_id: int) -> str:
     sim.protection_on = False
     sim._protection_grace_ticks_pump = 0
     sim._protection_grace_ticks_elev = 0
+
+    sim._compound_alert_sent = set()
 
     sim.fault_transition_pump = "stable"
     sim.fault_transition_elev = "stable"

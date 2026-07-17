@@ -59,8 +59,13 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
 
 
 def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[str, str]) -> None:
-    """Envía UNA sola alerta por cada falla activa con todas las variables afectadas."""
+    """Envía UNA sola alerta por cada falla activa, solo cuando todos los sensores
+    han completado su rampa progresiva (transition == 'stable')."""
     for device, fault_type in sim.sim_faults.items():
+        trans_attr = f'fault_transition_{device}'
+        if getattr(sim, trans_attr, 'stable') != 'stable':
+            continue
+
         affected_vars_defs = FAULT_AFFECTED_VARIABLES.get(fault_type, [])
 
         alert_vars: dict[str, dict] = {}
@@ -82,7 +87,10 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
             continue
 
         fault_key = f"fault_raw:{fault_type}"
-        if sim.active_alerts.get(fault_key) == worst_risk:
+
+        if not hasattr(sim, "_compound_alert_sent"):
+            sim._compound_alert_sent = set()
+        if fault_key in sim._compound_alert_sent:
             continue
 
         if not hasattr(sim, "_alert_consecutive"):
@@ -92,7 +100,7 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
         if consecutive < ALERT_DEBOUNCE_TICKS:
             continue
 
-        sim.active_alerts[fault_key] = worst_risk
+        sim._compound_alert_sent.add(fault_key)
 
         from apps.history.alerts.engine import send_compound_alert
         send_compound_alert(fault_type, alert_vars, worst_risk, sim)

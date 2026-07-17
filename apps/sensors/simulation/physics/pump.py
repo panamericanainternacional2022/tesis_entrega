@@ -15,7 +15,7 @@ from apps.sensors.simulation.utils import clamp
 PUMP_RAMP_RATES = {
     "pump_flow_rate":     3.0,   # l/s/tick  — 12→0 en ~4s
     "pump_pressure":      1.5,   # bar/tick  — 5→0 en ~3s
-    "pump_temperature":   3.0,   # °C/tick   — 50→90 en ~13s (masa térmica)
+    "pump_temperature":   8.0,   # °C/tick   — 50→90 en ~5s (masa térmica)
     "pump_vibration":     2.0,   # mm/s/tick — 1→10 en ~4.5s
     "pump_current":       4.0,   # A/tick    — 13→0/25 en ~3-6s
     "pump_voltage":       30.0,  # V/tick    — 220→0/300 en ~7-10s
