@@ -97,7 +97,7 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     volt_diff = 220.0 - volt
     sd["pump_voltage"] = round(
         clamp(
-            volt + volt_diff * 0.1 * dt,
+            volt + volt_diff * 0.05 * dt,
             0.0, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1],
         ), 1
     )
