@@ -4,7 +4,7 @@
 {% block list_title %}Edificios{% endblock %}
 
 {% block list_heading %}Edificios{% endblock %}
-{% block list_subtext %}Gestiona los edificios registrados en la plataforma. Configura sus datos, asigna equipos de monitoreo y mant&#233;nlos siempre actualizados.{% endblock %}
+{% block list_subtext %}Gestiona los edificios registrados en la plataforma. Configura sus datos, asigna equipos de monitoreo y manténlos siempre actualizados.{% endblock %}
 
 {% block list_search %}
 <label for="q-edificios" class="sr-only">Buscar edificios</label>
@@ -48,7 +48,7 @@
         <th>Nombre</th>
         <th>Equipamiento</th>
         <th class="col-rif">RIF</th>
-        <th class="col-address">Direcci&#243;n</th>
+        <th class="col-address">Dirección</th>
         <th class="col-actions">Acciones</th>
     </tr>
 </thead>
@@ -81,7 +81,7 @@
                             <a href="{% url 'building_report_pdf' building.id %}" class="dropdown-item">
                                 <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Descargar reporte
                             </a>
-                            <form method="post" action="{% url 'delete_building' building.id %}" class="js-btn-confirm-delete" data-confirm="&#191;Est&#225;s seguro de eliminar {{ building.name }}? Se eliminar&#225; todo el historial asociado y se desvincular&#225;n los usuarios de este edificio.">
+                            <form method="post" action="{% url 'delete_building' building.id %}" class="js-btn-confirm-delete" data-confirm="¿Estás seguro de eliminar {{ building.name }}? Se eliminará todo el historial asociado y se desvincularán los usuarios de este edificio.">
                                 {% csrf_token %}
                                 <button type="submit" class="dropdown-item">
                                     <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Eliminar

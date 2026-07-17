@@ -215,15 +215,17 @@ def _check_auto_protection(sim: BuildingSimulator) -> None:
         fault_type_protection = f"auto_protection_{device}"
 
         protection_msg = (
-            f"La protecci\u00f3n autom\u00e1tica ha apagado la {device_es} debido "
+            f"La protección automática ha apagado la {device_es} debido "
             f"a la falla detectada: \"{fault_name}\". "
             f"Revise el equipo antes de reencenderlo."
         )
 
+        protection_title = f"Protección automática ({device_es})"
+
         alert_payload = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "fault_type": fault_type_protection,
-            "fault_name": f"Protecci\u00f3n autom\u00e1tica ({device_es})",
+            "fault_name": protection_title,
             "variables": [],
             "risk": "Resuelta",
             "message": protection_msg,
@@ -248,10 +250,10 @@ def _check_auto_protection(sim: BuildingSimulator) -> None:
                     date=timezone.now(),
                     message={
                         "risk": "Resuelta",
-                        "variable": fault_type_protection,
-                        "value": None,
+                        "variable": protection_title,
+                        "value": "",
                         "action": protection_msg,
-                        "fault_name": f"Protecci\u00f3n autom\u00e1tica ({device_es})",
+                        "fault_name": protection_title,
                         "variables_detail": [],
                     },
                     fault_type=fault_type_protection,

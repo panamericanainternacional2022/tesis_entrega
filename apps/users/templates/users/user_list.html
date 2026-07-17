@@ -9,7 +9,7 @@
 {% block list_search %}
 <label for="q-usuarios" class="sr-only">Buscar usuarios</label>
 <div class="input-with-icon search-input-filter">
-    <input type="text" id="q-usuarios" name="q" placeholder="Buscar por nombre o c&#233;dula" aria-label="Buscar usuarios por nombre o c&#233;dula" class="search-input" value="{{ request.GET.q|default:'' }}" maxlength="100" />
+    <input type="text" id="q-usuarios" name="q" placeholder="Buscar por nombre o cédula" aria-label="Buscar usuarios por nombre o cédula" class="search-input" value="{{ request.GET.q|default:'' }}" maxlength="100" />
     <i class="fa-solid fa-magnifying-glass input-icon input-icon--left" aria-hidden="true"></i>
 </div>
 {% endblock %}
@@ -33,7 +33,7 @@
     {% include 'core/components/button.html' with class='btn btn-primary' text='Agregar usuario' icon='fa-solid fa-user-plus' disabled=True %}
 {% endif %}
 <div class="actions-dropdown">
-    <button type="button" class="btn btn-icon" aria-label="M&#225;s acciones" {% if not usuarios %}disabled{% endif %}>
+    <button type="button" class="btn btn-icon" aria-label="Más acciones" {% if not usuarios %}disabled{% endif %}>
         <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
     </button>
     <div class="dropdown-menu">
@@ -98,7 +98,7 @@
                                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar correo
                             </button>
                             {% endif %}
-                            <a href="{% url 'user_delete' usuario.id %}" class="dropdown-item js-btn-confirm-delete" data-confirm="&#191;Est&#225;s seguro de eliminar a {{ usuario.nombre }} {{ usuario.last_name }}?">
+                            <a href="{% url 'user_delete' usuario.id %}" class="dropdown-item js-btn-confirm-delete" data-confirm="¿Estás seguro de eliminar a {{ usuario.nombre }} {{ usuario.last_name }}?">
                                 <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Eliminar
                             </a>
                         </div>
