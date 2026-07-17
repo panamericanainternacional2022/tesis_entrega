@@ -464,6 +464,9 @@ function initLiveBadge() {
     }
 
     function applyCount(count) {
+        // Sincronizar variable global para consistencia con monitoring.js
+        unreadHistoryCount = count;
+
         // Actualizar sidebar badge
         if (count > 0) {
             sidebarBadge.textContent = count;

@@ -139,11 +139,16 @@ def sse_unread_count_stream(request: HttpRequest):
         import json
         import eventlet
         from apps.history.shared import _build_history_query
+        from apps.sensors.sensor_config import SIM_TICK_INTERVAL
 
-        last_count = -1
         try:
+            records, _ = _build_history_query(usuario_id, rol)
+            count = records.filter(resolved=False).distinct().count()
+            yield f"event: count-update\ndata: {json.dumps({'count': count})}\n\n"
+            last_count = count
+
             while True:
-                eventlet.sleep(1)
+                eventlet.sleep(SIM_TICK_INTERVAL)
                 records, _ = _build_history_query(usuario_id, rol)
                 count = records.filter(resolved=False).distinct().count()
 

@@ -205,11 +205,13 @@
         var BID = cfg.edificio_id;
 
         var URLS = {
-            pause:     '/api/sim/' + BID + '/pause/',
-            reset:     '/api/sim/' + BID + '/reset/',
-            inject:    '/api/sim/' + BID + '/inject-fault/',
-            clear:     '/api/sim/' + BID + '/clear-fault/',
-            setSpeed:  '/api/sim/' + BID + '/set-speed/',
+            pause:        '/api/sim/' + BID + '/pause/',
+            reset:        '/api/sim/' + BID + '/reset/',
+            inject:       '/api/sim/' + BID + '/inject-fault/',
+            clear:        '/api/sim/' + BID + '/clear-fault/',
+            setSpeed:     '/api/sim/' + BID + '/set-speed/',
+            togglePump:   '/api/sim/' + BID + '/toggle-pump/',
+            toggleElev:   '/api/sim/' + BID + '/toggle-elevator/',
         };
 
         window.fetchInitialData = window.fetchInitialData || function () {};
@@ -224,17 +226,20 @@
             this._hasPump = true;
             this._pumpOn = true;
             this._elevOn = true;
+            this._pendingRequest = false;
 
             this._cacheDOMElements();
             this._bindEvents();
         }
 
         SimulationController.prototype._cacheDOMElements = function () {
-            this.btnPause       = document.getElementById('simPauseBtn');
-            this.btnReset       = document.getElementById('simResetBtn');
-            this.clearFaultsBtn = document.getElementById('clearFaultsBtn');
-            this.selFaultElev   = document.getElementById('simFaultElevator');
-            this.selFaultPump   = document.getElementById('simFaultPump');
+            this.btnPause        = document.getElementById('simPauseBtn');
+            this.btnReset        = document.getElementById('simResetBtn');
+            this.clearFaultsBtn  = document.getElementById('clearFaultsBtn');
+            this.selFaultElev    = document.getElementById('simFaultElevator');
+            this.selFaultPump    = document.getElementById('simFaultPump');
+            this.btnTogglePump   = document.getElementById('togglePumpBtn');
+            this.btnToggleElev   = document.getElementById('toggleElevatorBtn');
         };
 
         SimulationController.prototype._bindEvents = function () {
@@ -277,21 +282,28 @@
 
         SimulationController.prototype._togglePause = function () {
             var self = this;
-            if (!BID) return;
-            self.simPaused = !self.simPaused;
-            if (!self.simPaused && !self.simStarted) self.simStarted = true;
-            self._updatePauseBtn();
-            self._updateControlStates();
-            self._updateSpeedButtons(self.currentSpeed);
+            if (!BID || self._pendingRequest) return;
+            self._pendingRequest = true;
+            if (self.btnPause) self.btnPause.disabled = true;
+
             window.csrfFetch(URLS.pause, { method: 'POST', body: '{}' })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (data.status !== 'ok') {
+                    if (data.status === 'ok') {
+                        self.simPaused = data.paused === true;
+                        self.simStarted = data.started === true;
+                        self._updatePauseBtn();
+                        self._updateControlStates();
+                        self._updateSpeedButtons(self.currentSpeed);
+                    } else {
                         window.showToast(data.message || 'Error al cambiar estado.', 'error');
                     }
-                })
-                .catch(function () {
+                }, function () {
                     window.showToast('Error de conexión al pausar.', 'error');
+                })
+                .then(function () {
+                    self._pendingRequest = false;
+                    if (self.btnPause) self.btnPause.disabled = false;
                 });
         };
 
@@ -315,32 +327,13 @@
 
         SimulationController.prototype._handleFaultChange = function (device, newFault) {
             var self = this;
-            if (!BID) return;
+            if (!BID || self._pendingRequest) return;
+            self._pendingRequest = true;
 
             var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
 
-            if (device === 'elevator') {
-                self._activeElevFault = newFault;
-            } else {
-                self._activePumpFault = newFault;
-            }
-            self._updateFaultUI();
-            self._updateControlStates();
-
-            if (prevFault) {
-                document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
-                    if (item.getAttribute('data-fault-type') === prevFault) {
-                        item.classList.add('risk-resolved');
-                        var badge = item.querySelector('.sensor-badge');
-                        if (badge) {
-                            badge.className = 'sensor-badge risk-resolved';
-                            badge.textContent = 'Resuelta';
-                        }
-                        var resolveBtn = item.querySelector('.hist-resolve-btn');
-                        if (resolveBtn) resolveBtn.remove();
-                    }
-                });
-            }
+            window._csSetDisabled(document.getElementById('simFaultPump'), true);
+            window._csSetDisabled(document.getElementById('simFaultElevator'), true);
 
             var chain = window.csrfFetch(URLS.clear, {
                 method: 'POST',
@@ -359,12 +352,38 @@
             chain
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (data.status !== 'ok') {
+                    if (data.status === 'ok') {
+                        if (device === 'elevator') {
+                            self._activeElevFault = data.faults.elevator || '';
+                        } else {
+                            self._activePumpFault = data.faults.pump || '';
+                        }
+                        self._updateFaultUI();
+                        self._updateControlStates();
+
+                        if (prevFault) {
+                            document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
+                                if (item.getAttribute('data-fault-type') === prevFault) {
+                                    item.classList.add('risk-resolved');
+                                    var badge = item.querySelector('.sensor-badge');
+                                    if (badge) {
+                                        badge.className = 'sensor-badge risk-resolved';
+                                        badge.textContent = 'Resuelta';
+                                    }
+                                    var resolveBtn = item.querySelector('.hist-resolve-btn');
+                                    if (resolveBtn) resolveBtn.remove();
+                                }
+                            });
+                        }
+                    } else {
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
                     }
-                })
-                .catch(function () {
+                }, function () {
                     window.showToast('Error de conexión al gestionar falla.', 'error');
+                })
+                .then(function () {
+                    self._pendingRequest = false;
+                    self._updateControlStates();
                 });
         };
 
@@ -375,7 +394,7 @@
             window.showConfirm(
                 '¿Estás seguro de que deseas reiniciar el simulador?'
             ).then(function (confirmed) {
-                if (!confirmed || !BID) return;
+                if (!confirmed || !BID || self._pendingRequest) return;
                 window.csrfFetch(URLS.reset, { method: 'POST', body: '{}' })
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
@@ -396,12 +415,9 @@
 
         SimulationController.prototype._clearFaults = function () {
             var self = this;
-            if (!BID) return;
-
-            self._activeElevFault = '';
-            self._activePumpFault = '';
-            self._updateFaultUI();
-            self._updateControlStates();
+            if (!BID || self._pendingRequest) return;
+            self._pendingRequest = true;
+            if (self.clearFaultsBtn) self.clearFaultsBtn.disabled = true;
 
             Promise.all([
                 window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) }),
@@ -413,6 +429,11 @@
                 .then(function (dataArr) {
                     var allOk = dataArr.every(function (d) { return d.status === 'ok'; });
                     if (allOk) {
+                        self._activeElevFault = dataArr[0].faults.elevator || dataArr[1].faults.elevator || '';
+                        self._activePumpFault = dataArr[0].faults.pump || dataArr[1].faults.pump || '';
+                        self._updateFaultUI();
+                        self._updateControlStates();
+
                         document.querySelectorAll('#live-history-list .hist-item[data-fault-type]').forEach(function (item) {
                             item.classList.add('risk-resolved');
                             var badge = item.querySelector('.sensor-badge');
@@ -423,12 +444,16 @@
                             var resolveBtn = item.querySelector('.hist-resolve-btn');
                             if (resolveBtn) resolveBtn.remove();
                         });
-                        fetch('/history/api/count/').then(function (r) { return r.json(); }).then(function (d) {
-                            if (d.count !== undefined) setHistoryBadge(d.count);
-                        }).catch(function () {});
+                    } else {
+                        window.showToast('Error al restablecer fallas.', 'error');
                     }
+                }, function () {
+                    window.showToast('Error de conexión al restablecer fallas.', 'error');
                 })
-                .catch(function () {});
+                .then(function () {
+                    self._pendingRequest = false;
+                    self._updateControlStates();
+                });
         };
 
         // ─────────────── UI UPDATES (solo desde syncFromPayload / SSE) ───────────────
@@ -495,6 +520,7 @@
         // ─────────────── SSE SYNC HOOK (única fuente de verdad) ───────────────
 
         SimulationController.prototype.syncFromPayload = function (data) {
+            if (this._pendingRequest) return;
             this.simPaused = data.sim_paused === true;
             this.simStarted = data.sim_started === true;
 
@@ -524,7 +550,33 @@
             this._updateControlStates();
         };
 
+        SimulationController.prototype._toggleEquipment = function (device) {
+            var self = this;
+            if (!BID || self._pendingRequest) return;
+            self._pendingRequest = true;
+            var btn = device === 'pump' ? self.btnTogglePump : self.btnToggleElev;
+            if (btn) btn.disabled = true;
 
+            var url = device === 'pump' ? URLS.togglePump : URLS.toggleElev;
+            window.csrfFetch(url, { method: 'POST', body: '{}' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.status === 'ok') {
+                        self._pumpOn = data.pump_on;
+                        self._elevOn = data.elevator_on;
+                        window.updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
+                        self._updateControlStates();
+                    } else {
+                        window.showToast(data.message || 'Error al cambiar equipo.', 'error');
+                    }
+                }, function () {
+                    window.showToast('Error de conexión al cambiar equipo.', 'error');
+                })
+                .then(function () {
+                    self._pendingRequest = false;
+                    self._updateControlStates();
+                });
+        };
 
         window.SimulationController = new SimulationController();
     })();

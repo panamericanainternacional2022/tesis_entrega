@@ -452,27 +452,7 @@
         }
     }
 
-    async function toggleEquipmentPower(device) {
-        if (!EDIFICIO_ID) return;
-        const url = device === 'pump'
-            ? API.simTogglePump(EDIFICIO_ID)
-            : API.simToggleElevator(EDIFICIO_ID);
-        if (device === 'pump') {
-            currentPumpOn = !currentPumpOn;
-        } else {
-            currentElevOn = !currentElevOn;
-        }
-        updateEquipmentPowerBtns(currentPumpOn, currentElevOn);
-        try {
-            const resp = await csrfFetch(url, { method: 'POST', body: '{}' });
-            const data = await resp.json();
-            if (data.status !== 'ok') {
-                setSimMessage(data.message || 'Error al cambiar el estado del equipo.', 'error');
-            }
-        } catch (_) {
-            setSimMessage('Error de conexión al cambiar el equipo.', 'error');
-        }
-    }
+    // Toggle equipment ahora delegado a SimulationController._toggleEquipment()
 
     // Live history
     function _parseTimestamp(ts) {
@@ -552,8 +532,7 @@
         }
 
         ul.prepend(li);
-        unreadHistoryCount++;
-        setHistoryBadge(unreadHistoryCount);
+        // El contador del sidebar lo actualiza el SSE de conteo (initLiveBadge)
     }
 
     function initLiveHistory() {
@@ -633,8 +612,7 @@
                         }
                         btn.remove();
                     }
-                    unreadHistoryCount = Math.max(0, unreadHistoryCount - 1);
-                    setHistoryBadge(unreadHistoryCount);
+                    // El contador del sidebar lo actualiza el SSE de conteo (initLiveBadge)
                 }
             } catch (_) { btn.disabled = false; }
         });
@@ -658,9 +636,6 @@
                 const data = await resp.json();
                 applyPayload(data);
                 if (isAdmin() && data.thresholds && typeof renderThresholdsPanel === 'function') renderThresholdsPanel(data.thresholds);
-                if (isAdmin() && window.SimulationController && typeof window.SimulationController.syncFromPayload === 'function') {
-                    window.SimulationController.syncFromPayload(data);
-                }
             } catch (_) {
                 if (isAdmin()) {
                     ['statsBombaPanel', 'statsElevadorPanel'].forEach(id => {
@@ -698,11 +673,15 @@
 
         connectSSE();
 
-        // Admin manual controls (from setupAdminEvents)
-        const togglePumpBtn = document.getElementById('togglePumpBtn');
-        const toggleElevBtn = document.getElementById('toggleElevatorBtn');
-        if (togglePumpBtn) togglePumpBtn.addEventListener('click', () => toggleEquipmentPower('pump'));
-        if (toggleElevBtn) toggleElevBtn.addEventListener('click', () => toggleEquipmentPower('elevator'));
+        // Admin manual controls — delegados a SimulationController (sin optimistic update)
+        var togglePumpBtn = document.getElementById('togglePumpBtn');
+        var toggleElevBtn = document.getElementById('toggleElevatorBtn');
+        if (togglePumpBtn) togglePumpBtn.addEventListener('click', function () {
+            if (window.SimulationController) window.SimulationController._toggleEquipment('pump');
+        });
+        if (toggleElevBtn) toggleElevBtn.addEventListener('click', function () {
+            if (window.SimulationController) window.SimulationController._toggleEquipment('elevator');
+        });
     };
 
 })(window, document);

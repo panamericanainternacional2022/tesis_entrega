@@ -2,7 +2,7 @@ from django.core.cache import cache
 
 from apps.history.shared import _build_history_query
 
-_UNREAD_CACHE_TTL = 10
+_UNREAD_CACHE_TTL = 2
 
 
 def unread_history_count(request):
