@@ -19,6 +19,7 @@ from apps.thresholds.services import get_thresholds
 
 logger = logging.getLogger(__name__)
 
+ALERT_DEBOUNCE_TICKS: int = 3
 _MAX_BACKOFF_TICKS: int = 30
 
 
@@ -58,10 +59,6 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
 
 def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[str, str]) -> None:
     """Envía UNA sola alerta por cada falla activa con todas las variables afectadas."""
-    # Minimum consecutive ticks before a compound alert is generated.
-    # At sim_speed=1 each tick ≈ 1 second.
-    DEBOUNCE_TICKS: int = 3
-
     for device, fault_type in sim.sim_faults.items():
         affected_vars_defs = FAULT_AFFECTED_VARIABLES.get(fault_type, [])
 
@@ -89,7 +86,7 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
             sim._alert_consecutive = {}
         consecutive = sim._alert_consecutive.get(fault_key, 0) + sim.sim_speed
         sim._alert_consecutive[fault_key] = consecutive
-        if consecutive < DEBOUNCE_TICKS:
+        if consecutive < ALERT_DEBOUNCE_TICKS:
             continue
 
         sim.active_alerts[fault_key] = worst_risk

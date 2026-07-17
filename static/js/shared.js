@@ -562,7 +562,7 @@ const _CONFIG = (() => {
     return el ? JSON.parse(el.textContent) : {};
 })();
 
-const IS_ADMIN = window.IS_ADMIN === true;
+function isAdmin() { return window.IS_ADMIN === true; }
 const _VAR_NAMES = _CONFIG.var_names || {};
 const _UNITS = _CONFIG.units || {};
 const _BOMBA_VARS = _CONFIG.pump_vars || [];

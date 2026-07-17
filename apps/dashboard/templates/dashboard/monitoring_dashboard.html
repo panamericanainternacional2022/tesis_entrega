@@ -205,7 +205,6 @@
         var BID = cfg.edificio_id;
 
         var URLS = {
-            status:    '/api/sim/' + BID + '/status/',
             pause:     '/api/sim/' + BID + '/pause/',
             reset:     '/api/sim/' + BID + '/reset/',
             inject:    '/api/sim/' + BID + '/inject-fault/',
@@ -215,34 +214,19 @@
 
         window.fetchInitialData = window.fetchInitialData || function () {};
 
-        var _csVal = function (el, val) {
-            var fn = window._csSetValue;
-            if (fn) fn(el, val);
-            else if (el) el.value = val;
-        };
-        var _csDis = function (el, disabled) {
-            var fn = window._csSetDisabled;
-            if (fn) fn(el, disabled);
-            else if (el) el.disabled = disabled;
-        };
-
         function SimulationController() {
             this.simStarted = false;
             this.simPaused = true;
             this.currentSpeed = 1.0;
             this._activeElevFault = '';
             this._activePumpFault = '';
-            this._elevFaultInFlight = false;
-            this._pumpFaultInFlight = false;
             this._hasElevator = true;
             this._hasPump = true;
-            this._faultsJustCleared = false;
             this._pumpOn = true;
             this._elevOn = true;
 
             this._cacheDOMElements();
             this._bindEvents();
-            this._fetchInitialStatus();
         }
 
         SimulationController.prototype._cacheDOMElements = function () {
@@ -270,15 +254,13 @@
 
             if (this.selFaultElev) {
                 this.selFaultElev.addEventListener('change', function () {
-                    var newFault = self.selFaultElev.value || '';
-                    self._handleFaultChange('elevator', newFault);
+                    self._handleFaultChange('elevator', self.selFaultElev.value || '');
                 });
             }
 
             if (this.selFaultPump) {
                 this.selFaultPump.addEventListener('change', function () {
-                    var newFault = self.selFaultPump.value || '';
-                    self._handleFaultChange('pump', newFault);
+                    self._handleFaultChange('pump', self.selFaultPump.value || '');
                 });
             }
 
@@ -291,37 +273,14 @@
             });
         };
 
-        // ─────────────── API LIFECYCLE ───────────────
+        // ─────────────── FIRE-AND-FORGET API COMMANDS ───────────────
 
         SimulationController.prototype._togglePause = function () {
-            var self = this;
             if (!BID) return;
             window.csrfFetch(URLS.pause, { method: 'POST', body: '{}' })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (data.status === 'ok') {
-                        self.simPaused = data.paused;
-                        if (!data.paused && !self.simStarted) self.simStarted = true;
-                        self._pumpOn = data.pump_on;
-                        self._elevOn = data.elevator_on;
-                        self._activePumpFault = (data.faults && data.faults.pump) || '';
-                        self._activeElevFault = (data.faults && data.faults.elevator) || '';
-                        _currentFaults = data.faults || {};
-                        currentPumpOn = data.pump_on;
-                        currentElevOn = data.elevator_on;
-                        self._updatePauseBtn();
-                        self._updateControlStates();
-                        self._updateSpeedButtons(self.currentSpeed);
-                        self._updateFaultUI();
-                        if (typeof window.updateCards === 'function') {
-                            window.updateCards(currentReadings);
-                        }
-                        if (typeof window.updateEquipmentPowerBtns === 'function') {
-                            window.updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
-                        }
-                        var lastUpd = document.getElementById('lastUpdate');
-                        if (lastUpd) lastUpd.innerText = data.started ? new Date().toLocaleTimeString() : '--:--:--';
-                    } else {
+                    if (data.status !== 'ok') {
                         window.showToast(data.message || 'Error al cambiar estado.', 'error');
                     }
                 })
@@ -340,14 +299,13 @@
                 body: JSON.stringify({ speed: speed })
             }).then(function (r) { return r.json(); })
               .then(function (data) {
-                  if (data.status === 'ok' && data.speed !== undefined && data.speed !== speed) {
-                      self.currentSpeed = data.speed;
-                      self._updateSpeedButtons(data.speed);
+                  if (data.status !== 'ok') {
+                      window.showToast(data.message || 'Error al cambiar velocidad.', 'error');
                   }
               }).catch(function () {});
         };
 
-        // ─────────────── FAULT MANAGEMENT ───────────────
+        // ─────────────── FAULT MANAGEMENT (fire-and-forget) ───────────────
 
         SimulationController.prototype._handleFaultChange = function (device, newFault) {
             var self = this;
@@ -355,36 +313,24 @@
 
             var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
 
-            // Optimistic update and flight flag
-            if (device === 'elevator') {
-                self._activeElevFault = newFault;
-                self._elevFaultInFlight = true;
-            } else {
-                self._activePumpFault = newFault;
-                self._pumpFaultInFlight = true;
+            if (prevFault) {
+                document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
+                    if (item.getAttribute('data-fault-type') === prevFault) {
+                        item.classList.add('risk-resolved');
+                        var badge = item.querySelector('.sensor-badge');
+                        if (badge) {
+                            badge.className = 'sensor-badge risk-resolved';
+                            badge.textContent = 'Resuelta';
+                        }
+                        var resolveBtn = item.querySelector('.hist-resolve-btn');
+                        if (resolveBtn) resolveBtn.remove();
+                    }
+                });
             }
-            self._updateControlStates();
 
             var chain = window.csrfFetch(URLS.clear, {
                 method: 'POST',
                 body: JSON.stringify({ device: device })
-            }).then(function (resp) {
-                // Mark history items as resolved for the cleared fault type
-                if (prevFault) {
-                    document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
-                        if (item.getAttribute('data-fault-type') === prevFault) {
-                            item.classList.add('risk-resolved');
-                            var badge = item.querySelector('.sensor-badge');
-                            if (badge) {
-                                badge.className = 'sensor-badge risk-resolved';
-                                badge.textContent = 'Resuelta';
-                            }
-                            var resolveBtn = item.querySelector('.hist-resolve-btn');
-                            if (resolveBtn) resolveBtn.remove();
-                        }
-                    });
-                }
-                return resp;
             });
 
             if (newFault) {
@@ -399,49 +345,16 @@
             chain
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
-                    if (device === 'elevator') self._elevFaultInFlight = false;
-                    else self._pumpFaultInFlight = false;
-
-                    if (data.status === 'ok') {
-                        self._updateFaultUI();
-                        _currentFaults = data.faults || {};
-                        if (typeof window.updateCards === 'function') {
-                            window.updateCards(currentReadings);
-                        }
-                    } else {
+                    if (data.status !== 'ok') {
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
-                        var selId = device === 'elevator' ? 'simFaultElevator' : 'simFaultPump';
-                        if (device === 'elevator') self._activeElevFault = prevFault;
-                        else self._activePumpFault = prevFault;
-                        _csVal(document.getElementById(selId), prevFault);
-                        _currentFaults = {};
-                        if (self._activeElevFault) _currentFaults['elevator'] = self._activeElevFault;
-                        if (self._activePumpFault) _currentFaults['pump'] = self._activePumpFault;
-                        if (typeof window.updateCards === 'function') {
-                            window.updateCards(currentReadings);
-                        }
                     }
-                    self._updateControlStates();
                 })
                 .catch(function () {
-                    if (device === 'elevator') self._elevFaultInFlight = false;
-                    else self._pumpFaultInFlight = false;
-                    
                     window.showToast('Error de conexión al gestionar falla.', 'error');
-                    if (device === 'elevator') self._activeElevFault = prevFault;
-                    else self._activePumpFault = prevFault;
-                    self._updateFaultUI();
-                    _currentFaults = {};
-                    if (self._activeElevFault) _currentFaults['elevator'] = self._activeElevFault;
-                    if (self._activePumpFault) _currentFaults['pump'] = self._activePumpFault;
-                    if (typeof window.updateCards === 'function') {
-                        window.updateCards(currentReadings);
-                    }
-                    self._updateControlStates();
                 });
         };
 
-        // ─────────────── RESET / RESTART ───────────────
+        // ─────────────── RESET ───────────────
 
         SimulationController.prototype._resetSim = function () {
             var self = this;
@@ -453,26 +366,9 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         if (data.status === 'ok') {
-                            self.simStarted = false;
-                            self.simPaused = true;
-                            self._activeElevFault = '';
-                            self._activePumpFault = '';
-                            self._pumpOn = true;
-                            self._elevOn = true;
-                            _csVal(document.getElementById('simFaultElevator'), '');
-                            _csVal(document.getElementById('simFaultPump'), '');
-                            self._updatePauseBtn();
-                            self._updateSpeedButtons(1.0);
-                            self._updateControlStates();
-                            self._updateFaultUI();
-                            _currentFaults = {};
-                            currentPumpOn = true;
-                            currentElevOn = true;
-                            _elevTargetFloor = 0;
-                            _pumpDemand = 15.0;
-                            _faultInjectedAt = {};
-                            if (window.clearCurrentReadings) window.clearCurrentReadings();
+                            window.showToast('Simulador reiniciado.', 'success');
                             document.getElementById('lastUpdate').innerText = '--:--:--';
+                            if (window.clearCurrentReadings) window.clearCurrentReadings();
                             window.fetchInitialData();
                         } else {
                             window.showToast(data.message, 'error');
@@ -488,10 +384,6 @@
             var self = this;
             if (!BID) return;
 
-            self._pumpFaultInFlight = true;
-            self._elevFaultInFlight = true;
-            self._updateControlStates();
-
             Promise.all([
                 window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) }),
                 window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
@@ -500,22 +392,8 @@
                     return Promise.all(responses.map(function (r) { return r.json(); }));
                 })
                 .then(function (dataArr) {
-                    self._pumpFaultInFlight = false;
-                    self._elevFaultInFlight = false;
-
                     var allOk = dataArr.every(function (d) { return d.status === 'ok'; });
                     if (allOk) {
-                        self._activeElevFault = '';
-                        self._activePumpFault = '';
-                        self._faultsJustCleared = true;
-                        _csVal(document.getElementById('simFaultElevator'), '');
-                        _csVal(document.getElementById('simFaultPump'), '');
-                        self._updateFaultUI();
-                        _currentFaults = {};
-                        if (typeof window.updateCards === 'function') {
-                            window.updateCards(currentReadings);
-                        }
-                        // Mark all compound fault items in live history as resolved
                         document.querySelectorAll('#live-history-list .hist-item[data-fault-type]').forEach(function (item) {
                             item.classList.add('risk-resolved');
                             var badge = item.querySelector('.sensor-badge');
@@ -526,21 +404,15 @@
                             var resolveBtn = item.querySelector('.hist-resolve-btn');
                             if (resolveBtn) resolveBtn.remove();
                         });
-                        // Refresh badge count from server
                         fetch('/history/api/count/').then(function (r) { return r.json(); }).then(function (d) {
                             if (d.count !== undefined) setHistoryBadge(d.count);
                         }).catch(function () {});
                     }
-                    self._updateControlStates();
                 })
-                .catch(function () {
-                    self._pumpFaultInFlight = false;
-                    self._elevFaultInFlight = false;
-                    self._updateControlStates();
-                });
+                .catch(function () {});
         };
 
-        // ─────────────── UI UPDATES ───────────────
+        // ─────────────── UI UPDATES (solo desde syncFromPayload / SSE) ───────────────
 
         SimulationController.prototype._updatePauseBtn = function () {
             var btn = this.btnPause;
@@ -572,20 +444,16 @@
             var running = this.simStarted && !this.simPaused;
             var started = this.simStarted;
 
-            // Equipment toggles - disabled when not running
-            _csDis(document.getElementById('togglePumpBtn'), !running);
-            _csDis(document.getElementById('toggleElevatorBtn'), !running);
+            window._csSetDisabled(document.getElementById('togglePumpBtn'), !running);
+            window._csSetDisabled(document.getElementById('toggleElevatorBtn'), !running);
 
-            // Fault selects - disabled when not running, fault in flight, or equipment is off
-            _csDis(document.getElementById('simFaultPump'), !running || this._pumpFaultInFlight || !this._pumpOn);
-            _csDis(document.getElementById('simFaultElevator'), !running || this._elevFaultInFlight || !this._elevOn);
+            window._csSetDisabled(document.getElementById('simFaultPump'), !running || !this._pumpOn);
+            window._csSetDisabled(document.getElementById('simFaultElevator'), !running || !this._elevOn);
 
-            // Clear faults button - enabled only when there are active faults
             if (this.clearFaultsBtn) {
                 this.clearFaultsBtn.disabled = !(this._activeElevFault || this._activePumpFault);
             }
 
-            // Reset button - disabled when not started
             if (this.btnReset) this.btnReset.disabled = !started;
         };
 
@@ -601,46 +469,11 @@
         };
 
         SimulationController.prototype._updateFaultUI = function () {
-            _csVal(document.getElementById('simFaultElevator'), this._activeElevFault);
-            _csVal(document.getElementById('simFaultPump'), this._activePumpFault);
+            window._csSetValue(document.getElementById('simFaultElevator'), this._activeElevFault);
+            window._csSetValue(document.getElementById('simFaultPump'), this._activePumpFault);
         };
 
-        // ─────────────── INITIAL LOAD ───────────────
-
-        SimulationController.prototype._fetchInitialStatus = function () {
-            var self = this;
-            if (!BID) return;
-
-            window.fetch(URLS.status)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (!data) return;
-                    self.simStarted = data.started || false;
-                    self.simPaused = data.paused;
-                    self.currentSpeed = data.speed || 1.0;
-                    self._activeElevFault = (data.faults && data.faults.elevator) || '';
-                    self._activePumpFault = (data.faults && data.faults.pump) || '';
-                    self._pumpOn = data.pump_on;
-                    self._elevOn = data.elevator_on;
-                    self._hasPump = data.has_pump;
-                    self._hasElevator = data.has_elevator;
-
-                    if (typeof window.setEquipmentState === 'function') {
-                        window.setEquipmentState(data.pump_on, data.elevator_on);
-                    }
-
-                    self._updatePauseBtn();
-                    self._updateSpeedButtons(self.currentSpeed);
-                    self._updateEquipmentVisibility();
-                    self._updateControlStates();
-
-                    _csVal(document.getElementById('simFaultElevator'), self._activeElevFault);
-                    _csVal(document.getElementById('simFaultPump'), self._activePumpFault);
-                })
-                .catch(function () {});
-        };
-
-        // ─────────────── SSE SYNC HOOK ───────────────
+        // ─────────────── SSE SYNC HOOK (única fuente de verdad) ───────────────
 
         SimulationController.prototype.syncFromPayload = function (data) {
             this.simPaused = data.sim_paused === true;
@@ -652,17 +485,9 @@
             }
 
             if (data.sim_faults) {
-                if (this._faultsJustCleared) {
-                    this._faultsJustCleared = false;
-                } else {
-                    if (!this._elevFaultInFlight) {
-                        this._activeElevFault = data.sim_faults.elevator || '';
-                    }
-                    if (!this._pumpFaultInFlight) {
-                        this._activePumpFault = data.sim_faults.pump || '';
-                    }
-                    this._updateFaultUI();
-                }
+                this._activeElevFault = data.sim_faults.elevator || '';
+                this._activePumpFault = data.sim_faults.pump || '';
+                this._updateFaultUI();
             }
 
             if (data.equipment_types) {

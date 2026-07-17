@@ -289,4 +289,4 @@ def build_compound_alert_email_html(
             </td>
           </tr>"""
 
-
+    return _build_email_shell(banner + body_row)

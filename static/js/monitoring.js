@@ -291,7 +291,7 @@
     }
 
     function updateAdminControlsByEquipment(equipTypes) {
-        if (!IS_ADMIN) return;
+        if (!isAdmin()) return;
         const et = equipTypes || [];
         const hasPump = et.includes('bomba');
         const hasElev = et.includes('elevador');
@@ -302,8 +302,8 @@
         const simDisabled = !simStarted || simPaused;
         const pumpOff = ctrl ? !ctrl._pumpOn : false;
         const elevOff = ctrl ? !ctrl._elevOn : false;
-        _csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled || pumpOff);
-        _csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled || elevOff);
+        window._csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled || pumpOff);
+        window._csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled || elevOff);
     }
 
     function connectSSE() {
@@ -358,7 +358,7 @@
         const simPaused = data.sim_paused === true;
         const isFirstLoad = Object.keys(currentReadings).length === 0;
 
-        if (IS_ADMIN && window.SimulationController && data.sim_paused !== undefined) {
+        if (isAdmin() && window.SimulationController && data.sim_paused !== undefined) {
             SimulationController.syncFromPayload(data);
         }
 
@@ -380,7 +380,7 @@
         }
 
         const hasEquipment = updateEquipmentVisibility(data.equipment_types);
-        if (IS_ADMIN) updateAdminControlsByEquipment(data.equipment_types);
+        if (isAdmin()) updateAdminControlsByEquipment(data.equipment_types);
         if (data.current && hasEquipment) updateSummaryValues(data);
         if (data.stats) {
             updateStats(data.stats);
@@ -460,26 +460,7 @@
         try {
             const resp = await csrfFetch(url, { method: 'POST', body: '{}' });
             const data = await resp.json();
-            if (data.status === 'ok') {
-                currentPumpOn = data.pump_on;
-                currentElevOn = data.elevator_on;
-                updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
-                updateSummaryValues({pump_on: currentPumpOn, elevator_on: currentElevOn});
-                if (data.faults) {
-                    _currentFaults = data.faults;
-                }
-                var ctrl = window.SimulationController;
-                if (ctrl) {
-                    ctrl._pumpOn = data.pump_on;
-                    ctrl._elevOn = data.elevator_on;
-                    ctrl._activePumpFault = (data.faults && data.faults.pump) || '';
-                    ctrl._activeElevFault = (data.faults && data.faults.elevator) || '';
-                    if (window._csSetValue) window._csSetValue(document.getElementById('simFaultPump'), ctrl._activePumpFault);
-                    if (window._csSetValue) window._csSetValue(document.getElementById('simFaultElevator'), ctrl._activeElevFault);
-                    ctrl._updateControlStates();
-                    ctrl._updateFaultUI();
-                }
-            } else {
+            if (data.status !== 'ok') {
                 setSimMessage(data.message || 'Error al cambiar el estado del equipo.', 'error');
             }
         } catch (_) {
@@ -648,24 +629,6 @@
                     }
                     unreadHistoryCount = Math.max(0, unreadHistoryCount - 1);
                     setHistoryBadge(unreadHistoryCount);
-                    // Sync simulation state if server returned updated faults
-                    if (data.faults) {
-                        _currentFaults = data.faults;
-                        var ctrl = window.SimulationController;
-                        if (ctrl) {
-                            ctrl._activePumpFault = data.faults.pump || '';
-                            ctrl._activeElevFault = data.faults.elevator || '';
-                            if (window._csSetValue) {
-                                window._csSetValue(document.getElementById('simFaultPump'), ctrl._activePumpFault);
-                                window._csSetValue(document.getElementById('simFaultElevator'), ctrl._activeElevFault);
-                            }
-                            ctrl._updateControlStates();
-                            ctrl._updateFaultUI();
-                        }
-                        if (typeof window.updateCards === 'function') {
-                            window.updateCards(currentReadings);
-                        }
-                    }
                 }
             } catch (_) { btn.disabled = false; }
         });
@@ -688,9 +651,12 @@
                 if (!resp.ok) throw new Error(resp.statusText);
                 const data = await resp.json();
                 applyPayload(data);
-                if (IS_ADMIN && data.thresholds && typeof renderThresholdsPanel === 'function') renderThresholdsPanel(data.thresholds);
+                if (isAdmin() && data.thresholds && typeof renderThresholdsPanel === 'function') renderThresholdsPanel(data.thresholds);
+                if (isAdmin() && window.SimulationController && typeof window.SimulationController.syncFromPayload === 'function') {
+                    window.SimulationController.syncFromPayload(data);
+                }
             } catch (_) {
-                if (IS_ADMIN) {
+                if (isAdmin()) {
                     ['statsBombaPanel', 'statsElevadorPanel'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.innerHTML = '<span class="text-secondary text-sm">Sin datos de telemetría para este edificio.</span>';
