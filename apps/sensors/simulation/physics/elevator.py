@@ -20,6 +20,17 @@ from apps.sensors.simulation.utils import clamp
 # Umbral de bloqueo físico por sobrecarga — derivado de DEFAULT_THRESHOLDS para
 # que cada edificio con sus propios umbrales refleje el bloqueo correcto (spec: >800 kg)
 
+# ── Tasas de ramping progresivo por variable (unidades por tick) ──
+ELEV_RAMP_RATES = {
+    "elev_speed":       0.5,   # m/s/tick  — ~1.5→0 en ~3s
+    "elev_current":     4.0,   # A/tick    — régimen→0/40 en ~3-10s
+    "elev_temperature": 5.0,   # °C/tick   — ~25→110 en ~17s (masa térmica)
+    "elev_vibration":   2.0,   # mm/s/tick — ~1→10 en ~4.5s
+    "elev_voltage":     30.0,  # V/tick    — 380→0 en ~13s
+    "elev_load":        100.0, # kg/tick   — ~200→1000 en ~8s
+    "elev_position":    1.0,   # pisos/tick
+}
+
 
 def _effective_load(sim: BuildingSimulator, base_load: float) -> float:
     """Return the effective load including any overload fault extra mass."""
@@ -122,6 +133,11 @@ def _update_elevator(sim: BuildingSimulator) -> None:
     if "elevator" in sim.sim_faults:
         _force_elevator_fault_telemetry(sim, sd)
 
+    if sim.fault_transition_elev == "recovering":
+        sim._fault_transition_ticks_elev -= 1
+        if sim._fault_transition_ticks_elev <= 0:
+            sim.fault_transition_elev = "stable"
+
 
 def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
     targets = {
@@ -205,45 +221,61 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
     return targets.get(fault, {})
 
 
+def _ramp_toward_target(sd: dict, var: str, target, rate: float, dt: float) -> bool:
+    current = sd.get(var)
+    if current is None:
+        sd[var] = target
+        return True
+
+    try:
+        t = float(target)
+        c = float(current)
+    except (ValueError, TypeError):
+        sd[var] = target
+        return True
+
+    diff = abs(t - c)
+    if diff < 0.1:
+        sd[var] = target
+        return True
+    step = rate * dt
+    if diff <= step:
+        sd[var] = target
+        return True
+
+    sd[var] = c + step if t > c else c - step
+    return False
+
+
 def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
     fault = sim.sim_faults.get("elevator")
     if not fault:
         return
 
     targets = _get_fault_telemetry_targets(sim, fault)
+    dt = sim.sim_speed or 1.0
 
+    all_reached = True
     for var, target in targets.items():
         if var in ENUM_VARS:
             sd[var] = target
             continue
 
-        current = sd.get(var)
-        if current is None:
-            sd[var] = target
-            continue
+        rate = ELEV_RAMP_RATES.get(var, 2.0)
+        if not _ramp_toward_target(sd, var, target, rate, dt):
+            all_reached = False
 
-        try:
-            diff = float(target) - float(current)
-        except (ValueError, TypeError):
-            sd[var] = target
-            continue
-
-        if abs(diff) < 0.01:
-            sd[var] = target
-            continue
-
-        new_val = target
-
+        val = sd[var]
         bounds = sim.sensor_limits.get(var)
         if bounds:
-            new_val = max(bounds[0], min(bounds[1], new_val))
-
+            val = max(bounds[0], min(bounds[1], val))
         if var in ("elev_load",):
-            new_val = int(round(new_val))
+            val = int(round(val))
         else:
-            new_val = round(new_val, 1)
+            val = round(val, 1)
+        sd[var] = val
 
-        sd[var] = new_val
+    sim.fault_transition_elev = "stable" if all_reached else "injecting"
 
 
 def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:

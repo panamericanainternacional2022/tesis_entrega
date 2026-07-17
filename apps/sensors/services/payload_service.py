@@ -33,6 +33,8 @@ class PayloadContext:
     elev_direction: int = None
     pump_demand: float = None
     fault_injected_at: dict = None
+    fault_transition_pump: str = "stable"
+    fault_transition_elev: str = "stable"
 
 
 def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[str, Any]:
@@ -98,6 +100,10 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
         "elev_direction": ctx.elev_direction,
         "pump_demand": ctx.pump_demand,
         "fault_injected_at": ctx.fault_injected_at or {},
+        "fault_transition": {
+            "pump": ctx.fault_transition_pump,
+            "elevator": ctx.fault_transition_elev,
+        },
     }
 
 

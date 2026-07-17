@@ -20,5 +20,7 @@ def build_live_payload_for_sim(sim: BuildingSimulator) -> dict:
         elev_direction=getattr(sim, '_elev_direction', None),
         pump_demand=getattr(sim, '_pump_demand', None),
         fault_injected_at=getattr(sim, 'fault_injected_at', None),
+        fault_transition_pump=getattr(sim, 'fault_transition_pump', 'stable'),
+        fault_transition_elev=getattr(sim, 'fault_transition_elev', 'stable'),
     )
     return _build_live_payload(ctx)

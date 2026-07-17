@@ -11,6 +11,18 @@ from apps.sensors.simulation.utils import clamp
 # Tank physics constants
 # _TANK_BUILDING_DEMAND is now dynamically calculated to balance inflow
 
+# ── Tasas de ramping progresivo por variable (unidades por tick) ──
+PUMP_RAMP_RATES = {
+    "pump_flow_rate":     3.0,   # l/s/tick  — 12→0 en ~4s
+    "pump_pressure":      1.5,   # bar/tick  — 5→0 en ~3s
+    "pump_temperature":   3.0,   # °C/tick   — 50→90 en ~13s (masa térmica)
+    "pump_vibration":     2.0,   # mm/s/tick — 1→10 en ~4.5s
+    "pump_current":       4.0,   # A/tick    — 13→0/25 en ~3-6s
+    "pump_voltage":       30.0,  # V/tick    — 220→0/300 en ~7-10s
+    "pump_tank_level":    5.0,   # %/tick    — 50→0 en ~10s
+    "pump_water_quality": 30.0,  # ppm/tick  — 200→600 en ~13s
+}
+
 
 def _rand_walk(current: float, step: float, lo: float, hi: float) -> float:
     return clamp(current + random.uniform(-step, step), lo, hi)
@@ -64,6 +76,11 @@ def _update_pump(sim: BuildingSimulator) -> None:
         sim._pump_start_grace_ticks -= 1
     _run_pump_normal(sim, sd, dt)
 
+    if sim.fault_transition_pump == "recovering":
+        sim._fault_transition_ticks_pump -= 1
+        if sim._fault_transition_ticks_pump <= 0:
+            sim.fault_transition_pump = "stable"
+
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["pump_flow_rate"] = 0.0
@@ -86,6 +103,20 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     )
 
 
+def _ramp_toward_target(sd: dict, k: str, target: float, rate: float, dt: float) -> bool:
+    current = sd[k]
+    diff = abs(target - current)
+    if diff < 0.3:
+        sd[k] = target
+        return True
+    step = rate * dt
+    if diff <= step:
+        sd[k] = target
+        return True
+    sd[k] = current + step if target > current else current - step
+    return False
+
+
 def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     fault_type = sim.sim_faults.get("pump")
 
@@ -105,11 +136,17 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     if handler:
         handler(sim, temp_sd, dt)
 
+    all_reached = True
     for k in PUMP_VARS:
-        sd[k] = temp_sd[k]
+        target = temp_sd[k]
+        rate = PUMP_RAMP_RATES.get(k, 2.0)
+        if not _ramp_toward_target(sd, k, target, rate, dt):
+            all_reached = False
 
     if fault_type != "power_outage":
         _clamp_pump_values(sim, sd)
+
+    sim.fault_transition_pump = "stable" if all_reached else "injecting"
 
 
 def _apply_dry_run(sim, sd: dict, dt: float) -> None:

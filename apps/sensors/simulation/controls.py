@@ -59,6 +59,15 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
         sim._alert_consecutive = {}
     fault_key = f"fault_raw:{fault_type}"
     sim._alert_consecutive[fault_key] = ALERT_DEBOUNCE_TICKS
+
+    # Iniciar transición progresiva
+    if device == "pump":
+        sim.fault_transition_pump = "injecting"
+        sim._fault_targets_pump = {}
+    elif device == "elevator":
+        sim.fault_transition_elev = "injecting"
+        sim._fault_targets_elev = {}
+
     logger.info("Falla inyectada: edificio=%s, device=%s, tipo=%s", edificio_id, device, fault_type)
     nombre_falla = FAULT_NAMES_ES.get(fault_type, fault_type)
     nombre_dispositivo = _DEVICE_ES.get(device, device)
@@ -97,11 +106,15 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         if hasattr(sim, "_alert_consecutive"):
             sim._alert_consecutive.pop(fault_alert_key, None)
 
-    from apps.sensors.simulation.fault_recovery import apply_pump_recovery, apply_elevator_recovery
+    from apps.sensors.simulation.fault_recovery import apply_pump_recovery, apply_elevator_recovery, RECOVERY_GRACE_TICKS
     if device in (None, "pump"):
         apply_pump_recovery(sim)
+        sim.fault_transition_pump = "recovering"
+        sim._fault_transition_ticks_pump = RECOVERY_GRACE_TICKS
     if device in (None, "elevator"):
         apply_elevator_recovery(sim)
+        sim.fault_transition_elev = "recovering"
+        sim._fault_transition_ticks_elev = RECOVERY_GRACE_TICKS
 
     if device:
         nombre_dispositivo = _DEVICE_ES.get(device, device)
@@ -144,6 +157,14 @@ def reset_simulator(edificio_id: int) -> str:
         sim.last_email_sent_time_per_var.clear()
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
+
+    sim.fault_transition_pump = "stable"
+    sim.fault_transition_elev = "stable"
+    sim._fault_transition_ticks_pump = 0
+    sim._fault_transition_ticks_elev = 0
+    sim._fault_targets_pump = {}
+    sim._fault_targets_elev = {}
+
     sim.sim_paused = True
     sim.sim_started = False
     sim.sim_speed = 1.0

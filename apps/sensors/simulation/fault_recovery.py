@@ -1,5 +1,8 @@
+RECOVERY_GRACE_TICKS = 25
+
+
 def apply_pump_recovery(sim) -> None:
-    sim._pump_start_grace_ticks = 5
+    sim._pump_start_grace_ticks = RECOVERY_GRACE_TICKS
 
 
 def apply_elevator_recovery(sim) -> None:
