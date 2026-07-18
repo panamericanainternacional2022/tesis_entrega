@@ -226,6 +226,7 @@
             this._faultPending = false;
             this._togglePending = false;
             this._pausePending = false;
+            this._protectionPending = false;
             this._faultTransition = { pump: 'stable', elevator: 'stable' };
 
             this._cacheDOMElements();
@@ -345,11 +346,11 @@
 
         SimulationController.prototype._toggleProtection = function () {
             var self = this;
-            if (self._pausePending) {
+            if (self._protectionPending) {
                 window.showToast('Espera a que termine la operación actual.', 'info');
                 return;
             }
-            self._pausePending = true;
+            self._protectionPending = true;
             if (self.btnProtection) self.btnProtection.disabled = true;
 
             window.csrfFetch(URLS.toggleProt, { method: 'POST', body: '{}' })
@@ -365,7 +366,7 @@
                     window.showToast('Error de conexión al cambiar protección.', 'error');
                 })
                 .then(function () {
-                    self._pausePending = false;
+                    self._protectionPending = false;
                     if (self.btnProtection) self.btnProtection.disabled = false;
                 });
         };
@@ -399,8 +400,6 @@
             var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
 
             self._faultTransition[device] = 'injecting';
-            window._csSetDisabled(document.getElementById('simFaultPump'), true);
-            window._csSetDisabled(document.getElementById('simFaultElevator'), true);
 
             var url, bodyPayload;
             if (newFault) {
