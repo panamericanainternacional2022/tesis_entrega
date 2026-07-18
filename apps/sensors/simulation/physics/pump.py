@@ -53,13 +53,15 @@ def _update_pump(sim: BuildingSimulator) -> None:
         
         new_tank = sd["pump_tank_level"] + d_tank
         
-        # Enforce safe normal regime for tank level if no fault and not recovering
-        if "pump" not in sim.sim_faults and sim.fault_transition_pump != "recovering":
+        # Enforce safe normal regime for tank level if no fault
+        if "pump" not in sim.sim_faults:
             tank_t = thresh.get("pump_tank_level", {})
-            # Range direction: high is lower bound of normal, critic is upper bound of normal
             safe_tank_min = tank_t.get("high", 20.0) + (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.05
             safe_tank_max = tank_t.get("critic", 90.0) - (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.05
-            new_tank = max(safe_tank_min, min(new_tank, safe_tank_max))
+            if new_tank < safe_tank_min:
+                new_tank = min(safe_tank_min, new_tank + 5.0 * dt)
+            elif new_tank > safe_tank_max:
+                new_tank = max(safe_tank_max, new_tank - 5.0 * dt)
             
         sd["pump_tank_level"] = round(clamp(new_tank, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1]), 1)
 
@@ -272,43 +274,63 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     elif flow < current_flow - max_flow_ramp:
         flow = current_flow - max_flow_ramp
 
-    pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
-    current_press = sd.get("pump_pressure", 0)
-    max_press_ramp = 1.5 * dt
-    if pressure > current_press + max_press_ramp:
-        pressure = current_press + max_press_ramp
-    elif pressure < current_press - max_press_ramp:
-        pressure = current_press - max_press_ramp
-
-    # First-order thermal model
-    target_temp = 50.0 + (flow * pressure * 0.1)
-    temp_diff   = target_temp - sd["pump_temperature"]
-    temp = sd["pump_temperature"] + temp_diff * 0.05 * dt + random.uniform(-0.1, 0.1) * dt
-
-    vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
-    # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)
-    # Modelo eléctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
-    # Opción A: ecuación recalibrada para que el régimen normal quede dentro del umbral (<16 A)
-    curr = (flow * pressure * 28.0 + pressure * 120.0) / (volt * 0.85) + random.uniform(-0.5, 0.5) * dt
-
-    # Enforce safe normal regime for all pump metrics if no fault is active
+    target_pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
     if "pump" not in sim.sim_faults:
         press_t = thresh.get("pump_pressure", {})
         safe_press_min = press_t.get("high", 1.0) + (press_t.get("critic", 6.0) - press_t.get("high", 1.0)) * 0.1
         safe_press_max = press_t.get("critic", 6.0) - (press_t.get("critic", 6.0) - press_t.get("high", 1.0)) * 0.1
-        pressure = max(safe_press_min, min(pressure, safe_press_max))
+        target_pressure = max(safe_press_min, min(target_pressure, safe_press_max))
 
+    current_press = sd.get("pump_pressure", 0)
+    max_press_ramp = 1.5 * dt
+    if target_pressure > current_press + max_press_ramp:
+        pressure = current_press + max_press_ramp
+    elif target_pressure < current_press - max_press_ramp:
+        pressure = current_press - max_press_ramp
+    else:
+        pressure = target_pressure
+
+    # First-order thermal model
+    target_temp = 50.0 + (flow * pressure * 0.1)
+    if "pump" not in sim.sim_faults:
         temp_t = thresh.get("pump_temperature", {})
         safe_temp_max = temp_t.get("high", 60.0) * 0.95
-        temp = min(temp, safe_temp_max)
+        target_temp = min(target_temp, safe_temp_max)
 
+    temp_diff   = target_temp - sd["pump_temperature"]
+    temp = sd["pump_temperature"] + temp_diff * 0.05 * dt + random.uniform(-0.1, 0.1) * dt
+
+    target_vib  = 0.5 + flow / 25.0 + max(0.0, temp - 65.0) / 40.0 + random.uniform(-0.2, 0.3) * dt
+    if "pump" not in sim.sim_faults:
         vib_t = thresh.get("pump_vibration", {})
         safe_vib_max = vib_t.get("high", 4.5) * 0.95
-        vib = min(vib, safe_vib_max)
+        target_vib = min(target_vib, safe_vib_max)
 
+    current_vib = sd.get("pump_vibration", 0)
+    max_vib_ramp = 2.0 * dt
+    if target_vib > current_vib + max_vib_ramp:
+        vib = current_vib + max_vib_ramp
+    elif target_vib < current_vib - max_vib_ramp:
+        vib = current_vib - max_vib_ramp
+    else:
+        vib = target_vib
+
+    # El trabajo mecánico incluye el caudal y una resistencia parasita por presión (Shutoff head)
+    # Modelo eléctrico ajustado: nominal ~13 A @ 13 l/s, 5 bar, 220 V
+    target_curr = (flow * pressure * 28.0 + pressure * 120.0) / (volt * 0.85) + random.uniform(-0.5, 0.5) * dt
+    if "pump" not in sim.sim_faults:
         curr_t = thresh.get("pump_current", {})
         safe_curr_max = curr_t.get("high", 16.0) * 0.95
-        curr = min(curr, safe_curr_max)
+        target_curr = min(target_curr, safe_curr_max)
+
+    current_curr = sd.get("pump_current", 0)
+    max_curr_ramp = 4.0 * dt
+    if target_curr > current_curr + max_curr_ramp:
+        curr = current_curr + max_curr_ramp
+    elif target_curr < current_curr - max_curr_ramp:
+        curr = current_curr - max_curr_ramp
+    else:
+        curr = target_curr
 
     sd["pump_flow_rate"]   = round(clamp(flow,     sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[1]),       1)
     sd["pump_pressure"]    = round(clamp(pressure, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[0],       sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]),       1)

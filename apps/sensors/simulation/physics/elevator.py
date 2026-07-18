@@ -472,6 +472,8 @@ def _handle_elev_doors_open(
     critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
     if total_load > critic_load:
         sim._elev_timer = 0
+        if sim._elev_overload_extra_kg <= 0:
+            load = max(0, load - 150 * dt)
         sd["elev_speed"] = spd
         sd["elev_door_status"] = door
         sd["elev_load"] = round(load)
@@ -743,10 +745,11 @@ def _run_elevator_post_fsm(
             _ramp_toward_target(sd, "elev_temperature", target_temp, ELEV_RAMP_RATES.get("elev_temperature", 5.0), dt)
             sim._elev_motor_temp = sd["elev_temperature"]
         else:
-            temp_diff = target_temp - sim._elev_motor_temp
-            sim._elev_motor_temp += temp_diff * 0.05 * dt + random.uniform(-0.2, 0.2) * dt
-            if "elevator" not in sim.sim_faults:
-                sim._elev_motor_temp = min(sim._elev_motor_temp, safe_temp_max)
+            if "elevator" not in sim.sim_faults and sim._elev_motor_temp > safe_temp_max:
+                sim._elev_motor_temp = max(safe_temp_max, sim._elev_motor_temp - ELEV_RAMP_RATES.get("elev_temperature", 5.0) * dt)
+            else:
+                temp_diff = target_temp - sim._elev_motor_temp
+                sim._elev_motor_temp += temp_diff * 0.05 * dt + random.uniform(-0.2, 0.2) * dt
             sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1])
             sd["elev_temperature"] = round(sim._elev_motor_temp, 1)
     else:
@@ -773,7 +776,16 @@ def _run_elevator_post_fsm(
         _ramp_toward_target(sd, "elev_voltage", target_volt, ELEV_RAMP_RATES.get("elev_voltage", 30.0), dt)
         sim._elev_voltage = sd["elev_voltage"]
     else:
-        sd["elev_voltage"] = round(target_volt, 1)
+        current_volt = sd.get("elev_voltage", 380)
+        max_volt_ramp = ELEV_RAMP_RATES.get("elev_voltage", 30.0) * dt
+        if target_volt > current_volt + max_volt_ramp:
+            volt = current_volt + max_volt_ramp
+        elif target_volt < current_volt - max_volt_ramp:
+            volt = current_volt - max_volt_ramp
+        else:
+            volt = target_volt
+        sd["elev_voltage"] = round(volt, 1)
+        sim._elev_voltage = volt
 
     # ── Elevator vibration simulation ──────────────────────────────────────
     vib_high = thresh.get("elev_vibration", {}).get("high", 3.0)
@@ -796,8 +808,16 @@ def _run_elevator_post_fsm(
         _ramp_toward_target(sd, "elev_vibration", target_vib, ELEV_RAMP_RATES.get("elev_vibration", 2.0), dt)
         sim._elev_vibration = sd["elev_vibration"]
     else:
-        sd["elev_vibration"] = round(target_vib, 1)
-        sim._elev_vibration = target_vib
+        current_vib = sd.get("elev_vibration", 0)
+        max_vib_ramp = ELEV_RAMP_RATES.get("elev_vibration", 2.0) * dt
+        if target_vib > current_vib + max_vib_ramp:
+            vib = current_vib + max_vib_ramp
+        elif target_vib < current_vib - max_vib_ramp:
+            vib = current_vib - max_vib_ramp
+        else:
+            vib = target_vib
+        sd["elev_vibration"] = round(vib, 1)
+        sim._elev_vibration = vib
 
     # ── Elevator motor current simulation ──────────────────────────────────
     if not sim._elev_power_available:
