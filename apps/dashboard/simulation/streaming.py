@@ -37,25 +37,38 @@ def sse_stream(request, building_id: int = None) -> StreamingHttpResponse:
         last_count = -1
 
         try:
+            import time
+            last_telemetry = 0
+            
             while True:
-                eventlet.sleep(SIM_TICK_INTERVAL)
+                now = time.time()
+                force_count_update = False
                 
-                # 1. Telemetría y eventos del simulador
+                # Despachar eventos de historial INMEDIATAMENTE
                 if sim:
-                    payload = build_live_payload_for_sim(sim)
-                    yield f"data: {json.dumps(payload)}\n\n"
-                    
                     while client_queue:
                         notif = client_queue.popleft()
                         yield f"event: history-event\ndata: {json.dumps(notif)}\n\n"
+                        force_count_update = True
                         
-                # 2. Conteo global de historial no leído (multiplexación)
-                records, _ = _build_history_query(usuario_id, rol)
-                count = records.filter(resolved=False).distinct().count()
-                
-                if count != last_count:
-                    yield f"event: count-update\ndata: {json.dumps({'count': count})}\n\n"
-                    last_count = count
+                # Telemetría cada SIM_TICK_INTERVAL
+                if now - last_telemetry >= SIM_TICK_INTERVAL:
+                    if sim:
+                        payload = build_live_payload_for_sim(sim)
+                        yield f"data: {json.dumps(payload)}\n\n"
+                    force_count_update = True
+                    last_telemetry = now
+                    
+                # 2. Conteo global de historial (sólo consultar DB si hubo un tick o alerta nueva)
+                if force_count_update:
+                    records, _ = _build_history_query(usuario_id, rol)
+                    count = records.filter(resolved=False).distinct().count()
+                    
+                    if count != last_count:
+                        yield f"event: count-update\ndata: {json.dumps({'count': count})}\n\n"
+                        last_count = count
+
+                eventlet.sleep(0.1)
 
         except (GeneratorExit, IOError, OSError):
             logger.info("Cliente SSE desconectado (usuario %s)", usuario_id)
