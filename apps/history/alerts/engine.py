@@ -89,6 +89,22 @@ def send_compound_alert(
     if sim is None:
         return
 
+    from apps.sensors.sensor_config import VALUE_DISPLAY_ES
+
+    # Traducir los valores al español y normalizar nombres de variables
+    translated_affected_vars = {}
+    for var, info in affected_vars.items():
+        t_info = info.copy()
+        raw_val = info.get("value")
+        if raw_val is not None:
+            raw_str = str(raw_val).strip()
+            val_str = raw_str.lower()
+            if var in VALUE_DISPLAY_ES:
+                t_info["value"] = VALUE_DISPLAY_ES[var].get(val_str, raw_str.capitalize())
+            else:
+                t_info["value"] = raw_val
+        translated_affected_vars[var] = t_info
+
     fault_name = FAULT_NAMES_ES.get(fault_type, fault_type)
 
     # Usar el texto de alerta especial unificada desde FAULT_ALERT_MESSAGES.
@@ -97,18 +113,18 @@ def send_compound_alert(
     from apps.sensors.sensor_config import FAULT_ALERT_MESSAGES
     recommended_action = FAULT_ALERT_MESSAGES.get(
         fault_type,
-        f"{fault_name} — Anomía detectada en múltiples sensores de forma simultánea.",
+        f"{fault_name} — Anomalía detectada en múltiples sensores de forma simultánea.",
     )
 
     from apps.sensors.simulation.constants import LOG_SIM
     if LOG_SIM:
-        var_names = ", ".join(affected_vars.keys())
+        var_names = ", ".join(translated_affected_vars.keys())
         print(
             f"[SIM] {time.strftime('%H:%M:%S')} COMPOUND ALERT: {fault_name} "
             f"vars=[{var_names}] level={risk_level}"
         )
 
-    _send_compound_email(fault_type, fault_name, risk_level, affected_vars, recommended_action, sim)
+    _send_compound_email(fault_type, fault_name, risk_level, translated_affected_vars, recommended_action, sim)
 
     alert_payload = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -120,9 +136,9 @@ def send_compound_alert(
                 "value": info["value"],
                 "risk": info["risk"],
                 "unit": UNITS.get(var, ""),
-                "display_name": VAR_NAMES.get(var, var),
+                "display_name": VAR_NAMES.get(var, var.replace("_", " ").capitalize()),
             }
-            for var, info in affected_vars.items()
+            for var, info in translated_affected_vars.items()
         ],
         "risk": risk_level,
         "message": recommended_action,
@@ -133,7 +149,7 @@ def send_compound_alert(
     eid = sim.edificio_id if sim else None
     save_compound_history_record(
         fault_type=fault_type,
-        affected_vars=affected_vars,
+        affected_vars=translated_affected_vars,
         risk_level=risk_level,
         recommended_action=recommended_action,
         edificio_id=eid,
