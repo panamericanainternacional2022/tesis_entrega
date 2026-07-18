@@ -85,10 +85,10 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    sd["pump_flow_rate"] = 0.0
-    sd["pump_pressure"] = 1.0
-    sd["pump_vibration"] = 0.0
-    sd["pump_current"] = 0.0
+    _ramp_toward_target(sd, "pump_flow_rate", 0.0, PUMP_RAMP_RATES.get("pump_flow_rate", 3.0), dt)
+    _ramp_toward_target(sd, "pump_pressure", 1.0, PUMP_RAMP_RATES.get("pump_pressure", 1.5), dt)
+    _ramp_toward_target(sd, "pump_vibration", 0.0, PUMP_RAMP_RATES.get("pump_vibration", 2.0), dt)
+    _ramp_toward_target(sd, "pump_current", 0.0, PUMP_RAMP_RATES.get("pump_current", 4.0), dt)
     sd["pump_temperature"] = round(
         clamp(sd["pump_temperature"] + (T_AMBIENT - sd["pump_temperature"]) * 0.05 * dt,
                T_AMBIENT, sim.sensor_limits.get('pump_temperature', (22.0, 100.0))[1]), 1

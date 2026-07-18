@@ -281,10 +281,11 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
 
 
 def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    sd["elev_speed"] = 0.0
+    _ramp_toward_target(sd, "elev_speed", 0.0, ELEV_RAMP_RATES.get("elev_speed", 0.5), dt)
+    _ramp_toward_target(sd, "elev_voltage", 380.0, ELEV_RAMP_RATES.get("elev_voltage", 30.0), dt)
+    _ramp_toward_target(sd, "elev_vibration", 0.5, ELEV_RAMP_RATES.get("elev_vibration", 2.0), dt)
+    _ramp_toward_target(sd, "elev_current", 0.0, ELEV_RAMP_RATES.get("elev_current", 4.0), dt)
     sd["elev_load"] = int(max(0, sd["elev_load"] - 50 * dt))
-    sd["elev_voltage"] = 380.0
-    sd["elev_vibration"] = 0.5
     sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
     sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1]), 1)
     sim._elev_state = "IDLE"
@@ -605,7 +606,13 @@ def _handle_elev_moving(
             sim._elev_state = "IDLE"
             sim._elev_timer = 0
     else:
-        spd = CRUISING_SPEED + random.uniform(-0.1, 0.1) * dt
+        target_spd = CRUISING_SPEED + random.uniform(-0.1, 0.1) * dt
+        if spd > target_spd:
+            spd = max(target_spd, spd - 0.5 * dt)
+        elif spd < target_spd - 0.2:
+            spd = min(target_spd, spd + 0.5 * dt)
+        else:
+            spd = target_spd
 
     pos_change_factor = 0.1 if getattr(sim, "_elev_traction_loss", False) else 1.0
     pos += spd * direction * dt * pos_change_factor
