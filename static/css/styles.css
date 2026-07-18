@@ -1181,6 +1181,7 @@ button {
 
 .stats-table td:first-child {
     font-weight: var(--weight-bold);
+    color: var(--color-ink);
 }
 
 .table-empty-cell {
