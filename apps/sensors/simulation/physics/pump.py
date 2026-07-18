@@ -56,8 +56,8 @@ def _update_pump(sim: BuildingSimulator) -> None:
         # Enforce safe normal regime for tank level if no fault
         if "pump" not in sim.sim_faults:
             tank_t = thresh.get("pump_tank_level", {})
-            safe_tank_min = tank_t.get("high", 20.0) + (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.05
-            safe_tank_max = tank_t.get("critic", 90.0) - (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.05
+            safe_tank_min = tank_t.get("high", 20.0) + (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.25
+            safe_tank_max = tank_t.get("critic", 90.0) - (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.25
             if new_tank < safe_tank_min:
                 new_tank = min(safe_tank_min, new_tank + 5.0 * dt)
             elif new_tank > safe_tank_max:
@@ -277,8 +277,8 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     target_pressure = max(0.5, PUMP_P0 - PUMP_K * flow ** 2) + random.uniform(-0.1, 0.1) * dt
     if "pump" not in sim.sim_faults:
         press_t = thresh.get("pump_pressure", {})
-        safe_press_min = press_t.get("high", 1.0) + (press_t.get("critic", 6.0) - press_t.get("high", 1.0)) * 0.1
-        safe_press_max = press_t.get("critic", 6.0) - (press_t.get("critic", 6.0) - press_t.get("high", 1.0)) * 0.1
+        safe_press_min = press_t.get("high", 1.0) + (press_t.get("critic", 6.0) - press_t.get("high", 1.0)) * 0.25
+        safe_press_max = press_t.get("critic", 6.0) - (press_t.get("critic", 6.0) - press_t.get("high", 1.0)) * 0.25
         target_pressure = max(safe_press_min, min(target_pressure, safe_press_max))
 
     current_press = sd.get("pump_pressure", 0)
