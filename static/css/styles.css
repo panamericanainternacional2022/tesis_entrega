@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    0. FUENTE EXTERNA
    ============================================================ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap');
@@ -9,11 +9,11 @@
    ============================================================ */
 :root {
     /* ==========================================
-       A. TIPOGRAFÍA Y JERARQUÍA
+       A. TIPOGRAFÃA Y JERARQUÃA
        ========================================== */
     --font: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
-    /* Escala Tipográfica de Base 16px */
+    /* Escala TipogrÃ¡fica de Base 16px */
     --text-xs: 0.75rem;
     /* 12px */
     --text-sm: 0.875rem;
@@ -29,14 +29,14 @@
     --text-2xl: 2rem;
     /* 32px */
     --text-3xl: 2.5rem;
-    /* 40px - Títulos gigantes */
+    /* 40px - TÃ­tulos gigantes */
 
     /* Grosores */
     --weight-normal: 400;
     --weight-medium: 500;
     --weight-bold: 700;
 
-    /* Alturas de Línea (Line Heights) */
+    /* Alturas de LÃ­nea (Line Heights) */
     --leading-none: 1;
     --leading-tight: 1.2;
     --leading-normal: 1.55;
@@ -74,7 +74,7 @@
     --color-accent-hover: #1d4ed8;
     --color-accent-bg: #eff6ff;
 
-    /* Estados Semánticos (Normalizados) */
+    /* Estados SemÃ¡nticos (Normalizados) */
     --state-normal: #16a34a;
     --state-normal-bg: #f0fdf4;
     --state-high: #d97706;
@@ -83,7 +83,7 @@
     --state-critical-hover: #991515;
     --state-critical-bg: #fef2f2;
 
-    /* Gris azulado para evitar mimetización con el fondo general #f5f5f5 */
+    /* Gris azulado para evitar mimetizaciÃ³n con el fondo general #f5f5f5 */
     --state-info: #475569;
     --state-info-bg: #f1f5f9;
 
@@ -142,7 +142,7 @@
     --radius: 0px;
     --radius-badge: 0px;
 
-    /* Miscelánea */
+    /* MiscelÃ¡nea */
     --overlay-bg: rgba(10, 10, 10, 0.4);
     --transition-fast: 120ms ease;
     --transition-base: 200ms ease;
@@ -213,7 +213,7 @@ button {
     transition: none !important;
 }
 
-/* Accesibilidad: ocultar visualmente sin perder semántica */
+/* Accesibilidad: ocultar visualmente sin perder semÃ¡ntica */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -277,7 +277,7 @@ button {
     box-shadow: var(--shadow-brutal);
 }
 
-/* ─── Barra de acento azul interna en contenedores grandes ─── */
+/* â”€â”€â”€ Barra de acento azul interna en contenedores grandes â”€â”€â”€ */
 .page-header,
 .panel,
 .sensor-section,
@@ -317,7 +317,7 @@ button {
     min-height: 100vh;
 }
 
-/* ─── Sidebar ─── */
+/* â”€â”€â”€ Sidebar â”€â”€â”€ */
 .sidebar {
     position: fixed;
     top: 0;
@@ -342,7 +342,6 @@ button {
     display: block;
     font-weight: var(--weight-bold);
     font-size: var(--text-base);
-    letter-spacing: var(--tracking-wider);
     color: var(--color-ink);
     text-decoration: none;
 }
@@ -351,7 +350,6 @@ button {
     display: block;
     font-size: var(--text-xs);
     color: var(--color-text-secondary);
-    letter-spacing: var(--tracking-wide);
     margin-top: var(--sp-1);
 }
 
@@ -369,7 +367,6 @@ button {
     text-decoration: none;
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-normal);
     border-left: var(--border-width) solid transparent;
     transition: all var(--transition-fast);
     white-space: nowrap;
@@ -407,7 +404,6 @@ button {
     font-size: var(--text-xs);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
-    letter-spacing: var(--tracking-wide);
     margin-bottom: var(--sp-2);
     padding-bottom: var(--sp-2);
     border-bottom: var(--border-brutal);
@@ -424,7 +420,7 @@ button {
     opacity: 0.75;
 }
 
-/* ─── Contenido principal ─── */
+/* â”€â”€â”€ Contenido principal â”€â”€â”€ */
 .main-content {
     margin-left: var(--sidebar-width);
     flex: 1;
@@ -433,7 +429,7 @@ button {
     background: var(--color-bg);
 }
 
-/* ─── Header fijo (vista login / landing) ─── */
+/* â”€â”€â”€ Header fijo (vista login / landing) â”€â”€â”€ */
 .ines-header {
     position: fixed;
     top: 0;
@@ -458,17 +454,15 @@ button {
 .ines-header-logo {
     font-weight: var(--weight-bold);
     font-size: var(--text-base);
-    letter-spacing: var(--tracking-wider);
     color: var(--color-ink);
 }
 
 .ines-header-system-name {
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    letter-spacing: var(--tracking-normal);
 }
 
-/* ─── Responsive: sidebar colapsado ─── */
+/* â”€â”€â”€ Responsive: sidebar colapsado â”€â”€â”€ */
 @media (max-width: 768px) {
     .sidebar {
         width: var(--sidebar-collapsed);
@@ -514,7 +508,7 @@ button {
 
 
 /* ============================================================
-   5. PÁGINA / CABECERA DE SECCIÓN
+   5. PÃGINA / CABECERA DE SECCIÃ“N
    ============================================================ */
 .page-header {
     padding: var(--sp-5);
@@ -524,7 +518,6 @@ button {
 .page-header h1 {
     font-size: var(--text-xl);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-tight);
     color: var(--color-ink);
     margin-bottom: var(--sp-2);
     line-height: var(--leading-tight);
@@ -541,7 +534,7 @@ button {
     margin-top: var(--sp-5);
 }
 
-/* ─── Form page wrapper ─── */
+/* â”€â”€â”€ Form page wrapper â”€â”€â”€ */
 .form-page {
     display: flex;
     justify-content: center;
@@ -558,7 +551,6 @@ button {
 .form-page-title {
     font-size: var(--text-2xl);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-tight);
     color: var(--color-ink);
     margin: 0;
     line-height: var(--leading-tight);
@@ -581,7 +573,7 @@ button {
    6. COMPONENTES DE FORMULARIO
    ============================================================ */
 
-/* ─── Card de formulario ─── */
+/* â”€â”€â”€ Card de formulario â”€â”€â”€ */
 .reports-card {
     background: transparent;
     width: 100%;
@@ -603,12 +595,12 @@ button {
 .form-section-header {
     text-align: left;
     margin-bottom: var(--sp-6);
-    padding-bottom: var(--sp-3);
+    padding: var(--sp-3) var(--sp-6);
     border-bottom: var(--border-brutal);
 }
 
 .form-section-title {
-    font-size: var(--text-md);
+    font-size: var(--text-base);
 }
 
 .form-card-body {
@@ -627,7 +619,6 @@ button {
     display: block;
     font-weight: var(--weight-bold);
     font-size: var(--text-sm);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
     margin-bottom: var(--sp-1);
 }
@@ -660,7 +651,7 @@ button {
     }
 }
 
-/* ─── Inputs base ─── */
+/* â”€â”€â”€ Inputs base â”€â”€â”€ */
 .form-input,
 .search-input {
     width: 100%;
@@ -671,7 +662,6 @@ button {
     font-family: var(--font);
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-normal);
     color: var(--color-text-primary);
     background: var(--color-surface);
     outline: none;
@@ -723,7 +713,7 @@ button {
     box-shadow: var(--shadow-disabled) !important;
 }
 
-/* Input estático (solo lectura visual) */
+/* Input estÃ¡tico (solo lectura visual) */
 .input-static {
     height: 38px;
     padding: var(--sp-2) var(--sp-3);
@@ -735,7 +725,7 @@ button {
     align-self: stretch;
 }
 
-/* ─── Input con ícono ─── */
+/* â”€â”€â”€ Input con Ã­cono â”€â”€â”€ */
 .input-with-icon {
     position: relative;
     display: flex;
@@ -776,7 +766,7 @@ button {
     color: var(--color-text-placeholder);
 }
 
-/* ─── Select personalizado ─── */
+/* â”€â”€â”€ Select personalizado â”€â”€â”€ */
 .custom-select {
     position: relative;
     width: 100%;
@@ -798,7 +788,6 @@ button {
     font-weight: var(--weight-bold);
     color: var(--color-text-primary);
     cursor: pointer;
-    letter-spacing: var(--tracking-normal);
     outline: none;
     transition: all var(--transition-fast);
 }
@@ -894,12 +883,12 @@ button {
     pointer-events: none;
 }
 
-/* ─── CustomSelect dentro de filter-panel: anclar a la derecha y abrir hacia afuera ─── */
+/* â”€â”€â”€ CustomSelect dentro de filter-panel: anclar a la derecha y abrir hacia afuera â”€â”€â”€ */
 .filter-panel-body .custom-select-menu {
     z-index: 1300;
 }
 
-/* ─── Validación ─── */
+/* â”€â”€â”€ ValidaciÃ³n â”€â”€â”€ */
 .error-msg {
     color: var(--state-critical);
     font-size: var(--text-xs);
@@ -950,7 +939,6 @@ button {
     font-family: var(--font);
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-normal);
     cursor: pointer;
     text-decoration: none;
     transition: all var(--transition-fast);
@@ -1009,7 +997,7 @@ button {
     box-shadow: var(--shadow-disabled) !important;
 }
 
-/* ─── Botón ícono ─── */
+/* â”€â”€â”€ BotÃ³n Ã­cono â”€â”€â”€ */
 .btn-icon {
     width: var(--control-height);
     padding: 0;
@@ -1131,9 +1119,8 @@ button {
     color: var(--color-ink);
     padding: var(--sp-3) var(--sp-6);
     text-align: left;
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     border-bottom: var(--border-brutal);
 }
 
@@ -1181,7 +1168,7 @@ button {
 }
 
 
-/* Variante: tabla de estadísticas */
+/* Variante: tabla de estadÃ­sticas */
 .stats-table th:not(:first-child),
 .stats-table td:not(:first-child) {
     text-align: right;
@@ -1207,7 +1194,7 @@ button {
 
 
 /* ============================================================
-   10. BADGES Y ESTADOS SEMÁNTICOS
+   10. BADGES Y ESTADOS SEMÃNTICOS
    ============================================================ */
 
 /* Badge base */
@@ -1218,7 +1205,6 @@ button {
     padding: var(--sp-1) var(--sp-3);
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     border: var(--border-brutal);
     border-radius: var(--radius-badge);
     line-height: var(--leading-tight);
@@ -1279,7 +1265,7 @@ button {
     color: var(--state-normal);
 }
 
-/* Badges de dirección */
+/* Badges de direcciÃ³n */
 .badge-dir-up {
     color: var(--state-critical);
     font-weight: var(--weight-bold);
@@ -1298,7 +1284,7 @@ button {
     font-size: var(--text-xs);
 }
 
-/* Badge de código */
+/* Badge de cÃ³digo */
 .code-badge {
     font-family: monospace;
     font-size: var(--text-xs);
@@ -1314,7 +1300,7 @@ button {
    11. HISTORIAL
    ============================================================ */
 
-/* ─── Lista ─── */
+/* â”€â”€â”€ Lista â”€â”€â”€ */
 .hist-list {
     list-style: none;
     background: var(--color-surface);
@@ -1477,7 +1463,7 @@ button {
 
 }
 
-/* ─── Estado vacío ─── */
+/* â”€â”€â”€ Estado vacÃ­o â”€â”€â”€ */
 .no-history {
     text-align: center;
     padding: var(--sp-9) var(--sp-5);
@@ -1490,13 +1476,13 @@ button {
     color: var(--color-ink);
 }
 
-/* ─── Notif card ─── */
+/* â”€â”€â”€ Notif card â”€â”€â”€ */
 .hist-card {
     overflow: hidden;
     margin-top: var(--sp-5);
 }
 
-/* ─── Badges de conteo ─── */
+/* â”€â”€â”€ Badges de conteo â”€â”€â”€ */
 .hist-count-badge,
 .sidebar-hist-badge {
     display: none;
@@ -1560,7 +1546,7 @@ button {
     animation: badgePulse 0.5s ease-in-out 3;
 }
 
-/* ─── Toast ─── */
+/* â”€â”€â”€ Toast â”€â”€â”€ */
 .toast-container {
     position: fixed;
     top: 24px;
@@ -1644,7 +1630,7 @@ button {
 
 
 /* ============================================================
-   13. DASHBOARD — SENSORES Y GRÁFICAS
+   13. DASHBOARD â€” SENSORES Y GRÃFICAS
    ============================================================ */
 .grid-charts {
     display: grid;
@@ -1653,7 +1639,7 @@ button {
     margin-bottom: var(--sp-5);
 }
 
-/* ─── Sensor section ─── */
+/* â”€â”€â”€ Sensor section â”€â”€â”€ */
 .sensor-section {
     padding: var(--sp-6);
     margin-bottom: var(--sp-5);
@@ -1703,7 +1689,6 @@ button {
 .sensor-card-name {
     font-size: var(--text-sm);
     font-weight: var(--weight-medium);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
     margin-bottom: var(--sp-2);
 }
@@ -1781,7 +1766,7 @@ button {
     min-width: 260px;
 }
 
-/* ─── Filter drawer ─── */
+/* â”€â”€â”€ Filter drawer â”€â”€â”€ */
 .filter-overlay {
     position: fixed;
     inset: 0;
@@ -1826,7 +1811,6 @@ button {
     border-bottom: var(--border-brutal);
     font-size: var(--text-base);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
     flex-shrink: 0;
 }
@@ -1856,7 +1840,6 @@ button {
 .filter-section-label {
     font-size: var(--text-xs);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
     padding-bottom: var(--sp-1);
     display: flex;
@@ -1880,7 +1863,7 @@ button {
     background: var(--state-high);
 }
 
-/* ─── Active filters bar ─── */
+/* â”€â”€â”€ Active filters bar â”€â”€â”€ */
 .active-filters-bar {
     display: flex;
     align-items: center;
@@ -1923,7 +1906,6 @@ button {
     font-weight: var(--weight-bold);
     line-height: 1.4;
     white-space: nowrap;
-    letter-spacing: var(--tracking-wide);
 }
 
 @media (max-width: 700px) {
@@ -1988,7 +1970,6 @@ button {
     font-size: var(--text-lg);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
-    letter-spacing: var(--tracking-wide);
 }
 
 .custom-modal-body {
@@ -2061,7 +2042,6 @@ button {
 .thresh-grid .form-label {
     font-size: var(--text-xs);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
 }
 
@@ -2096,7 +2076,6 @@ button {
 .thresh-label {
     font-size: var(--text-xs);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-text-secondary);
 }
 
@@ -2132,7 +2111,7 @@ button {
     }
 }
 
-/* 16.1 THRESHOLDS — REDISEÑO */
+/* 16.1 THRESHOLDS â€” REDISEÃ‘O */
 .thresh-grid>.thresh-card {
     background: var(--color-surface);
     transition: background var(--transition-base);
@@ -2152,7 +2131,6 @@ button {
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
-    letter-spacing: var(--tracking-tight);
 }
 
 
@@ -2266,7 +2244,7 @@ input.is-dirty.input-error-state:active {
    18. MISCELLANEOUS COMPONENTS
    ============================================================ */
 
-/* ─── Paginación ─── */
+/* â”€â”€â”€ PaginaciÃ³n â”€â”€â”€ */
 .pagination-container {
     display: flex;
     justify-content: center;
@@ -2284,7 +2262,7 @@ input.is-dirty.input-error-state:active {
     border: 3px solid transparent;
 }
 
-/* ─── Estado vacío ─── */
+/* â”€â”€â”€ Estado vacÃ­o â”€â”€â”€ */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -2306,7 +2284,7 @@ input.is-dirty.input-error-state:active {
     margin-top: var(--sp-4);
 }
 
-/* ─── Separador vertical ─── */
+/* â”€â”€â”€ Separador vertical â”€â”€â”€ */
 .divider-v {
     width: 1px;
     height: 28px;
@@ -2316,7 +2294,7 @@ input.is-dirty.input-error-state:active {
     flex-shrink: 0;
 }
 
-/* ─── Equipos (selector de equipo) ─── */
+/* â”€â”€â”€ Equipos (selector de equipo) â”€â”€â”€ */
 .equipment-grid {
     display: flex;
     gap: var(--sp-3);
@@ -2350,7 +2328,7 @@ input.is-dirty.input-error-state:active {
     color: var(--color-ink);
 }
 
-/* ─── Duración grid ─── */
+/* â”€â”€â”€ DuraciÃ³n grid â”€â”€â”€ */
 .duration-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -2358,7 +2336,7 @@ input.is-dirty.input-error-state:active {
     margin-bottom: var(--sp-5);
 }
 
-/* ─── Admin controls ─── */
+/* â”€â”€â”€ Admin controls â”€â”€â”€ */
 .admin-controls-row {
     display: flex;
     flex-wrap: wrap;
@@ -2405,15 +2383,14 @@ input.is-dirty.input-error-state:active {
     margin-top: var(--sp-1);
 }
 
-/* ─── Drawer title ─── */
+/* â”€â”€â”€ Drawer title â”€â”€â”€ */
 .drawer-title {
     font-size: var(--text-lg);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
-    letter-spacing: var(--tracking-wide);
 }
 
-/* ─── Risk preview ─── */
+/* â”€â”€â”€ Risk preview â”€â”€â”€ */
 .risk-preview {
     font-size: var(--text-xs);
     margin-top: var(--sp-2);
@@ -2449,7 +2426,6 @@ input.is-dirty.input-error-state:active {
     display: inline-block;
     font-weight: var(--weight-bold);
     font-size: var(--text-lg);
-    letter-spacing: var(--tracking-wider);
     color: var(--color-ink);
     margin-bottom: var(--sp-2);
 }
@@ -2457,7 +2433,6 @@ input.is-dirty.input-error-state:active {
 .login-card h1 {
     font-size: var(--text-xl);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-tight);
     color: var(--color-ink);
     margin: var(--sp-4) 0 var(--sp-6);
     text-align: center;
@@ -2467,7 +2442,6 @@ input.is-dirty.input-error-state:active {
     margin: 0;
     color: var(--color-text-secondary);
     font-size: var(--text-sm);
-    letter-spacing: 0.01em;
 }
 
 .login-form {
@@ -2496,7 +2470,7 @@ input.is-dirty.input-error-state:active {
 
 
 /* ============================================================
-   20. TIPOGRAFÍA Y ETIQUETAS DE APOYO
+   20. TIPOGRAFÃA Y ETIQUETAS DE APOYO
    ============================================================ */
 .section-label {
     font-size: var(--text-sm);
@@ -2508,7 +2482,6 @@ input.is-dirty.input-error-state:active {
 .field-label {
     font-size: var(--text-xs);
     font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-wide);
     color: var(--color-ink);
     margin-bottom: var(--sp-1);
 }
@@ -2676,7 +2649,7 @@ input.is-dirty.input-error-state:active {
     flex-wrap: wrap;
 }
 
-/* Tipografía */
+/* TipografÃ­a */
 .text-ink {
     color: var(--color-ink);
 }

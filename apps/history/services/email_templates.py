@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import time
 from typing import Dict, Optional
 
@@ -7,18 +7,18 @@ logger = logging.getLogger(__name__)
 
 _BRAND_NAME      = "INES"
 _BRAND_SUBTITLE  = "Sistema inteligente en monitoreo"
-_ALERT_H1        = "Anomalía detectada en la infraestructura"
+_ALERT_H1        = "AnomalÃ­a detectada en la infraestructura"
 _ALERT_TAG_LABEL = "Severidad"
 _ACTION_LABEL    = "Medida correctiva recomendada"
 _DETAILS_LABEL   = "Detalles del evento"
 _FOOTER_TEXT     = (
-    "Este mensaje ha sido generado automáticamente por INES — Sistema inteligente en monitoreo.<br>"
+    "Este mensaje ha sido generado automÃ¡ticamente por INES â€” Sistema inteligente en monitoreo.<br>"
     "Por favor, no responda a este correo."
 )
 _CONTEXT_DEFAULT = (
     "El sistema ha registrado una lectura fuera de los rangos operativos "
-    "establecidos para el presente edificio. A continuación se detallan "
-    "los parámetros del evento y la medida correctiva recomendada."
+    "establecidos para el presente edificio. A continuaciÃ³n se detallan "
+    "los parÃ¡metros del evento y la medida correctiva recomendada."
 )
 _ACCENT          = "#2563eb"
 _INK             = "#0a0a0a"
@@ -59,8 +59,8 @@ def _build_email_shell(inner_html: str) -> str:
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td style="border-left: 5px solid {_ACCENT}; padding-left: 12px;">
-                    <span style="font-size: 16px; font-weight: 700; letter-spacing: 0.06em; color: {_TEXT_PRIMARY}; display: block; line-height: 1.2; text-transform: uppercase;">{_BRAND_NAME}</span>
-                    <span style="font-size: 11px; font-weight: 500; color: {_TEXT_SECONDARY}; display: block; margin-top: 2px; letter-spacing: 0.03em;">{_BRAND_SUBTITLE}</span>
+                    <span style="font-size: 16px; font-weight: 700; color: {_TEXT_PRIMARY}; display: block; line-height: 1.2; text-transform: uppercase;">{_BRAND_NAME}</span>
+                    <span style="font-size: 11px; font-weight: 500; color: {_TEXT_SECONDARY}; display: block; margin-top: 2px;">{_BRAND_SUBTITLE}</span>
                   </td>
                 </tr>
               </table>
@@ -70,7 +70,7 @@ def _build_email_shell(inner_html: str) -> str:
           {inner_html}
 
           <tr>
-            <td style="padding: 16px 28px; border-top: 3px solid {_INK}; background-color: {_BG}; font-size: 11px; color: {_TEXT_MUTED}; text-align: center; line-height: 1.6; letter-spacing: 0.01em;">
+            <td style="padding: 16px 28px; border-top: 3px solid {_INK}; background-color: {_BG}; font-size: 11px; color: {_TEXT_MUTED}; text-align: center; line-height: 1.6;">
               {_FOOTER_TEXT}
             </td>
           </tr>
@@ -86,11 +86,11 @@ def _build_email_shell(inner_html: str) -> str:
 def _build_details_table(details: Dict[str, str]) -> str:
     rows = "".join(f"""
           <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 12px; font-weight: 700; width: 38%; color: {_TEXT_PRIMARY}; vertical-align: top; letter-spacing: 0.01em;">{k}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 12px; font-weight: 700; width: 38%; color: {_TEXT_PRIMARY}; vertical-align: top;">{k}</td>
             <td style="padding: 10px 0; border-bottom: 1px solid {_BORDER_LIGHT}; font-size: 13px; color: {_TEXT_PRIMARY}; vertical-align: top;">{v}</td>
           </tr>""" for k, v in details.items())
     return f"""
-        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
+        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border-top: 2px solid {_INK}; margin-bottom: 24px;">
           {rows}
         </table>"""
@@ -99,7 +99,7 @@ def _build_details_table(details: Dict[str, str]) -> str:
 def _build_action_box(action_text: str, colors: Dict[str, str]) -> str:
     return f"""
         <div style="margin: 20px 0 0 0; padding: 16px 20px; background-color: {colors['bg']}; border: 2px solid {_INK}; border-left: 5px solid {colors['text']}; border-radius: 0;">
-          <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ACTION_LABEL}</span>
+          <span style="font-size: 10px; font-weight: 700; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ACTION_LABEL}</span>
           <p style="margin: 0; font-size: 13px; font-weight: 500; color: {_TEXT_PRIMARY}; line-height: 1.6;">{action_text}</p>
         </div>"""
 
@@ -115,8 +115,8 @@ def _build_alert_html(
     banner = f"""
           <tr>
             <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: {risk_level}</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">{_ALERT_H1}</h1>
+              <span style="font-size: 10px; font-weight: 700; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: {risk_level}</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: {_TEXT_PRIMARY};">{_ALERT_H1}</h1>
             </td>
           </tr>"""
 
@@ -142,31 +142,31 @@ def build_activation_email_html(link: str) -> str:
     inner_html = f"""
           <tr>
             <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {_ACCENT_BG}; border-left: 5px solid {_ACCENT};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Acceso al sistema</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Activación de su cuenta</h1>
+              <span style="font-size: 10px; font-weight: 700; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Acceso al sistema</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: {_TEXT_PRIMARY};">ActivaciÃ³n de su cuenta</h1>
             </td>
           </tr>
 
           <tr>
             <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Estimado/a usuario/a:</p>
-              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">INES — Sistema inteligente en monitoreo</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
-              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Para ello, haga clic en el botón que figura a continuación:</p>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">INES â€” Sistema inteligente en monitoreo</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseÃ±a.</p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Para ello, haga clic en el botÃ³n que figura a continuaciÃ³n:</p>
 
               <div style="margin: 0 0 28px 0; text-align: left;">
                 <a href="{link}" target="_blank"
-                   style="background-color: {_ACCENT}; color: {_SURFACE}; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 4px 4px 0px {_INK};">
+                   style="background-color: {_ACCENT}; color: {_SURFACE}; text-decoration: none; padding: 12px 28px; font-size: 13px; font-weight: 700; display: inline-block; border: 2px solid {_INK}; border-radius: 0; box-shadow: 4px 4px 0px {_INK};">
                   Activar cuenta
                 </a>
               </div>
 
               <div style="padding: 16px 20px; background-color: {_ACCENT_BG}; border: 2px solid {_INK}; border-left: 5px solid {_ACCENT}; border-radius: 0; margin-bottom: 24px;">
-                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Información de seguridad</span>
-                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Este enlace es válido durante las próximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
-                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
+                <span style="font-size: 10px; font-weight: 700; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">InformaciÃ³n de seguridad</span>
+                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">â€¢ Este enlace es vÃ¡lido durante las prÃ³ximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
+                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">â€¢ Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
               </div>
 
-              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el botón no funciona correctamente, copie y pegue la siguiente dirección en su navegador:<br>
+              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el botÃ³n no funciona correctamente, copie y pegue la siguiente direcciÃ³n en su navegador:<br>
               <a href="{link}" style="color: {_ACCENT}; text-decoration: underline; word-break: break-all;">{link}</a></p>
             </td>
           </tr>"""
@@ -178,14 +178,14 @@ def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
     ctx = contexto or (
         f"Se adjunta el informe en formato PDF con el estado actual de los "
         f"sensores de infraestructura{' de ' + edificio if edificio else ''}. "
-        f"El documento incluye las lecturas más recientes, las estadísticas de "
-        f"operación y un resumen del nivel de riesgo de cada parámetro monitoreado."
+        f"El documento incluye las lecturas mÃ¡s recientes, las estadÃ­sticas de "
+        f"operaciÃ³n y un resumen del nivel de riesgo de cada parÃ¡metro monitoreado."
     )
     inner_html = f"""
           <tr>
             <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {_ACCENT_BG}; border-left: 5px solid {_ACCENT};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Reporte de monitoreo</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Estado actual del sistema de infraestructura</h1>
+              <span style="font-size: 10px; font-weight: 700; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Reporte de monitoreo</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: {_TEXT_PRIMARY};">Estado actual del sistema de infraestructura</h1>
             </td>
           </tr>
 
@@ -210,8 +210,8 @@ def build_compound_alert_email_html(
     banner = f"""
           <tr>
             <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {colors['bg']}; border-left: 5px solid {colors['text']};">
-              <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: {risk_level}</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: {_TEXT_PRIMARY};">Falla detectada: {fault_name}</h1>
+              <span style="font-size: 10px; font-weight: 700; color: {colors['text']}; display: block; margin-bottom: 6px; text-transform: uppercase;">{_ALERT_TAG_LABEL}: {risk_level}</span>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: {_TEXT_PRIMARY};">Falla detectada: {fault_name}</h1>
             </td>
           </tr>"""
 
@@ -219,7 +219,7 @@ def build_compound_alert_email_html(
     contexto = (
         f"Se ha detectado una <strong style='color: {_TEXT_PRIMARY};'>{fault_name}</strong> "
         f"que afecta <strong style='color: {_TEXT_PRIMARY};'>{num_vars} sensor(es)</strong>. "
-        f"A continuación se detallan las lecturas de cada parámetro comprometido."
+        f"A continuaciÃ³n se detallan las lecturas de cada parÃ¡metro comprometido."
     )
     inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{contexto}</p>'
 
@@ -242,12 +242,12 @@ def build_compound_alert_email_html(
           </tr>"""
 
     inner += f"""
-        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
+        <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 2px solid {_INK}; margin-bottom: 24px;">
           <tr style="background-color: {_BG};">
-            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase;">Parámetro</td>
-            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Lectura</td>
-            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Severidad</td>
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase;">ParÃ¡metro</td>
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Lectura</td>
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Severidad</td>
           </tr>
           {var_rows}
         </table>"""
