@@ -290,6 +290,7 @@ def _set_elevator_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1]), 1)
     sim._elev_state = "IDLE"
     sim._elev_current_accel = 0.0
+    sim._elev_timer = 5.0
 
 
 def _apply_elevator_fault_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -452,7 +453,7 @@ def _handle_elev_door_opening(
 ) -> None:
     spd = 0.0
     door = "opening"
-    if sim._elev_timer >= DOOR_OPEN_TIME / max(sim.sim_speed, 0.1):
+    if sim._elev_timer >= DOOR_OPEN_TIME:
         sim._elev_timer = 0
         sim._elev_state = "DOORS_OPEN"
     sd["elev_speed"] = spd
@@ -479,7 +480,7 @@ def _handle_elev_doors_open(
         sd["elev_load"] = round(load)
         return
 
-    if sim._elev_timer >= PASSENGER_WAIT_TICKS / max(sim.sim_speed, 0.1):
+    if sim._elev_timer >= PASSENGER_WAIT_TICKS:
         sim._elev_timer = 0
         normal_max = int(RATED_LOAD * 1.1)
         load = clamp(load + random.randint(-150, 150), 0, normal_max)
@@ -507,7 +508,7 @@ def _handle_elev_door_closing(
         return
         
     # Lógica de cierre normal
-    if sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
+    if sim._elev_timer >= DOOR_CLOSE_TIME:
         door_obstructed = sim._elev_door_obstructed
         overload_fault_active = (
             sim._elev_overload_extra_kg > 0

@@ -69,7 +69,7 @@ class BuildingSimulator:
         self._pump_start_grace_ticks: int = 0
 
         self._elev_state: str = "IDLE"
-        self._elev_timer: float = 0
+        self._elev_timer: float = 5.0
         self._elev_current_accel: float = 0.0    # Actual acceleration (for S-curve)
         if self.has_elevator:
             self.sensor_data["elev_position"] = 0
