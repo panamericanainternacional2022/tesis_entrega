@@ -163,6 +163,16 @@ def reset_simulator(edificio_id: int) -> str:
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
 
+    try:
+        from apps.history.models import History
+        History.objects.filter(
+            monitoring_equipment__building_id=edificio_id,
+            resolved=False,
+        ).update(resolved=True)
+    except Exception as exc:
+        logger.warning("No se pudo marcar todas las alertas como resueltas en reinicio: %s", exc)
+
+
     sim.protection_on = False
     sim.auto_faults_enabled = False
     sim._auto_fault_ticks = 0.0
