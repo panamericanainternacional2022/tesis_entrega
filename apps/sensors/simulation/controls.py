@@ -100,12 +100,9 @@ def clear_fault(edificio_id: int, device: Optional[str] = None) -> str:
         for old_fault in old_faults.values():
             sim._compound_alert_sent.discard(f"fault_raw:{old_fault}")
 
-    _clear_device_attrs(sim, device, "last_email_sent_time_per_var", old_faults)
     _clear_device_attrs(sim, device, "_alert_consecutive", old_faults)
 
     for old_dev, old_fault in old_faults.items():
-        fault_email_key = f"fault_raw:{old_fault}"
-        sim.last_email_sent_time_per_var.pop(fault_email_key, None)
         fault_alert_key = f"fault_raw:{old_fault}"
         sim.active_alerts.pop(fault_alert_key, None)
         if hasattr(sim, "_alert_consecutive"):
@@ -158,8 +155,6 @@ def reset_simulator(edificio_id: int) -> str:
     sim.pending_alerts.clear()
     sim.sim_faults.clear()
     sim.fault_injected_at.clear()
-    if hasattr(sim, "last_email_sent_time_per_var") and isinstance(sim.last_email_sent_time_per_var, dict):
-        sim.last_email_sent_time_per_var.clear()
     if hasattr(sim, "_alert_consecutive") and isinstance(sim._alert_consecutive, dict):
         sim._alert_consecutive.clear()
 

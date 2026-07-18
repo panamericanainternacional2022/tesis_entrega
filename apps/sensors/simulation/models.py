@@ -43,7 +43,6 @@ class BuildingSimulator:
         self.active_alerts: dict = {}
         self.history: list = []
         self.pending_alerts: AlertDispatcher = AlertDispatcher(maxlen=500)
-        self.last_email_sent_time_per_var: dict = {}
 
         self.sensor_limits: dict[str, tuple[float, float]] = get_sensor_limits(self.edificio_id)
 

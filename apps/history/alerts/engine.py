@@ -8,7 +8,7 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from apps.sensors.simulation.models import BuildingSimulator
 
-from apps.sensors.sensor_config import VAR_NAMES, COOLDOWN_SECONDS, UNITS, FAULT_NAMES_ES
+from apps.sensors.sensor_config import VAR_NAMES, UNITS, FAULT_NAMES_ES
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +28,6 @@ def _send_compound_email(
     from apps.history.services.email_sender import send_email_alert
     from apps.history.services.email_recipients import get_building_emails
     from apps.history.services.email_templates import build_compound_alert_email_html
-
-    now = time.time()
-    if not isinstance(sim.last_email_sent_time_per_var, dict):
-        sim.last_email_sent_time_per_var = {}
-
-    # FIX-7 (BRECHA-8): Use raw fault_type key so clear_fault() can reliably
-    # remove the cooldown entry regardless of Spanish translation availability.
-    fault_key = f"fault_raw:{fault_type}"
-    last_sent = sim.last_email_sent_time_per_var.get(fault_key, 0.0)
-    if now - last_sent <= COOLDOWN_SECONDS:
-        return
-
-    sim.last_email_sent_time_per_var[fault_key] = now
 
     edificio_nombre = getattr(sim, "nombre", "") or ""
     edificio_id = getattr(sim, "edificio_id", None)
