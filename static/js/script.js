@@ -39,7 +39,6 @@
 
         if (isMonitoringPage) {
             if (typeof window.AppMonitoringInit === 'function') window.AppMonitoringInit();
-            if (IS_ADMIN && typeof window.AppMonitoringSetupEvents === 'function') window.AppMonitoringSetupEvents();
             setupBuildingSelector();
             return;
         }

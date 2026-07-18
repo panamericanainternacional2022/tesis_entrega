@@ -648,15 +648,12 @@ function translateSensorValue(variable, value) {
     return null;
 }
 
-const getCSSVar = (name) =>
-    getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '';
-
 
 // =============================================================================
 // 6. UI state functions
 // =============================================================================
 
-const STATE_IDS = ['stateLoading', 'stateOffline', 'stateNoEquipment', 'stateNoBuildings'];
+const STATE_IDS = ['stateLoading', 'stateOffline', 'stateNoEquipment'];
 
 function showState(stateId) {
     STATE_IDS.forEach(id => {
@@ -718,20 +715,6 @@ window.setEquipmentState = (pumpOn, elevOn) => {
     }
 };
 Object.defineProperty(window, '_SENSOR_RANGES', { get: function () { return _SENSOR_RANGES; }, configurable: true });
-
-function setHistoryBadge(count) {
-    var badge = document.getElementById('historyBadgeSidebar');
-    if (!badge) return;
-    if (count > 0) {
-        badge.textContent = count;
-        badge.classList.add('visible');
-    } else {
-        badge.textContent = '';
-        badge.classList.remove('visible');
-    }
-    var btn = document.getElementById('newEventsBtn');
-    if (btn) btn.disabled = count <= 0;
-}
 
 
 // =============================================================================

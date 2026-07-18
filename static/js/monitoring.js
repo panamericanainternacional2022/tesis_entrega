@@ -338,10 +338,6 @@
         fetchInitialData_monitoring();
     }
 
-    function _countUnreadAlerts(alertLog) {
-        return (alertLog || []).filter(a => a.risk !== _RISK.normal).length;
-    }
-
     function applyPayload(data) {
         if (data.thresholds) currentThresholds = data.thresholds;
         if (data.sim_faults) _currentFaults = data.sim_faults;
@@ -381,17 +377,10 @@
 
         const hasEquipment = updateEquipmentVisibility(data.equipment_types);
         if (isAdmin()) updateAdminControlsByEquipment(data.equipment_types);
-        if (data.current && hasEquipment) updateSummaryValues(data);
         if (data.stats) {
             updateStats(data.stats);
         }
 
-    }
-
-    function updateSummaryValues(data) {
-        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        setVal('summaryPumpStatus', data.pump_on ? 'Encendida' : 'Apagada');
-        setVal('summaryElevatorStatus', data.elevator_on ? 'Encendido' : 'Apagado');
     }
 
     function renderStatsTable(entries, containerId, firstColLabel) {
@@ -430,9 +419,6 @@
     }
 
     // Admin manual controls
-    const setSimMessage = (msg, type) =>
-        showToast(msg, type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
-
     function updateEquipmentPowerBtns(pumpOn, elevOn) {
         const pumpBtn = document.getElementById('togglePumpBtn');
         const elevBtn = document.getElementById('toggleElevatorBtn');
@@ -501,7 +487,7 @@
                         <span class="value-bold">${safeText(faultName)}</span>
                     </div>
                     <p class="hist-meta-text compound-action">${safeText(data.message)}</p>
-                    <ul class="compound-vars-list">
+                    <ul>
                         ${varsList}
                     </ul>
                     <div class="hist-meta" style="margin-top:8px;">

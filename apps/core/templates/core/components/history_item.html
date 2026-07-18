@@ -8,7 +8,7 @@
                 <span class="compound-subtitle"> — {{ record.parsed_data.value }}</span>
             </h3>
             <p class="hist-meta-text compound-action">{{ record.parsed_data.action }}</p>
-            <ul class="compound-vars-list">
+            <ul>
                 {% for var in record.parsed_data.variables_detail %}
                 <li class="compound-var-item">
                     <strong>{{ var.display_name }}</strong>

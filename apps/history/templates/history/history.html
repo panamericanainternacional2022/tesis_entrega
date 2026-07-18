@@ -111,14 +111,7 @@
             <i class="fa-solid fa-spinner fa-spin empty-state-icon" aria-hidden="true"></i>
             <h2 class="section-label">Cargando historial…</h2>
         </div>
-        <div id="stateError" class="no-history empty-state d-none">
-            <i class="fa-solid fa-triangle-exclamation empty-state-icon" aria-hidden="true"></i>
-            <h2 class="section-label">Error de carga</h2>
-            <p class="help-text">No se pudo cargar el historial. Verifica tu conexión e intenta de nuevo.</p>
-            <div class="empty-state-action">
-                <button type="button" class="btn btn-secondary" onclick="location.reload()"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reintentar</button>
-            </div>
-        </div>
+
         <div id="live-history-list">
             {% if records %}
             <ul class="hist-list">

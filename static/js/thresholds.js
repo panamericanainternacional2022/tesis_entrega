@@ -138,7 +138,6 @@
         const badge = document.getElementById('globalDirtyBadge');
         const divider = document.getElementById('globalDirtyDivider');
         const resetBtn = document.getElementById('resetAllThresholdsBtn');
-        const saveAllBtn = document.getElementById('saveAllThresholdsBtn');
         const totalDirty = _dirtySensorKeys.size;
         if (badge && divider) {
             if (!totalDirty) {
@@ -151,7 +150,6 @@
             }
         }
         if (resetBtn) resetBtn.disabled = !totalDirty;
-        if (saveAllBtn) saveAllBtn.disabled = totalDirty === 0;
     }
 
     function validateThresholdInputs(scope) {
