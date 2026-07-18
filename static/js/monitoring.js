@@ -63,7 +63,7 @@
 
                 if (_BOMBA_VARS.includes(k)) bombaContainer.appendChild(card);
                 else if (_ELEVADOR_VARS.includes(k)) elevadorContainer.appendChild(card);
-                
+
                 _cardCache.set(k, card);
             } else {
                 card.className = 'sensor-card';
@@ -170,7 +170,7 @@
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
-            layout: { padding: { top: 12, right: 48, bottom: 16, left: 0 } },
+            layout: { padding: { top: 12, right: 24, bottom: 16, left: 8 } },
             plugins: {
                 legend: {
                     display: true,
@@ -227,7 +227,6 @@
         var opts1 = JSON.parse(JSON.stringify(chartDefaults));
         opts1.plugins.legend.onHover = _legendCursorHandler(false);
         opts1.plugins.legend.onLeave = _legendCursorHandler(true);
-        opts1.scales.y.afterFit = function (scale) { scale.width = 65; };
         chart1 = new Chart(canvas1.getContext('2d'), {
             type: 'line',
             data: { labels: [], datasets: [] },
@@ -237,7 +236,6 @@
         var opts2 = JSON.parse(JSON.stringify(chartDefaults));
         opts2.plugins.legend.onHover = _legendCursorHandler(false);
         opts2.plugins.legend.onLeave = _legendCursorHandler(true);
-        opts2.scales.y.afterFit = function (scale) { scale.width = 65; };
         chart2 = new Chart(canvas2.getContext('2d'), {
             type: 'line',
             data: { labels: [], datasets: [] },
@@ -299,7 +297,7 @@
         fetch('/api/sensors/daily/' + EDIFICIO_ID + '/?days=7')
             .then(function (r) { return r.json(); })
             .then(function (data) { renderDailyCharts(data); })
-            .catch(function () {})
+            .catch(function () { })
             .then(function () { _fetchingDaily = false; });
     }
 
@@ -316,7 +314,7 @@
         const pumpOff = ctrl ? !ctrl._pumpOn : false;
         const elevOff = ctrl ? !ctrl._elevOn : false;
         const autoFaults = ctrl ? ctrl.autoFaultsEnabled : false;
-        
+
         window._csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled || pumpOff || autoFaults);
         window._csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled || elevOff || autoFaults);
     }
@@ -399,9 +397,9 @@
     function renderStatsTable(entries, tbodyId) {
         var tbody = document.getElementById(tbodyId);
         if (!tbody) return;
-        if (!entries.length) { 
-            tbody.innerHTML = '<tr><td colspan="5" class="table-empty-cell">Aún no hay suficientes datos para generar estadísticas.</td></tr>'; 
-            return; 
+        if (!entries.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="table-empty-cell">Aún no hay suficientes datos para generar estadísticas.</td></tr>';
+            return;
         }
         var rows = entries.map(function (entry) {
             var k = entry[0], v = entry[1];
@@ -635,7 +633,7 @@
     function fetchInitialData_monitoring() {
         // This is the monitoring-specific fetchInitialData (lines 1719-1733)
         // For monitoring page: fetch API.status() and apply
-        (async function() {
+        (async function () {
             try {
                 const resp = await fetch(API.status(EDIFICIO_ID));
                 if (!resp.ok) throw new Error(resp.statusText);
@@ -659,7 +657,7 @@
         initCharts();
         fetchDailyData();
 
-        var _origClear = window.clearCurrentReadings || function () {};
+        var _origClear = window.clearCurrentReadings || function () { };
         window.clearCurrentReadings = function () {
             _persistCounter = 0;
             _cardCache.clear();
