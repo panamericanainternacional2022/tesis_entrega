@@ -103,8 +103,16 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
             0.0, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1],
         ), 1
     )
+    # Reducimos la fluctuación a medida que el caudal llega a cero
+    current_flow = sd.get("pump_flow_rate", 0.0)
+    noise_amp = max(0.0, min(1.0, current_flow / 5.0))
+    
+    qual = sd.get("pump_water_quality", 200.0)
+    if noise_amp > 0.0:
+        qual += random.uniform(-noise_amp, noise_amp) * dt
+        
     sd["pump_water_quality"] = round(
-        clamp(sd.get("pump_water_quality", 200.0) + random.uniform(-1.0, 1.0) * dt, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1
+        clamp(qual, sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[0], sim.sensor_limits.get('pump_water_quality', (0.0, 1000.0))[1]), 1
     )
 
 
