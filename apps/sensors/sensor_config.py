@@ -231,7 +231,7 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
 
     "overspeed":
         "La cabina del elevador ha superado la velocidad crítica "
-        "de operación. Los sensores de velocidad, vibración y corriente presentan "
+        "de operación. Los sensores de velocidad y vibración presentan "
         "lecturas anómalas simultáneas características de esta condición.",
 
     "overload":
