@@ -764,6 +764,14 @@ button {
     padding-left: 40px;
 }
 
+.input-with-icon:has(.input-icon--right) .form-input {
+    padding-right: 40px;
+}
+
+.input-with-icon:has(.input-icon--left) .form-input {
+    padding-left: 40px;
+}
+
 .search-input::placeholder {
     color: var(--color-text-placeholder);
 }
