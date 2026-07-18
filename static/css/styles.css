@@ -530,10 +530,6 @@ button {
     line-height: var(--leading-normal);
 }
 
-.page-header+.form-card {
-    margin-top: var(--sp-5);
-}
-
 /* â”€â”€â”€ Form page wrapper â”€â”€â”€ */
 .form-page {
     display: flex;
@@ -586,10 +582,8 @@ button {
 }
 
 .form-card {
-    padding: var(--sp-6);
     max-width: 720px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-bottom: var(--sp-5);
 }
 
 .form-section-header {
@@ -605,13 +599,13 @@ button {
 
 .form-card-body {
     display: grid;
-    gap: var(--sp-5);
 }
 
 .form-row {
     display: grid;
     gap: var(--sp-5);
     grid-template-columns: repeat(2, 1fr);
+    margin: 0 var(--sp-5);
 }
 
 .form-group label,
@@ -628,7 +622,7 @@ button {
 }
 
 .actions-row {
-    margin-top: var(--sp-5);
+    margin: var(--sp-4) var(--sp-5) var(--sp-5);
     display: flex;
     gap: var(--sp-2);
     justify-content: flex-end;
@@ -1121,6 +1115,7 @@ button {
     text-align: left;
     font-size: var(--text-base);
     font-weight: var(--weight-bold);
+    line-height: var(--leading-tight);
     border-bottom: var(--border-brutal);
 }
 
@@ -1128,7 +1123,7 @@ button {
     padding: var(--sp-3) var(--sp-6);
     border-top: var(--border-brutal);
     color: var(--color-text-secondary);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-weight: var(--weight-normal);
     white-space: normal;
     word-break: break-word;
@@ -1614,7 +1609,6 @@ button {
    12. PANELES Y SECCIONES
    ============================================================ */
 .panel {
-    padding: var(--sp-5);
     margin-bottom: var(--sp-5);
 }
 
@@ -1641,8 +1635,7 @@ button {
 
 /* â”€â”€â”€ Sensor section â”€â”€â”€ */
 .sensor-section {
-    padding: var(--sp-6);
-    margin-bottom: var(--sp-5);
+    margin-bottom: var(--sp-6);
 }
 
 /* Grid de tarjetas de sensores (resetea superficie compartida) */
@@ -1653,6 +1646,7 @@ button {
     background: transparent;
     border: none;
     box-shadow: none;
+    margin: var(--sp-5);
 }
 
 .sensor-card {
@@ -2025,6 +2019,7 @@ button {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--sp-4);
+    margin: var(--sp-5);
 }
 
 .thresh-grid>div {
@@ -2342,6 +2337,7 @@ input.is-dirty.input-error-state:active {
     flex-wrap: wrap;
     gap: var(--sp-4);
     align-items: flex-end;
+    margin: var(--sp-5);
 }
 
 #simControls>.risk-preview {
