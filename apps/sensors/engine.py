@@ -29,6 +29,7 @@ def _run_sim_tick(sim: BuildingSimulator) -> None:
     update_sensor_data(active_sim=sim)
     alert_vars = _get_alert_vars(sim)
     risk_cache = _process_sensor_alerts(sim, alert_vars)
+    _check_auto_faults(sim)
     _check_auto_protection(sim)
     _build_history_records(sim, alert_vars, risk_cache)
 
@@ -262,6 +263,40 @@ def generate_data_and_emit() -> None:
                     "Simulador %s (%s) en backoff por %s ticks — reintentará automáticamente",
                     eid, sim.nombre, backoff)
 
+
+def _check_auto_faults(sim: BuildingSimulator) -> None:
+    if not getattr(sim, 'auto_faults_enabled', False):
+        return
+
+    sim._auto_fault_ticks = getattr(sim, '_auto_fault_ticks', 0.0) + sim.sim_speed
+    if sim._auto_fault_ticks < 5.0:  # Cada ~5 ticks/segundos de simulación
+        return
+    sim._auto_fault_ticks = 0.0
+
+    # No inyectar si ya hay fallas o pausas pendientes, o protección reciente
+    if getattr(sim, '_fault_transition_pump', 'stable') != 'stable' or \
+       getattr(sim, '_fault_transition_elev', 'stable') != 'stable':
+        return
+
+    from apps.sensors.simulation.controls import inject_fault
+    from apps.sensors.sensor_config import PUMP_FAULT_KEYS, ELEVATOR_FAULT_KEYS
+    import random
+
+    candidates = []
+    if sim.has_pump and sim.pump_on and not sim.sim_faults.get("pump"):
+        candidates.append("pump")
+    if sim.has_elevator and sim.elevator_on and not sim.sim_faults.get("elevator"):
+        candidates.append("elevator")
+
+    if not candidates:
+        return
+
+    device = random.choice(candidates)
+    fault = random.choice(PUMP_FAULT_KEYS) if device == "pump" else random.choice(ELEVATOR_FAULT_KEYS)
+    try:
+        inject_fault(sim.edificio_id, device, fault)
+    except Exception as e:
+        logger.warning(f"Error auto-injecting fault {fault} on {device}: {e}")
 
 def _check_auto_protection(sim: BuildingSimulator) -> None:
     if not sim.protection_on:

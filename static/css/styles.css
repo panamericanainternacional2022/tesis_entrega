@@ -1536,9 +1536,17 @@ button {
 }
 
 @keyframes badgePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.2); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
 }
+
 .badge-pulse {
     animation: badgePulse 0.5s ease-in-out 3;
 }

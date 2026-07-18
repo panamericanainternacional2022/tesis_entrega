@@ -36,6 +36,7 @@ class PayloadContext:
     fault_transition_pump: str = "stable"
     fault_transition_elev: str = "stable"
     protection_on: bool = False
+    auto_faults_enabled: bool = False
 
 
 def _compute_stats(history: list, max_entries: int = MAX_HISTORY_SIZE) -> dict[str, Any]:
@@ -106,6 +107,7 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
             "elevator": ctx.fault_transition_elev,
         },
         "protection_on": ctx.protection_on,
+        "auto_faults_enabled": ctx.auto_faults_enabled,
     }
 
 

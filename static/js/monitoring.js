@@ -314,8 +314,10 @@
         const simDisabled = !simStarted || simPaused;
         const pumpOff = ctrl ? !ctrl._pumpOn : false;
         const elevOff = ctrl ? !ctrl._elevOn : false;
-        window._csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled || pumpOff);
-        window._csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled || elevOff);
+        const autoFaults = ctrl ? ctrl.autoFaultsEnabled : false;
+        
+        window._csSetDisabled(document.getElementById('simFaultPump'), !hasPump || simDisabled || pumpOff || autoFaults);
+        window._csSetDisabled(document.getElementById('simFaultElevator'), !hasElev || simDisabled || elevOff || autoFaults);
     }
 
     function connectSSE() {

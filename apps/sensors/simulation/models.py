@@ -52,6 +52,8 @@ class BuildingSimulator:
         self.sim_speed: float = 1.0
         self.sim_faults: dict = {}
         self.fault_injected_at: dict = {}
+        self.auto_faults_enabled: bool = False
+        self._auto_fault_ticks: float = 0.0
 
         # Transición progresiva de fallas
         self.protection_on: bool = False

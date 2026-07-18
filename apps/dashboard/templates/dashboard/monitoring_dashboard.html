@@ -125,7 +125,11 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group col-stack gap-1 self-end pb-6">
+                <div class="form-group flex gap-2">
+                    <button type="button" id="autoFaultsBtn" class="btn btn-secondary"
+                            title="Activa la inyección aleatoria de fallas de forma automática.">
+                        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <span id="autoFaultsText">Activar fallas automáticas</span>
+                    </button>
                     <button type="button" id="clearFaultsBtn" class="btn btn-secondary" disabled
                             title="Restablece las fallas activas de ambos equipos. No afecta sensores, velocidad ni historial.">
                         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restablecer fallas
@@ -228,6 +232,7 @@
             this._pausePending = false;
             this._protectionPending = false;
             this._faultTransition = { pump: 'stable', elevator: 'stable' };
+            this.autoFaultsEnabled = false;
 
             this._cacheDOMElements();
             this._bindEvents();
@@ -238,6 +243,7 @@
             this.btnReset        = document.getElementById('simResetBtn');
             this.btnProtection   = document.getElementById('protectionToggleBtn');
             this.clearFaultsBtn  = document.getElementById('clearFaultsBtn');
+            this.autoFaultsBtn   = document.getElementById('autoFaultsBtn');
             this.selFaultElev    = document.getElementById('simFaultElevator');
             this.selFaultPump    = document.getElementById('simFaultPump');
             this.btnTogglePump   = document.getElementById('togglePumpBtn');
@@ -261,6 +267,13 @@
 
             if (this.clearFaultsBtn) {
                 this.clearFaultsBtn.addEventListener('click', function () { self._clearFaults(); });
+            }
+
+            var autoFaultsBtn = document.getElementById('autoFaultsBtn');
+            if (autoFaultsBtn) {
+                autoFaultsBtn.addEventListener('click', function () {
+                    self._toggleAutoFaults();
+                });
             }
 
             if (this.selFaultElev) {
@@ -390,6 +403,43 @@
             }
         };
 
+        // ─────────────── AUTO FAULTS ───────────────
+
+        SimulationController.prototype._toggleAutoFaults = function (forceOff) {
+            var self = this;
+            var newState = forceOff === true ? false : !this.autoFaultsEnabled;
+            if (newState === this.autoFaultsEnabled) return;
+
+            var url = '/api/sim/' + BID + '/toggle-auto-faults/';
+            window.csrfFetch(url, {
+                method: 'POST',
+                body: JSON.stringify({ enabled: newState })
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    self.autoFaultsEnabled = data.auto_faults_enabled;
+                    self._updateAutoFaultsBtn();
+                }
+            });
+        };
+
+        SimulationController.prototype._updateAutoFaultsBtn = function () {
+            var btn = this.autoFaultsBtn;
+            if (btn) {
+                var span = btn.querySelector('span#autoFaultsText');
+                if (this.autoFaultsEnabled) {
+                    btn.className = 'btn btn-primary';
+                    btn.title = 'Desactiva la inyección aleatoria de fallas de forma automática.';
+                    if (span) span.textContent = 'Desactivar fallas automáticas';
+                } else {
+                    btn.className = 'btn btn-secondary';
+                    btn.title = 'Activa la inyección aleatoria de fallas de forma automática.';
+                    if (span) span.textContent = 'Activar fallas automáticas';
+                }
+            }
+            this._updateControlStates();
+        };
+
         // ─────────────── FAULT MANAGEMENT (fire-and-forget) ───────────────
 
         SimulationController.prototype._handleFaultChange = function (device, newFault) {
@@ -471,6 +521,7 @@
                             window.showToast('Simulador reiniciado.', 'success');
                             document.getElementById('lastUpdate').innerText = '--:--:--';
                             if (window.clearCurrentReadings) window.clearCurrentReadings();
+                            self._toggleAutoFaults(true);
                             window.fetchInitialData();
                         } else {
                             window.showToast(data.message, 'error');
@@ -567,8 +618,21 @@
             window._csSetDisabled(document.getElementById('togglePumpBtn'), !running);
             window._csSetDisabled(document.getElementById('toggleElevatorBtn'), !running);
 
-            window._csSetDisabled(document.getElementById('simFaultPump'), !running || !this._pumpOn);
-            window._csSetDisabled(document.getElementById('simFaultElevator'), !running || !this._elevOn);
+            if (this.autoFaultsBtn) {
+                this.autoFaultsBtn.disabled = !running;
+            }
+
+            var selectorsDisabled = !running || this.autoFaultsEnabled;
+            window._csSetDisabled(document.getElementById('simFaultPump'), selectorsDisabled || !this._pumpOn);
+            window._csSetDisabled(document.getElementById('simFaultElevator'), selectorsDisabled || !this._elevOn);
+
+            var sfPump = document.getElementById('simFaultPump');
+            var sfElev = document.getElementById('simFaultElevator');
+            var csPump = sfPump ? sfPump._customSelect : null;
+            var csElev = sfElev ? sfElev._customSelect : null;
+            
+            if (csPump && csPump.trigger) csPump.trigger.disabled = (selectorsDisabled || !this._pumpOn);
+            if (csElev && csElev.trigger) csElev.trigger.disabled = (selectorsDisabled || !this._elevOn);
 
             if (this.clearFaultsBtn) {
                 this.clearFaultsBtn.disabled = !(this._activeElevFault || this._activePumpFault);
@@ -615,6 +679,11 @@
                 this._activeElevFault = data.sim_faults.elevator || '';
                 this._activePumpFault = data.sim_faults.pump || '';
                 this._updateFaultUI();
+            }
+
+            if (data.auto_faults_enabled !== undefined) {
+                this.autoFaultsEnabled = data.auto_faults_enabled === true;
+                this._updateAutoFaultsBtn();
             }
 
             if (data.protection_on !== undefined) {

@@ -29,6 +29,7 @@ def sim_status(request, building_id: int) -> JsonResponse:
         "has_pump": sim.has_pump,
         "has_elevator": sim.has_elevator,
         "faults": dict(sim.sim_faults),
+        "auto_faults_enabled": sim.auto_faults_enabled,
     })
 
 
@@ -72,6 +73,7 @@ def sim_reset(request, building_id: int) -> JsonResponse:
             "speed": 1.0,
             "paused": True,
             "started": False,
+            "auto_faults_enabled": False,
         })
     except SimulatorError as e:
         return json_error(e.message, e.status_code)
@@ -223,4 +225,28 @@ def sim_toggle_protection(request, building_id: int) -> JsonResponse:
         sim._protection_grace_ticks_elev = 0
 
     return json_ok({"protection_on": sim.protection_on})
+
+@require_http_methods(["POST"])
+@login_required
+@admin_required
+def sim_toggle_auto_faults(request, building_id: int) -> JsonResponse:
+    sim = get_simulator(building_id)
+    if sim is None:
+        return json_error("No hay simulador activo para este edificio", 404)
+
+    try:
+        body = parse_json_body(request)
+        enabled = body.get("enabled")
+        if enabled is not None:
+            sim.auto_faults_enabled = bool(enabled)
+        else:
+            sim.auto_faults_enabled = not getattr(sim, 'auto_faults_enabled', False)
+    except (SimulatorError, Exception):
+        sim.auto_faults_enabled = not getattr(sim, 'auto_faults_enabled', False)
+
+    # Reset ticks when enabled
+    if sim.auto_faults_enabled:
+        sim._auto_fault_ticks = 0.0
+
+    return json_ok({"auto_faults_enabled": sim.auto_faults_enabled})
 
