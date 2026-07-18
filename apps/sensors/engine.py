@@ -53,60 +53,6 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         risk, _ = classify_risk(var, value, thresholds)
         risk_cache[var] = risk
 
-import time
-import logging
-
-import eventlet
-
-from apps.sensors.sensor_config import (
-    PUMP_VARS, ELEVATOR_VARS,
-    RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
-    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
-    DAILY_PERSIST_INTERVAL, DAILY_RETENTION_DAYS,
-    ENUM_VARS, VAR_NAMES, UNITS, FAULT_NAMES_ES)
-from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
-from apps.sensors.simulation.models import BuildingSimulator
-from apps.sensors.simulation.globals import simulators
-from apps.sensors.simulation.simulation_engine import update_sensor_data
-from apps.core.services.risk_service import classify_risk
-from apps.thresholds.services import get_thresholds
-
-
-logger = logging.getLogger(__name__)
-
-ALERT_DEBOUNCE_TICKS: int = 3
-_MAX_BACKOFF_TICKS: int = 30
-
-
-def _run_sim_tick(sim: BuildingSimulator) -> None:
-    if sim.sim_paused:
-        return
-    update_sensor_data(active_sim=sim)
-    alert_vars = _get_alert_vars(sim)
-    risk_cache = _process_sensor_alerts(sim, alert_vars)
-    _check_auto_protection(sim)
-    _build_history_records(sim, alert_vars, risk_cache)
-
-
-def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
-    alert_vars = set()
-    if "bomba" in sim.equipment_types:
-        alert_vars.update(PUMP_VARS)
-    if "elevador" in sim.equipment_types:
-        alert_vars.update(ELEVATOR_VARS)
-    return alert_vars
-
-
-def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict:
-    thresholds = get_thresholds(sim.edificio_id)
-    risk_cache: dict[str, str] = {}
-
-    for var, value in sim.sensor_data.items():
-        if var not in alert_vars:
-            continue
-        risk, _ = classify_risk(var, value, thresholds)
-        risk_cache[var] = risk
-
     if sim.sim_faults:
         _send_compound_alerts_for_faults(sim, risk_cache)
 
@@ -274,8 +220,10 @@ def _check_auto_faults(sim: BuildingSimulator) -> None:
     sim._auto_fault_ticks = 0.0
 
     # No inyectar si ya hay fallas o pausas pendientes, o protección reciente
-    if getattr(sim, '_fault_transition_pump', 'stable') != 'stable' or \
-       getattr(sim, '_fault_transition_elev', 'stable') != 'stable':
+    trans_pump = getattr(sim, 'fault_transition_pump', 'stable')
+    trans_elev = getattr(sim, 'fault_transition_elev', 'stable')
+    if trans_pump != 'stable' or trans_elev != 'stable':
+        import logging; logging.getLogger(__name__).info(f"Auto-fault skipped: trans_pump={trans_pump}, trans_elev={trans_elev}")
         return
 
     from apps.sensors.simulation.controls import inject_fault
@@ -289,10 +237,12 @@ def _check_auto_faults(sim: BuildingSimulator) -> None:
         candidates.append("elevator")
 
     if not candidates:
+        import logging; logging.getLogger(__name__).info(f"Auto-fault skipped: no candidates. has_pump={sim.has_pump}, pump_on={sim.pump_on}, sim_faults={sim.sim_faults}, has_elev={sim.has_elevator}, elev_on={sim.elevator_on}")
         return
 
     device = random.choice(candidates)
     fault = random.choice(PUMP_FAULT_KEYS) if device == "pump" else random.choice(ELEVATOR_FAULT_KEYS)
+    import logging; logging.getLogger(__name__).info(f"Auto-fault chosen: {device} -> {fault}")
     try:
         inject_fault(sim.edificio_id, device, fault)
     except Exception as e:

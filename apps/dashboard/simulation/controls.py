@@ -244,9 +244,9 @@ def sim_toggle_auto_faults(request, building_id: int) -> JsonResponse:
     except (SimulatorError, Exception):
         sim.auto_faults_enabled = not getattr(sim, 'auto_faults_enabled', False)
 
-    # Reset ticks when enabled
+    # Force immediate injection on the next tick when enabled
     if sim.auto_faults_enabled:
-        sim._auto_fault_ticks = 0.0
+        sim._auto_fault_ticks = 5.0
 
     return json_ok({"auto_faults_enabled": sim.auto_faults_enabled})
 
