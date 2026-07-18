@@ -2474,7 +2474,7 @@ input.is-dirty.input-error-state:active {
     font-weight: var(--weight-bold);
     letter-spacing: var(--tracking-tight);
     color: var(--color-ink);
-    margin: var(--sp-4) 0 var(--sp-2);
+    margin: var(--sp-4) 0 var(--sp-6);
     text-align: center;
 }
 
