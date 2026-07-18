@@ -320,6 +320,9 @@
             var self = this;
             var prevSpeed = self.currentSpeed;
 
+            self.currentSpeed = speed;
+            self._updateSpeedButtons(speed);
+
             window.csrfFetch(URLS.setSpeed, {
                 method: 'POST',
                 body: JSON.stringify({ speed: speed })
@@ -327,19 +330,14 @@
               .then(function (data) {
                   if (data.status === 'ok') {
                       self.currentSpeed = data.speed || speed;
-                      self._updateSpeedButtons(self.currentSpeed);
                   } else {
-                      window.showToast(data.message || 'Error al cambiar velocidad.', 'error');
-                      if (prevSpeed !== self.currentSpeed) {
-                          self.currentSpeed = prevSpeed;
-                          self._updateSpeedButtons(prevSpeed);
-                      }
-                  }
-              }).catch(function () {
-                  if (prevSpeed !== self.currentSpeed) {
                       self.currentSpeed = prevSpeed;
                       self._updateSpeedButtons(prevSpeed);
+                      window.showToast(data.message || 'Error al cambiar velocidad.', 'error');
                   }
+              }).catch(function () {
+                  self.currentSpeed = prevSpeed;
+                  self._updateSpeedButtons(prevSpeed);
               });
         };
 
@@ -422,7 +420,6 @@
                         } else {
                             self._activePumpFault = data.faults.pump || '';
                         }
-                        self._faultTransition[device] = 'stable';
                         self._updateFaultUI();
                         self._updateControlStates();
 
@@ -441,12 +438,10 @@
                             });
                         }
                     } else {
-                        self._faultTransition[device] = 'stable';
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
                         self._updateControlStates();
                     }
                 }, function () {
-                    self._faultTransition[device] = 'stable';
                     window.showToast('Error de conexión al gestionar falla.', 'error');
                     self._updateControlStates();
                 })
@@ -460,7 +455,7 @@
 
         SimulationController.prototype._resetSim = function () {
             var self = this;
-            if (self._pausePending || self._faultPending) {
+            if (self._pausePending || self._faultPending || self._togglePending) {
                 window.showToast('Espera a que termine la operación actual.', 'info');
                 return;
             }
@@ -498,45 +493,39 @@
             self._faultPending = true;
             if (self.clearFaultsBtn) self.clearFaultsBtn.disabled = true;
 
-            function handleClearResponse(data, isOk) {
-                if (isOk && data.status === 'ok') {
-                    if (data.faults) {
-                        self._activeElevFault = data.faults.elevator || '';
-                        self._activePumpFault = data.faults.pump || '';
+            function markAllResolved() {
+                document.querySelectorAll('#live-history-list .hist-item[data-fault-type]').forEach(function (item) {
+                    item.classList.add('risk-resolved');
+                    var badge = item.querySelector('.sensor-badge');
+                    if (badge) {
+                        badge.className = 'sensor-badge risk-resolved';
+                        badge.textContent = 'Resuelta';
                     }
-                }
+                    var resolveBtn = item.querySelector('.hist-resolve-btn');
+                    if (resolveBtn) resolveBtn.remove();
+                });
             }
 
-            Promise.allSettled([
-                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) })
-                    .then(function (r) { return r.json(); })
-                    .then(function (d) { handleClearResponse(d, true); return d; }, function () { return null; }),
-                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
-                    .then(function (r) { return r.json(); })
-                    .then(function (d) { handleClearResponse(d, true); return d; }, function () { return null; })
-            ])
-                .then(function (results) {
-                    var anyFailed = results.some(function (r) {
-                        return r.status === 'rejected' || (r.value && r.value.status !== 'ok');
-                    });
-                    self._updateFaultUI();
-                    self._updateControlStates();
-
-                    if (!anyFailed) {
-                        document.querySelectorAll('#live-history-list .hist-item[data-fault-type]').forEach(function (item) {
-                            item.classList.add('risk-resolved');
-                            var badge = item.querySelector('.sensor-badge');
-                            if (badge) {
-                                badge.className = 'sensor-badge risk-resolved';
-                                badge.textContent = 'Resuelta';
-                            }
-                            var resolveBtn = item.querySelector('.hist-resolve-btn');
-                            if (resolveBtn) resolveBtn.remove();
-                        });
+            window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) })
+                .then(function (r) { return r.json(); })
+                .then(function (d1) {
+                    if (d1.status !== 'ok') throw new Error('Pump clear failed');
+                    return window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
+                        .then(function (r) { return r.json(); });
+                })
+                .then(function (d2) {
+                    if (d2.status === 'ok') {
+                        self._activeElevFault = d2.faults.elevator || '';
+                        self._activePumpFault = d2.faults.pump || '';
+                        self._updateFaultUI();
+                        markAllResolved();
                         window.showToast('Fallas restablecidas.', 'success');
                     } else {
-                        window.showToast('Error al restablecer algunas fallas.', 'warning');
+                        window.showToast('Error al restablecer fallas.', 'error');
                     }
+                })
+                .catch(function () {
+                    window.showToast('Error de conexión al restablecer fallas.', 'error');
                 })
                 .then(function () {
                     self._faultPending = false;

@@ -1,4 +1,4 @@
-RECOVERY_GRACE_TICKS = 25
+RECOVERY_GRACE_TICKS = 5
 
 
 def apply_pump_recovery(sim) -> None:

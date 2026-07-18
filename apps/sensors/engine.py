@@ -233,6 +233,7 @@ def _check_auto_protection(sim: BuildingSimulator) -> None:
         alert_payload = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "fault_type": fault_type_protection,
+            "original_fault_type": fault_type,
             "fault_name": protection_title,
             "variables": [],
             "risk": "Resuelta",

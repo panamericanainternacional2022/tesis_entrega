@@ -469,7 +469,7 @@
         li.className = 'hist-item';
 
         var _riskUpper = (data.risk || '').toUpperCase();
-        var BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal' };
+        var BADGE_MAP = { 'CRÍTICO': 'sensor-critical', 'ALTO': 'sensor-high', 'NORMAL': 'sensor-normal', 'RESUELTA': 'risk-resolved' };
         var badgeClass = BADGE_MAP[_riskUpper] || 'sensor-normal';
 
         if (data.fault_type) {
@@ -497,6 +497,23 @@
                         <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
                     </div>
                 </div>`;
+
+            // Si es evento de protección, marcar items de la falla original como resueltos
+            var originalFaultType = data.original_fault_type;
+            if (originalFaultType) {
+                document.querySelectorAll('#live-history-list .hist-item').forEach(function (item) {
+                    if (item.getAttribute('data-fault-type') === originalFaultType) {
+                        item.classList.add('risk-resolved');
+                        var badge = item.querySelector('.sensor-badge');
+                        if (badge) {
+                            badge.className = 'sensor-badge risk-resolved';
+                            badge.textContent = 'Resuelta';
+                        }
+                        var resolveBtn = item.querySelector('.hist-resolve-btn');
+                        if (resolveBtn) resolveBtn.remove();
+                    }
+                });
+            }
         } else {
             const valueStr = String(data.value);
             const unit = getUnit(data.variable);

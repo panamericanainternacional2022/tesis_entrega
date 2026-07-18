@@ -91,11 +91,16 @@ def sim_inject_fault(request, building_id: int) -> JsonResponse:
     if not device or not fault_type:
         return json_error("Faltan campos: device, fault_type")
 
-    from apps.sensors.simulation.controls import inject_fault
+    from apps.sensors.simulation.controls import clear_fault, inject_fault
 
     try:
+        clear_fault(building_id, device)
         message = inject_fault(building_id, device, fault_type)
         sim = get_simulator(building_id)
+        if device == "pump":
+            sim._protection_grace_ticks_pump = 0
+        else:
+            sim._protection_grace_ticks_elev = 0
         return json_ok({"message": message, "faults": dict(sim.sim_faults)})
     except SimulatorError as e:
         return json_error(e.message)
