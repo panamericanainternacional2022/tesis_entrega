@@ -1679,30 +1679,34 @@ button {
     background: var(--state-critical);
 }
 
-.sensor-card-name {
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    color: var(--color-ink);
+.sensor-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--sp-3);
     margin-bottom: var(--sp-2);
 }
 
+.sensor-card-name {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+}
+
 .sensor-card-value {
-    font-size: var(--text-xl);
+    font-size: var(--text-md);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
     line-height: var(--leading-tight);
 }
 
 .sensor-card-footer {
-    margin-top: var(--sp-2);
+    margin-top: auto;
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-1);
+    justify-content: space-between;
     align-items: center;
-}
-
-.sensor-card-footer .badge {
-    margin-right: auto;
+    gap: var(--sp-2);
 }
 
 .sensor-card-target {

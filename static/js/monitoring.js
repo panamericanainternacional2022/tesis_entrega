@@ -46,8 +46,10 @@
                         ? `<span class="sensor-card-target">→ ${translateSensorValue('elev_position', _elevTargetFloor) || _elevTargetFloor}</span>`
                         : '';
                     card.innerHTML = `
-                        <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
-                        <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
+                        <div class="sensor-card-header">
+                            <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
+                            <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
+                        </div>
                         <div class="sensor-card-footer" data-sensor-footer>
                             ${badgeHtml}
                             ${targetHtml}
@@ -55,8 +57,10 @@
                     `;
                 } else {
                     card.innerHTML = `
-                        <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
-                        <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
+                        <div class="sensor-card-header">
+                            <div class="sensor-card-name" data-sensor-name>${getVariableName(k)}</div>
+                            <div class="sensor-card-value" data-sensor-value>${displayValue}</div>
+                        </div>
                         <div class="sensor-card-footer" data-sensor-footer>${badgeHtml}</div>
                     `;
                 }
