@@ -565,20 +565,17 @@
             var running = this.simStarted && !this.simPaused;
             var started = this.simStarted;
 
-            var pumpTrans = this._faultTransition.pump !== 'stable';
-            var elevTrans = this._faultTransition.elevator !== 'stable';
+            window._csSetDisabled(document.getElementById('togglePumpBtn'), !running);
+            window._csSetDisabled(document.getElementById('toggleElevatorBtn'), !running);
 
-            window._csSetDisabled(document.getElementById('togglePumpBtn'), !running || pumpTrans);
-            window._csSetDisabled(document.getElementById('toggleElevatorBtn'), !running || elevTrans);
-
-            window._csSetDisabled(document.getElementById('simFaultPump'), !running || !this._pumpOn || pumpTrans);
-            window._csSetDisabled(document.getElementById('simFaultElevator'), !running || !this._elevOn || elevTrans);
+            window._csSetDisabled(document.getElementById('simFaultPump'), !running || !this._pumpOn);
+            window._csSetDisabled(document.getElementById('simFaultElevator'), !running || !this._elevOn);
 
             if (this.clearFaultsBtn) {
-                this.clearFaultsBtn.disabled = !(this._activeElevFault || this._activePumpFault) || pumpTrans || elevTrans;
+                this.clearFaultsBtn.disabled = !(this._activeElevFault || this._activePumpFault);
             }
 
-            if (this.btnReset) this.btnReset.disabled = !started || pumpTrans || elevTrans;
+            if (this.btnReset) this.btnReset.disabled = !started;
         };
 
         SimulationController.prototype._updateEquipmentVisibility = function () {

@@ -262,14 +262,15 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
             sd[var] = target
             continue
 
+        bounds = sim.sensor_limits.get(var)
+        if bounds:
+            target = max(bounds[0], min(bounds[1], target))
+
         rate = ELEV_RAMP_RATES.get(var, 2.0)
         if not _ramp_toward_target(sd, var, target, rate, dt):
             all_reached = False
 
         val = sd[var]
-        bounds = sim.sensor_limits.get(var)
-        if bounds:
-            val = max(bounds[0], min(bounds[1], val))
         if var in ("elev_load",):
             val = int(round(val))
         else:

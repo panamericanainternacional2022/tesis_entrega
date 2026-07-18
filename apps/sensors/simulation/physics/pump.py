@@ -142,6 +142,10 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     all_reached = True
     for k in PUMP_VARS:
         target = temp_sd[k]
+        bounds = sim.sensor_limits.get(k)
+        if bounds:
+            target = max(bounds[0], min(bounds[1], target))
+
         rate = PUMP_RAMP_RATES.get(k, 2.0)
         if not _ramp_toward_target(sd, k, target, rate, dt):
             all_reached = False
