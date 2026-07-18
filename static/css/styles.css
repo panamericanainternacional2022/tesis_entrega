@@ -597,15 +597,12 @@ button {
     font-size: var(--text-base);
 }
 
-.form-card-body {
-    display: grid;
-}
 
 .form-row {
     display: grid;
     gap: var(--sp-5);
     grid-template-columns: repeat(2, 1fr);
-    margin: 0 var(--sp-5);
+    margin: var(--sp-5);
 }
 
 .form-group label,
