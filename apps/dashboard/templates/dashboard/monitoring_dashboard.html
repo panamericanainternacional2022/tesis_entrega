@@ -223,7 +223,9 @@
             this._hasPump = true;
             this._pumpOn = true;
             this._elevOn = true;
-            this._pendingRequest = false;
+            this._faultPending = false;
+            this._togglePending = false;
+            this._pausePending = false;
             this._faultTransition = { pump: 'stable', elevator: 'stable' };
 
             this._cacheDOMElements();
@@ -285,8 +287,12 @@
 
         SimulationController.prototype._togglePause = function () {
             var self = this;
-            if (!BID || self._pendingRequest) return;
-            self._pendingRequest = true;
+            if (!BID) return;
+            if (self._pausePending || self._faultPending) {
+                window.showToast('Espera a que termine la operación actual.', 'info');
+                return;
+            }
+            self._pausePending = true;
             if (self.btnPause) self.btnPause.disabled = true;
 
             window.csrfFetch(URLS.pause, { method: 'POST', body: '{}' })
@@ -305,33 +311,47 @@
                     window.showToast('Error de conexión al pausar.', 'error');
                 })
                 .then(function () {
-                    self._pendingRequest = false;
+                    self._pausePending = false;
                     if (self.btnPause) self.btnPause.disabled = false;
                 });
         };
 
         SimulationController.prototype._setSpeed = function (speed) {
             var self = this;
-            self.currentSpeed = speed;
-            self._updateSpeedButtons(speed);
+            var prevSpeed = self.currentSpeed;
 
             window.csrfFetch(URLS.setSpeed, {
                 method: 'POST',
                 body: JSON.stringify({ speed: speed })
             }).then(function (r) { return r.json(); })
               .then(function (data) {
-                  if (data.status !== 'ok') {
+                  if (data.status === 'ok') {
+                      self.currentSpeed = data.speed || speed;
+                      self._updateSpeedButtons(self.currentSpeed);
+                  } else {
                       window.showToast(data.message || 'Error al cambiar velocidad.', 'error');
+                      if (prevSpeed !== self.currentSpeed) {
+                          self.currentSpeed = prevSpeed;
+                          self._updateSpeedButtons(prevSpeed);
+                      }
                   }
-              }).catch(function () {});
+              }).catch(function () {
+                  if (prevSpeed !== self.currentSpeed) {
+                      self.currentSpeed = prevSpeed;
+                      self._updateSpeedButtons(prevSpeed);
+                  }
+              });
         };
 
         // ─────────────── PROTECTION TOGGLE ───────────────
 
         SimulationController.prototype._toggleProtection = function () {
             var self = this;
-            if (self._pendingRequest) return;
-            self._pendingRequest = true;
+            if (self._pausePending) {
+                window.showToast('Espera a que termine la operación actual.', 'info');
+                return;
+            }
+            self._pausePending = true;
             if (self.btnProtection) self.btnProtection.disabled = true;
 
             window.csrfFetch(URLS.toggleProt, { method: 'POST', body: '{}' })
@@ -347,7 +367,7 @@
                     window.showToast('Error de conexión al cambiar protección.', 'error');
                 })
                 .then(function () {
-                    self._pendingRequest = false;
+                    self._pausePending = false;
                     if (self.btnProtection) self.btnProtection.disabled = false;
                 });
         };
@@ -375,8 +395,8 @@
 
         SimulationController.prototype._handleFaultChange = function (device, newFault) {
             var self = this;
-            if (!BID || self._pendingRequest) return;
-            self._pendingRequest = true;
+            if (!BID || self._faultPending) return;
+            self._faultPending = true;
 
             var prevFault = device === 'elevator' ? self._activeElevFault : self._activePumpFault;
 
@@ -384,21 +404,16 @@
             window._csSetDisabled(document.getElementById('simFaultPump'), true);
             window._csSetDisabled(document.getElementById('simFaultElevator'), true);
 
-            var chain = window.csrfFetch(URLS.clear, {
-                method: 'POST',
-                body: JSON.stringify({ device: device })
-            });
-
+            var url, bodyPayload;
             if (newFault) {
-                chain = chain.then(function () {
-                    return window.csrfFetch(URLS.inject, {
-                        method: 'POST',
-                        body: JSON.stringify({ device: device, fault_type: newFault })
-                    });
-                });
+                url = URLS.inject;
+                bodyPayload = JSON.stringify({ device: device, fault_type: newFault });
+            } else {
+                url = URLS.clear;
+                bodyPayload = JSON.stringify({ device: device });
             }
 
-            chain
+            window.csrfFetch(url, { method: 'POST', body: bodyPayload })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.status === 'ok') {
@@ -407,6 +422,7 @@
                         } else {
                             self._activePumpFault = data.faults.pump || '';
                         }
+                        self._faultTransition[device] = 'stable';
                         self._updateFaultUI();
                         self._updateControlStates();
 
@@ -425,13 +441,17 @@
                             });
                         }
                     } else {
+                        self._faultTransition[device] = 'stable';
                         window.showToast(data.message || 'Error al gestionar falla.', 'error');
+                        self._updateControlStates();
                     }
                 }, function () {
+                    self._faultTransition[device] = 'stable';
                     window.showToast('Error de conexión al gestionar falla.', 'error');
+                    self._updateControlStates();
                 })
                 .then(function () {
-                    self._pendingRequest = false;
+                    self._faultPending = false;
                     self._updateControlStates();
                 });
         };
@@ -440,10 +460,16 @@
 
         SimulationController.prototype._resetSim = function () {
             var self = this;
+            if (self._pausePending || self._faultPending) {
+                window.showToast('Espera a que termine la operación actual.', 'info');
+                return;
+            }
             window.showConfirm(
                 '¿Estás seguro de que deseas reiniciar el simulador?'
             ).then(function (confirmed) {
-                if (!confirmed || !BID || self._pendingRequest) return;
+                if (!confirmed || !BID) return;
+                self._pausePending = true;
+                if (self.btnReset) self.btnReset.disabled = true;
                 window.csrfFetch(URLS.reset, { method: 'POST', body: '{}' })
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
@@ -458,31 +484,45 @@
                     })
                     .catch(function () {
                         window.showToast('Error al reiniciar la simulación.', 'error');
+                    })
+                    .then(function () {
+                        self._pausePending = false;
+                        if (self.btnReset) self.btnReset.disabled = false;
                     });
             });
         };
 
         SimulationController.prototype._clearFaults = function () {
             var self = this;
-            if (!BID || self._pendingRequest) return;
-            self._pendingRequest = true;
+            if (!BID || self._faultPending) return;
+            self._faultPending = true;
             if (self.clearFaultsBtn) self.clearFaultsBtn.disabled = true;
 
-            Promise.all([
-                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) }),
-                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
-            ])
-                .then(function (responses) {
-                    return Promise.all(responses.map(function (r) { return r.json(); }));
-                })
-                .then(function (dataArr) {
-                    var allOk = dataArr.every(function (d) { return d.status === 'ok'; });
-                    if (allOk) {
-                        self._activeElevFault = dataArr[0].faults.elevator || dataArr[1].faults.elevator || '';
-                        self._activePumpFault = dataArr[0].faults.pump || dataArr[1].faults.pump || '';
-                        self._updateFaultUI();
-                        self._updateControlStates();
+            function handleClearResponse(data, isOk) {
+                if (isOk && data.status === 'ok') {
+                    if (data.faults) {
+                        self._activeElevFault = data.faults.elevator || '';
+                        self._activePumpFault = data.faults.pump || '';
+                    }
+                }
+            }
 
+            Promise.allSettled([
+                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'pump' }) })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) { handleClearResponse(d, true); return d; }, function () { return null; }),
+                window.csrfFetch(URLS.clear, { method: 'POST', body: JSON.stringify({ device: 'elevator' }) })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) { handleClearResponse(d, true); return d; }, function () { return null; })
+            ])
+                .then(function (results) {
+                    var anyFailed = results.some(function (r) {
+                        return r.status === 'rejected' || (r.value && r.value.status !== 'ok');
+                    });
+                    self._updateFaultUI();
+                    self._updateControlStates();
+
+                    if (!anyFailed) {
                         document.querySelectorAll('#live-history-list .hist-item[data-fault-type]').forEach(function (item) {
                             item.classList.add('risk-resolved');
                             var badge = item.querySelector('.sensor-badge');
@@ -493,14 +533,13 @@
                             var resolveBtn = item.querySelector('.hist-resolve-btn');
                             if (resolveBtn) resolveBtn.remove();
                         });
+                        window.showToast('Fallas restablecidas.', 'success');
                     } else {
-                        window.showToast('Error al restablecer fallas.', 'error');
+                        window.showToast('Error al restablecer algunas fallas.', 'warning');
                     }
-                }, function () {
-                    window.showToast('Error de conexión al restablecer fallas.', 'error');
                 })
                 .then(function () {
-                    self._pendingRequest = false;
+                    self._faultPending = false;
                     self._updateControlStates();
                 });
         };
@@ -578,7 +617,7 @@
         // ─────────────── SSE SYNC HOOK (única fuente de verdad) ───────────────
 
         SimulationController.prototype.syncFromPayload = function (data) {
-            if (this._pendingRequest) return;
+            if (this._faultPending) return;
             this.simPaused = data.sim_paused === true;
             this.simStarted = data.sim_started === true;
 
@@ -616,8 +655,11 @@
 
         SimulationController.prototype._toggleEquipment = function (device) {
             var self = this;
-            if (!BID || self._pendingRequest) return;
-            self._pendingRequest = true;
+            if (!BID || self._togglePending) {
+                if (self._togglePending) window.showToast('Operación de encendido/apagado en curso.', 'info');
+                return;
+            }
+            self._togglePending = true;
             var btn = device === 'pump' ? self.btnTogglePump : self.btnToggleElev;
             if (btn) btn.disabled = true;
 
@@ -628,6 +670,11 @@
                     if (data.status === 'ok') {
                         self._pumpOn = data.pump_on;
                         self._elevOn = data.elevator_on;
+                        if (data.faults) {
+                            self._activePumpFault = data.faults.pump || '';
+                            self._activeElevFault = data.faults.elevator || '';
+                            self._updateFaultUI();
+                        }
                         window.updateEquipmentPowerBtns(data.pump_on, data.elevator_on);
                         self._updateControlStates();
                     } else {
@@ -637,7 +684,7 @@
                     window.showToast('Error de conexión al cambiar equipo.', 'error');
                 })
                 .then(function () {
-                    self._pendingRequest = false;
+                    self._togglePending = false;
                     self._updateControlStates();
                 });
         };

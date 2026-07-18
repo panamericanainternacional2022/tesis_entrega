@@ -14,6 +14,7 @@
     // CHART_PUMP_VARS, CHART_ELEV_VARS
 
     let _persistCounter = 0;
+    let _fetchingDaily = false;
     const _PERSIST_INTERVAL = 30;
 
     function updateCards(readings, riskData) {
@@ -283,11 +284,13 @@
     }
 
     function fetchDailyData() {
-        if (!EDIFICIO_ID) return;
+        if (!EDIFICIO_ID || _fetchingDaily) return;
+        _fetchingDaily = true;
         fetch('/api/sensors/daily/' + EDIFICIO_ID + '/?days=7')
             .then(function (r) { return r.json(); })
             .then(function (data) { renderDailyCharts(data); })
-            .catch(function () {});
+            .catch(function () {})
+            .then(function () { _fetchingDaily = false; });
     }
 
     function updateAdminControlsByEquipment(equipTypes) {

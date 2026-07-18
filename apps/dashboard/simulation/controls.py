@@ -133,8 +133,8 @@ def sim_set_speed(request, building_id: int) -> JsonResponse:
     try:
         body = parse_json_body(request)
         speed = float(body.get("speed", 1.0))
-        if math.isnan(speed) or math.isinf(speed):
-            return json_error("Velocidad inválida (NaN o Infinito)")
+        if math.isnan(speed) or math.isinf(speed) or speed <= 0:
+            return json_error("Velocidad inválida (NaN, Infinito o menor/igual a 0)")
     except (SimulatorError, ValueError, TypeError):
         return json_error("JSON inválido o speed no numérico")
 
