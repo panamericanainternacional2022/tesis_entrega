@@ -51,6 +51,13 @@ def inject_fault(edificio_id: int, device: str, fault_type: str) -> str:
     }
     if fault_type not in valid_faults[device]:
         raise InvalidFaultTypeError(device, fault_type)
+
+    if device in sim.sim_faults:
+        try:
+            clear_fault(edificio_id, device)
+        except Exception:
+            logger.exception("Error al limpiar falla previa en inject_fault")
+
     sim.sim_faults[device] = fault_type
     sim.fault_injected_at[device] = time.time()
 
@@ -144,8 +151,8 @@ def reset_simulator(edificio_id: int) -> str:
     if not sim:
         raise SimulatorNotFoundError(edificio_id)
     sim.sensor_data = {k: v for k, v in DEFAULT_SENSOR_DATA.items()}
-    sim.pump_on = True
-    sim.elevator_on = True
+    sim.pump_on = sim.has_pump
+    sim.elevator_on = sim.has_elevator
     sim.active_alerts.clear()
     sim.history.clear()
     sim.pending_alerts.clear()

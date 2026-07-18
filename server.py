@@ -68,8 +68,23 @@ if _smtp_user and _smtp_password:
 else:
     logger.warning("SMTP no configurado. Los correos no se enviarán.")
 
-eventlet.spawn(generate_data_and_emit)
-logger.info("Loop de simulación iniciado")
+def _engine_watchdog():
+    while True:
+        logger.info("Loop de simulación iniciado via server.py")
+        gt = eventlet.spawn(generate_data_and_emit)
+        try:
+            gt.wait()
+            logger.warning(
+                "Loop de simulación terminó normalmente (inesperado) — reintentando"
+            )
+        except Exception:
+            logger.exception(
+                "Loop de simulación falló con excepción — reintentando en 5 s"
+            )
+        eventlet.sleep(5)
+
+eventlet.spawn(_engine_watchdog)
+logger.info("Watchdog del simulador iniciado")
 
 from django.core.handlers.wsgi import WSGIHandler
 from django.contrib.staticfiles.handlers import StaticFilesHandler

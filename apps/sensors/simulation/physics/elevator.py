@@ -177,9 +177,9 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
         },
         "pos_sensor_fail": {
             "elev_position": getattr(sim, "_elev_pos_stuck_value", FLOOR_HEIGHT * 1.25),
-            "elev_speed": CRUISING_SPEED,
+            "elev_speed": 0.0 if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else CRUISING_SPEED,
             "elev_door_status": "closed",
-            "elevator_state": "MOVING",
+            "elevator_state": "IDLE" if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else "MOVING",
         },
         "traction_loss": {
             "elev_vibration": 12.0,
@@ -258,7 +258,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
 
     all_reached = True
     for var, target in targets.items():
-        if var in ENUM_VARS:
+        if var in ENUM_VARS or isinstance(target, str):
             sd[var] = target
             continue
 
@@ -465,6 +465,16 @@ def _handle_elev_doors_open(
 ) -> None:
     spd = 0.0
     door = "open"
+
+    total_load = _effective_load(sim, load)
+    critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
+    if total_load > critic_load:
+        sim._elev_timer = 0
+        sd["elev_speed"] = spd
+        sd["elev_door_status"] = door
+        sd["elev_load"] = round(load)
+        return
+
     if sim._elev_timer >= PASSENGER_WAIT_TICKS / max(sim.sim_speed, 0.1):
         sim._elev_timer = 0
         normal_max = int(RATED_LOAD * 1.1)
@@ -660,16 +670,9 @@ def _run_elevator_post_fsm(
     pos = clamp(sim._elev_position_meters, 0, sim.floors * FLOOR_HEIGHT)
     sim._elev_position_meters = pos
     current_state = sim._elev_state
-    if current_state in ("IDLE", "DOOR_OPENING", "DOORS_OPEN", "DOOR_CLOSING"):
+    if current_state in ("IDLE", "DOOR_OPENING", "DOORS_OPEN", "DOOR_CLOSING") and sim._elev_power_available:
         pos = round(pos / FLOOR_HEIGHT) * FLOOR_HEIGHT
         sim._elev_position_meters = pos
-    if spd != 0:
-        pass
-    if current_state == "DOOR_CLOSING" and sim._elev_timer >= DOOR_CLOSE_TIME / max(sim.sim_speed, 0.1):
-        if random.random() < 0.15 * dt:
-            if door == "closed":
-                sim._elev_state = "DOOR_OPENING"
-                sim._elev_timer = 0
 
     effective_load = _effective_load(sim, load)
 
@@ -681,7 +684,12 @@ def _run_elevator_post_fsm(
     sd["elev_speed"] = round(spd, 1)
 
     # ── Load ───────────────────────────────────────────────────────────────
-    sd["elev_load"] = round(load)
+    target_load = clamp(load, sim.sensor_limits.get('elev_load', (0.0, 1200.0))[0], sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1])
+    if sim.fault_transition_elev == "recovering":
+        _ramp_toward_target(sd, "elev_load", target_load, ELEV_RAMP_RATES.get("elev_load", 100.0), dt)
+        sd["elev_load"] = int(round(sd["elev_load"]))
+    else:
+        sd["elev_load"] = int(round(target_load))
 
     # ── Door status ────────────────────────────────────────────────────────
     sd["elev_door_status"] = door
@@ -708,27 +716,39 @@ def _run_elevator_post_fsm(
         sd["elev_current"] = 0.0
 
     # ── Elevator motor temperature simulation ──────────────────────────────
-    if not sim._elev_power_outage_complete:
-        from apps.thresholds.services import get_thresholds
-        thresh = get_thresholds(sim.edificio_id)
-        temp_high = thresh.get("elev_temperature", {}).get("high", 60.0)
-        safe_temp_max = temp_high * 0.95
+    from apps.thresholds.services import get_thresholds
+    thresh = get_thresholds(sim.edificio_id)
+    temp_high = thresh.get("elev_temperature", {}).get("high", 60.0)
+    safe_temp_max = temp_high * 0.95
 
+    if not sim._elev_power_outage_complete:
         target_temp = ELEVATOR_MOTOR_TEMP_AMBIENT + (effective_load / max(RATED_LOAD, 1)) * 20 + abs(spd) * 5
         if current_state in ("ACCELERATING", "DECELERATING"):
             target_temp += 5.0
-        temp_diff = target_temp - sim._elev_motor_temp
-        sim._elev_motor_temp += temp_diff * 0.05 * dt + random.uniform(-0.2, 0.2) * dt
 
-        # Enforce safe normal regime if no fault
         if "elevator" not in sim.sim_faults:
-            sim._elev_motor_temp = min(sim._elev_motor_temp, safe_temp_max)
+            target_temp = min(target_temp, safe_temp_max)
 
-        sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1])
-        sd["elev_temperature"] = round(sim._elev_motor_temp, 1)
-    elif sim._elev_power_outage_complete or not sim._elev_power_available:
-        sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
-        sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1]), 1)
+        target_temp = clamp(target_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1])
+
+        if sim.fault_transition_elev == "recovering":
+            _ramp_toward_target(sd, "elev_temperature", target_temp, ELEV_RAMP_RATES.get("elev_temperature", 5.0), dt)
+            sim._elev_motor_temp = sd["elev_temperature"]
+        else:
+            temp_diff = target_temp - sim._elev_motor_temp
+            sim._elev_motor_temp += temp_diff * 0.05 * dt + random.uniform(-0.2, 0.2) * dt
+            if "elevator" not in sim.sim_faults:
+                sim._elev_motor_temp = min(sim._elev_motor_temp, safe_temp_max)
+            sim._elev_motor_temp = clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1])
+            sd["elev_temperature"] = round(sim._elev_motor_temp, 1)
+    else:
+        target_temp = ELEVATOR_MOTOR_TEMP_AMBIENT
+        if sim.fault_transition_elev == "recovering":
+            _ramp_toward_target(sd, "elev_temperature", target_temp, ELEV_RAMP_RATES.get("elev_temperature", 5.0), dt)
+            sim._elev_motor_temp = sd["elev_temperature"]
+        else:
+            sim._elev_motor_temp += (ELEVATOR_MOTOR_TEMP_AMBIENT - sim._elev_motor_temp) * 0.05 * dt
+            sd["elev_temperature"] = round(clamp(sim._elev_motor_temp, ELEVATOR_MOTOR_TEMP_AMBIENT, sim.sensor_limits.get('elev_temperature', (22.0, 90.0))[1]), 1)
 
     # ── Elevator voltage simulation ────────────────────────────────────────
     if not sim._elev_power_available:
@@ -739,27 +759,37 @@ def _run_elevator_post_fsm(
             sim._elev_voltage -= 12.0
         if getattr(sim, "_elev_traction_loss", False):
             sim._elev_voltage -= 8.0
-    sd["elev_voltage"] = round(clamp(sim._elev_voltage, sim.sensor_limits.get('elev_voltage', (0.0, 500.0))[0], sim.sensor_limits.get('elev_voltage', (0.0, 500.0))[1]), 1)
+
+    target_volt = clamp(sim._elev_voltage, sim.sensor_limits.get('elev_voltage', (0.0, 500.0))[0], sim.sensor_limits.get('elev_voltage', (0.0, 500.0))[1])
+    if sim.fault_transition_elev == "recovering":
+        _ramp_toward_target(sd, "elev_voltage", target_volt, ELEV_RAMP_RATES.get("elev_voltage", 30.0), dt)
+        sim._elev_voltage = sd["elev_voltage"]
+    else:
+        sd["elev_voltage"] = round(target_volt, 1)
 
     # ── Elevator vibration simulation ──────────────────────────────────────
-    from apps.thresholds.services import get_thresholds
-    thresh = get_thresholds(sim.edificio_id)
     vib_high = thresh.get("elev_vibration", {}).get("high", 3.0)
     safe_vib_max = vib_high * 0.95
 
     if not sim._elev_power_available and spd == 0:
-        sim._elev_vibration = 0.0
+        target_vib = 0.0
     else:
         base_vib = 0.5 if current_state == "IDLE" else 1.0 + abs(spd) * 0.8
-        sim._elev_vibration = base_vib + random.uniform(0.0, 0.4)
+        target_vib = base_vib + random.uniform(0.0, 0.4)
         if getattr(sim, "_elev_traction_loss", False):
-            sim._elev_vibration += 8.5 + random.uniform(0.0, 2.0)
+            target_vib += 8.5 + random.uniform(0.0, 2.0)
 
         # Enforce safe normal regime if no fault
         if "elevator" not in sim.sim_faults:
-            sim._elev_vibration = min(sim._elev_vibration, safe_vib_max)
+            target_vib = min(target_vib, safe_vib_max)
 
-    sd["elev_vibration"] = round(clamp(sim._elev_vibration, sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[0], sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[1]), 1)
+    target_vib = clamp(target_vib, sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[0], sim.sensor_limits.get('elev_vibration', (0.0, 10.0))[1])
+    if sim.fault_transition_elev == "recovering":
+        _ramp_toward_target(sd, "elev_vibration", target_vib, ELEV_RAMP_RATES.get("elev_vibration", 2.0), dt)
+        sim._elev_vibration = sd["elev_vibration"]
+    else:
+        sd["elev_vibration"] = round(target_vib, 1)
+        sim._elev_vibration = target_vib
 
     # ── Elevator motor current simulation ──────────────────────────────────
     if not sim._elev_power_available:
@@ -800,15 +830,17 @@ def _run_elevator_post_fsm(
     else:
         sim._elev_current = ELEVATOR_MOTOR_RATED_CURRENT * 0.15 + random.uniform(-0.3, 0.3) * dt
 
+    target_curr = clamp(sim._elev_current, sim.sensor_limits.get('elev_current', (0.0, 40.0))[0], sim.sensor_limits.get('elev_current', (0.0, 40.0))[1])
     if "elevator" not in sim.sim_faults:
-        from apps.thresholds.services import get_thresholds
-        thresh = get_thresholds(sim.edificio_id)
         current_high = thresh.get("elev_current", {}).get("high", 25.0)
         safe_current_max = current_high * 0.95
-        sim._elev_current = min(sim._elev_current, safe_current_max)
+        target_curr = min(target_curr, safe_current_max)
 
-    sd["elev_current"] = round(clamp(sim._elev_current, sim.sensor_limits.get('elev_current', (0.0, 40.0))[0], sim.sensor_limits.get('elev_current', (0.0, 40.0))[1]), 1)
+    if sim.fault_transition_elev == "recovering":
+        _ramp_toward_target(sd, "elev_current", target_curr, ELEV_RAMP_RATES.get("elev_current", 4.0), dt)
+        sim._elev_current = sd["elev_current"]
+    else:
+        sd["elev_current"] = round(target_curr, 1)
+        sim._elev_current = target_curr
 
     sd["elevator_state"] = current_state
-
-

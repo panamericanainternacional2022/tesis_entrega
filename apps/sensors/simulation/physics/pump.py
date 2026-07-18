@@ -1,4 +1,4 @@
-﻿import random
+import random
 
 from apps.sensors.sensor_config import PUMP_VARS
 from apps.sensors.simulation.constants import (
@@ -53,8 +53,8 @@ def _update_pump(sim: BuildingSimulator) -> None:
         
         new_tank = sd["pump_tank_level"] + d_tank
         
-        # Enforce safe normal regime for tank level if no fault
-        if "pump" not in sim.sim_faults:
+        # Enforce safe normal regime for tank level if no fault and not recovering
+        if "pump" not in sim.sim_faults and sim.fault_transition_pump != "recovering":
             tank_t = thresh.get("pump_tank_level", {})
             # Range direction: high is lower bound of normal, critic is upper bound of normal
             safe_tank_min = tank_t.get("high", 20.0) + (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.05
@@ -86,7 +86,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
 
 def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sd["pump_flow_rate"] = 0.0
-    sd["pump_pressure"] = 0.0
+    sd["pump_pressure"] = 1.0
     sd["pump_vibration"] = 0.0
     sd["pump_current"] = 0.0
     sd["pump_temperature"] = round(

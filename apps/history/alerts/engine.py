@@ -67,6 +67,12 @@ def _send_compound_email(
             logger.exception(
                 "Error enviando email de alerta compuesta (falla=%s, nivel=%s)", fault_name, risk_level
             )
+        finally:
+            from django.db import close_old_connections
+            try:
+                close_old_connections()
+            except Exception:
+                pass
 
     try:
         threading.Thread(target=_do_send, daemon=True).start()

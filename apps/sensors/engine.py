@@ -52,6 +52,60 @@ def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict
         risk, _ = classify_risk(var, value, thresholds)
         risk_cache[var] = risk
 
+import time
+import logging
+
+import eventlet
+
+from apps.sensors.sensor_config import (
+    PUMP_VARS, ELEVATOR_VARS,
+    RISK_CRITICO, RISK_ALTO, RISK_NORMAL, RISK_COLORS,
+    SIM_TICK_INTERVAL, FAULT_AFFECTED_VARIABLES,
+    DAILY_PERSIST_INTERVAL, DAILY_RETENTION_DAYS,
+    ENUM_VARS, VAR_NAMES, UNITS, FAULT_NAMES_ES)
+from apps.sensors.simulation.constants import MAX_HISTORY_SIZE
+from apps.sensors.simulation.models import BuildingSimulator
+from apps.sensors.simulation.globals import simulators
+from apps.sensors.simulation.simulation_engine import update_sensor_data
+from apps.core.services.risk_service import classify_risk
+from apps.thresholds.services import get_thresholds
+
+
+logger = logging.getLogger(__name__)
+
+ALERT_DEBOUNCE_TICKS: int = 3
+_MAX_BACKOFF_TICKS: int = 30
+
+
+def _run_sim_tick(sim: BuildingSimulator) -> None:
+    if sim.sim_paused:
+        return
+    update_sensor_data(active_sim=sim)
+    alert_vars = _get_alert_vars(sim)
+    risk_cache = _process_sensor_alerts(sim, alert_vars)
+    _check_auto_protection(sim)
+    _build_history_records(sim, alert_vars, risk_cache)
+
+
+def _get_alert_vars(sim: BuildingSimulator) -> set[str]:
+    alert_vars = set()
+    if "bomba" in sim.equipment_types:
+        alert_vars.update(PUMP_VARS)
+    if "elevador" in sim.equipment_types:
+        alert_vars.update(ELEVATOR_VARS)
+    return alert_vars
+
+
+def _process_sensor_alerts(sim: BuildingSimulator, alert_vars: set[str]) -> dict:
+    thresholds = get_thresholds(sim.edificio_id)
+    risk_cache: dict[str, str] = {}
+
+    for var, value in sim.sensor_data.items():
+        if var not in alert_vars:
+            continue
+        risk, _ = classify_risk(var, value, thresholds)
+        risk_cache[var] = risk
+
     if sim.sim_faults:
         _send_compound_alerts_for_faults(sim, risk_cache)
 
@@ -71,17 +125,23 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
         alert_vars: dict[str, dict] = {}
         worst_risk = RISK_NORMAL
         for var in affected_vars_defs:
-            if var in risk_cache and risk_cache[var] in (RISK_ALTO, RISK_CRITICO):
+            var_risk = risk_cache.get(var, RISK_NORMAL)
+            if fault_type in ("pos_sensor_fail", "door_blocked") or var_risk in (RISK_ALTO, RISK_CRITICO):
                 alert_vars[var] = {
                     "value": sim.sensor_data.get(var, 0),
-                    "risk": risk_cache[var],
+                    "risk": var_risk,
                     "display_name": VAR_NAMES.get(var, var),
                     "unit": UNITS.get(var, ""),
                 }
-                if risk_cache[var] == RISK_CRITICO:
+                if var_risk == RISK_CRITICO:
                     worst_risk = RISK_CRITICO
-                elif worst_risk != RISK_CRITICO and risk_cache[var] == RISK_ALTO:
+                elif worst_risk != RISK_CRITICO and var_risk == RISK_ALTO:
                     worst_risk = RISK_ALTO
+
+        if fault_type == "pos_sensor_fail" and worst_risk == RISK_NORMAL:
+            worst_risk = RISK_CRITICO
+        elif fault_type == "door_blocked" and worst_risk == RISK_NORMAL:
+            worst_risk = RISK_ALTO
 
         if not alert_vars:
             continue
@@ -145,25 +205,27 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
 
 def _persist_readings(sim: BuildingSimulator, readings: list[dict]) -> None:
     try:
+        from django.db import transaction
         from django.utils import timezone
         from apps.sensors.models import SensorReading
 
-        now = timezone.now()
-        cutoff = now - timezone.timedelta(days=DAILY_RETENTION_DAYS)
-        SensorReading.objects.filter(
-            building_id=sim.edificio_id, timestamp__lt=cutoff
-        ).delete()
+        with transaction.atomic():
+            now = timezone.now()
+            cutoff = now - timezone.timedelta(days=DAILY_RETENTION_DAYS)
+            SensorReading.objects.filter(
+                building_id=sim.edificio_id, timestamp__lt=cutoff
+            ).delete()
 
-        to_create = [
-            SensorReading(
-                building_id=sim.edificio_id,
-                variable=r["variable"],
-                value=r["value"],
-                risk=r["risk"],
-            )
-            for r in readings
-        ]
-        SensorReading.objects.bulk_create(to_create, batch_size=200)
+            to_create = [
+                SensorReading(
+                    building_id=sim.edificio_id,
+                    variable=r["variable"],
+                    value=r["value"],
+                    risk=r["risk"],
+                )
+                for r in readings
+            ]
+            SensorReading.objects.bulk_create(to_create, batch_size=200)
     except Exception:
         logger.exception("Error persistiendo lecturas para edificio %s", sim.edificio_id)
 
@@ -172,8 +234,11 @@ def generate_data_and_emit() -> None:
     _consecutive_failures: dict[int, int] = {}
     _backoff_remaining: dict[int, int] = {}
 
+    from django.db import close_old_connections
+
     while True:
         eventlet.sleep(SIM_TICK_INTERVAL)
+        close_old_connections()
         for sim in list(simulators.values()):
             eid = sim.edificio_id
 
@@ -241,34 +306,37 @@ def _check_auto_protection(sim: BuildingSimulator) -> None:
         }
         sim.pending_alerts.append(alert_payload)
 
-        from django.utils import timezone
-        from apps.buildings.models import MonitoringEquipment
-        equipo = MonitoringEquipment.objects.filter(
-            building_id=sim.edificio_id,
-            equipment_type="bomba" if device == "pump" else "elevador",
-        ).first()
-        if equipo:
-            from apps.users.models import Usuario
-            from apps.core.auth_decorators import ADMIN_ROLES
-            usuario = Usuario.objects.filter(rol__in=ADMIN_ROLES).first() or Usuario.objects.first()
-            if usuario:
-                from apps.history.models import History
-                History.objects.create(
-                    user=usuario,
-                    monitoring_equipment=equipo,
-                    date=timezone.now(),
-                    message={
-                        "risk": "Resuelta",
-                        "variable": protection_title,
-                        "value": "",
-                        "action": protection_msg,
-                        "fault_name": protection_title,
-                        "variables_detail": [],
-                    },
-                    fault_type=fault_type_protection,
-                    affected_variables=[],
-                    resolved=True,
-                )
+        try:
+            from django.utils import timezone
+            from apps.buildings.models import MonitoringEquipment
+            equipo = MonitoringEquipment.objects.filter(
+                building_id=sim.edificio_id,
+                equipment_type="bomba" if device == "pump" else "elevador",
+            ).first()
+            if equipo:
+                from apps.users.models import Usuario
+                from apps.core.auth_decorators import ADMIN_ROLES
+                usuario = Usuario.objects.filter(rol__in=ADMIN_ROLES).first() or Usuario.objects.first()
+                if usuario:
+                    from apps.history.models import History
+                    History.objects.create(
+                        user=usuario,
+                        monitoring_equipment=equipo,
+                        date=timezone.now(),
+                        message={
+                            "risk": "Resuelta",
+                            "variable": protection_title,
+                            "value": "",
+                            "action": protection_msg,
+                            "fault_name": protection_title,
+                            "variables_detail": [],
+                        },
+                        fault_type=fault_type_protection,
+                        affected_variables=[],
+                        resolved=True,
+                    )
+        except Exception:
+            logger.exception("Error guardando registro de protección automática para edificio %s", sim.edificio_id)
 
         if device == 'pump':
             sim.pump_on = False

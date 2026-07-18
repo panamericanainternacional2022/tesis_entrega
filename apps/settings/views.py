@@ -46,7 +46,7 @@ def _handle_config_post(
     form_errors = {}
 
     if action == "update_profile":
-        if not verify_password(current_password, user.password):
+        if not verify_password(current_password, user):
             messages.error(request, "Debes ingresar tu contraseña actual para guardar los cambios.")
             return render(
                 request,

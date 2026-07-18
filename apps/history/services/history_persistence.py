@@ -63,8 +63,6 @@ def save_compound_history_record(
         from apps.sensors.sensor_config import FAULT_NAMES_ES, VAR_NAMES, UNITS
 
         equipo, usuario = _find_equipment_by_fault(fault_type, edificio_id)
-        if not usuario:
-            return
 
         fault_name = FAULT_NAMES_ES.get(fault_type, fault_type)
         var_summaries = []

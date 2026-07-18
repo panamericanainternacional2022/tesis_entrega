@@ -4,6 +4,31 @@ from apps.sensors.simulation.constants import DEFAULT_SENSOR_DATA
 from apps.limits.services import get_sensor_limits
 
 
+class AlertDispatcher:
+    def __init__(self, maxlen=500):
+        self.history = deque(maxlen=maxlen)
+        self.subscribers = []
+
+    def append(self, item):
+        self.history.append(item)
+        for sub in list(self.subscribers):
+            try:
+                sub.append(item)
+            except Exception:
+                pass
+
+    def clear(self):
+        self.history.clear()
+        for sub in list(self.subscribers):
+            try:
+                sub.clear()
+            except Exception:
+                pass
+
+    def __len__(self):
+        return len(self.history)
+
+
 class BuildingSimulator:
     def __init__(self, edificio_id: int, nombre: str, equipment_types: set = None, floors: int = 20):
         self.edificio_id: int = edificio_id
@@ -17,7 +42,7 @@ class BuildingSimulator:
         self.elevator_on: bool = False
         self.active_alerts: dict = {}
         self.history: list = []
-        self.pending_alerts: deque = deque(maxlen=500)
+        self.pending_alerts: AlertDispatcher = AlertDispatcher(maxlen=500)
         self.last_email_sent_time_per_var: dict = {}
 
         self.sensor_limits: dict[str, tuple[float, float]] = get_sensor_limits(self.edificio_id)

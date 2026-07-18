@@ -25,6 +25,12 @@ def get_simulator(building_id: int) -> BuildingSimulator | None:
         building = Building.objects.get(pk=building_id)
         equipos = MonitoringEquipment.objects.filter(building_id=building_id)
         if equipos.exists():
+            # Double check in case another greenlet registered it during database yields
+            sim_already = simulators.get(building_id)
+            if sim_already:
+                _maybe_sync_equipment(sim_already, building_id)
+                return sim_already
+
             sim = BuildingSimulator(building_id, building.name, floors=building.floors)
             for eq in equipos:
                 sim.equipment_types.add(eq.equipment_type)
