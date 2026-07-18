@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    0. FUENTE EXTERNA
    ============================================================ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap');
@@ -13,23 +13,15 @@
        ========================================== */
     --font: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
-     /* Escala Tipográfica de Base 16px */
-    --text-xs: 0.75rem;
-    /* 12px */
-    --text-sm: 0.875rem;
-    /* 14px */
-    --text-base: 1rem;
-    /* 16px - Valor Base */
-    --text-md: 1.125rem;
-    /* 18px */
-    --text-lg: 1.25rem;
-    /* 20px */
-    --text-xl: 1.5rem;
-    /* 24px */
-    --text-2xl: 2rem;
-    /* 32px */
-    --text-3xl: 2.5rem;
-    /* 40px - Títulos gigantes */
+    /* Escala Tipográfica Fluida (Mobile-First) - Ajustada */
+    --text-xs: clamp(0.7rem, 1vw + 0.5rem, 0.75rem);
+    --text-sm: clamp(0.8125rem, 1vw + 0.6rem, 0.875rem);
+    --text-base: clamp(0.9375rem, 1vw + 0.75rem, 1rem);
+    --text-md: clamp(1.0625rem, 1.2vw + 0.85rem, 1.125rem);
+    --text-lg: clamp(1.1875rem, 1.5vw + 0.95rem, 1.25rem);
+    --text-xl: clamp(1.375rem, 2vw + 1.1rem, 1.5rem);
+    --text-2xl: clamp(1.75rem, 3vw + 1.2rem, 2rem);
+    --text-3xl: clamp(2.25rem, 4vw + 1.5rem, 2.5rem);
 
     /* Grosores */
     --weight-normal: 400;
@@ -93,26 +85,29 @@
     /* ==========================================
        C. ESCALA DE ESPACIADOS (GRID BASE 4/8PX)
        ========================================== */
-    --sp-1: 4px;
-    /* 2xs */
-    --sp-2: 8px;
-    /* xs */
-    --sp-3: 12px;
-    /* sm */
-    --sp-4: 16px;
-    /* base (1rem) */
-    --sp-5: 20px;
-    /* sm-md */
-    --sp-6: 24px;
-    /* md */
-    --sp-7: 32px;
-    /* lg */
-    --sp-8: 48px;
-    /* xl */
-    --sp-9: 64px;
-    /* 2xl */
-    --sp-10: 96px;
-    /* 3xl */
+    --sp-1: 0.25rem;
+    /* 4px */
+    --sp-2: 0.5rem;
+    /* 8px */
+    --sp-3: 0.75rem;
+    /* 12px */
+    --sp-4: 1rem;
+    /* 16px */
+    --sp-5: 1.125rem;
+    /* 18px */
+    --sp-6: 1.25rem;
+    /* 20px */
+    --sp-7: 1.5rem;
+    /* 24px */
+    --sp-8: 1.75rem;
+    /* 28px */
+    --sp-9: 2.25rem;
+    /* 36px */
+    --sp-10: 3rem;
+    /* 48px */
+
+    /* Layout Fluido */
+    --content-padding: clamp(1rem, 3vw, 2rem);
 
     /* Dimensiones de layout */
     --control-height: 42px;
@@ -314,14 +309,16 @@ button {
    ============================================================ */
 .main-layout {
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
+    background-color: var(--color-bg);
 }
 
-/* â”€â”€â”€ Sidebar â”€â”€â”€ */
+/* ─── Sidebar (Mobile-First) ─── */
 .sidebar {
     position: fixed;
-    top: 0;
-    left: 0;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
     width: var(--sidebar-width);
     height: 100vh;
     background: var(--color-surface);
@@ -330,6 +327,11 @@ button {
     flex-direction: column;
     z-index: 1000;
     overflow-y: auto;
+    transition: transform var(--transition-drawer);
+}
+
+.sidebar.is-open {
+    transform: translateX(0);
 }
 
 .sidebar-header {
@@ -420,11 +422,11 @@ button {
     opacity: 0.75;
 }
 
-/* â”€â”€â”€ Contenido principal â”€â”€â”€ */
+/* ─── Contenido principal ─── */
 .main-content {
-    margin-left: var(--sidebar-width);
     flex: 1;
-    padding: var(--sp-7);
+    width: 100%;
+    padding: var(--content-padding);
     min-height: 100vh;
     background: var(--color-bg);
 }
@@ -462,10 +464,37 @@ button {
     color: var(--color-text-secondary);
 }
 
-/* â”€â”€â”€ Responsive: sidebar colapsado â”€â”€â”€ */
-@media (max-width: 768px) {
+/* ─── Responsive: Desktop Sidebar ─── */
+@media (min-width: 1024px) {
+    .main-layout {
+        display: grid;
+        grid-template-columns: var(--sidebar-width) 1fr;
+    }
+
     .sidebar {
+        position: sticky;
+        inset: 0;
+        transform: none;
+        /* Ignore off-canvas */
+    }
+
+    .main-content {
+        padding: var(--sp-8);
+    }
+}
+
+/* ─── Sidebar Colapsado (Tablet/Desktop small) ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .main-layout {
+        display: grid;
+        grid-template-columns: var(--sidebar-collapsed) 1fr;
+    }
+
+    .sidebar {
+        position: sticky;
+        inset: 0;
         width: var(--sidebar-collapsed);
+        transform: none;
         overflow: hidden;
     }
 
@@ -482,10 +511,7 @@ button {
         border-bottom: 3px solid transparent;
     }
 
-    .sidebar-link:hover {
-        border-bottom-color: var(--color-ink);
-    }
-
+    .sidebar-link:hover,
     .sidebar-link.active {
         border-bottom-color: var(--color-ink);
     }
@@ -501,7 +527,6 @@ button {
     }
 
     .main-content {
-        margin-left: var(--sidebar-collapsed);
         padding: var(--sp-5);
     }
 }
@@ -601,7 +626,7 @@ button {
 .form-row {
     display: grid;
     gap: var(--sp-5);
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     margin: var(--sp-5);
 }
 
@@ -626,21 +651,7 @@ button {
     align-items: center;
 }
 
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
 
-    .form-card {
-        padding: var(--sp-5);
-        border-left: none;
-        border-right: none;
-    }
-
-    .reports-card {
-        padding: 0;
-    }
-}
 
 /* â”€â”€â”€ Inputs base â”€â”€â”€ */
 .form-input,
@@ -1120,7 +1131,7 @@ button {
     padding: var(--sp-3) var(--sp-6);
     border-top: var(--border-brutal);
     color: var(--color-text-secondary);
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--weight-normal);
     white-space: normal;
     word-break: break-word;
@@ -1173,11 +1184,7 @@ button {
     font-size: var(--text-sm);
 }
 
-@media (max-width: 768px) {
-    .report-table {
-        min-width: 580px;
-    }
-}
+
 
 
 /* ============================================================
@@ -1704,7 +1711,15 @@ button {
     font-weight: var(--weight-semibold);
 }
 
+.chart-panel {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
 .chart-panel canvas {
+    max-width: 100%;
+    min-height: 280px;
     max-height: 340px;
 }
 
@@ -2699,4 +2714,86 @@ input.is-dirty.input-error-state:active {
 /* Misc */
 .max-w-420 {
     max-width: 420px;
+}
+
+/* ─── Mobile Utilities & Components ─── */
+.hide-on-mobile {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .hide-on-mobile {
+        display: table-cell;
+        /* Or block depending on context, handled below */
+    }
+}
+
+/* For table cells specifically */
+td.hide-on-mobile,
+th.hide-on-mobile {
+    display: none;
+}
+
+@media (min-width: 768px) {
+
+    td.hide-on-mobile,
+    th.hide-on-mobile {
+        display: table-cell;
+    }
+}
+
+.mobile-topbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--header-height);
+    background-color: var(--color-surface);
+    border-bottom: var(--border-brutal);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sp-5);
+    z-index: 999;
+}
+
+.mobile-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.mobile-hamburger {
+    background: transparent;
+    border: none;
+    font-size: var(--text-xl);
+    color: var(--color-ink);
+    cursor: pointer;
+    padding: var(--sp-2);
+    margin-left: calc(var(--sp-2) * -1);
+}
+
+@media (min-width: 1024px) {
+    .mobile-topbar {
+        display: none;
+    }
+}
+
+/* Backdrop for mobile sidebar */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: var(--overlay-bg);
+    z-index: 999;
+}
+
+.sidebar-backdrop.is-open {
+    display: block;
+}
+
+@media (min-width: 1024px) {
+    .sidebar-backdrop {
+        display: none !important;
+    }
 }

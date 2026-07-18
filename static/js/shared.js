@@ -927,3 +927,24 @@ window._LIMITS_DIRTY_KEYS = _limitsDirtyKeys;
 window.showState = showState;
 window.hideAllStates = hideAllStates;
 window.initLiveBadge = initLiveBadge;
+
+// Mobile Sidebar Toggle
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+
+    if (toggleBtn && sidebar && backdrop) {
+        function toggleSidebar() {
+            sidebar.classList.toggle('is-open');
+            backdrop.classList.toggle('is-open');
+        }
+        
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+
+        backdrop.addEventListener('click', toggleSidebar);
+    }
+});

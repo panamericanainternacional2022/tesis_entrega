@@ -19,6 +19,17 @@
     {% block extra_head_js %}{% endblock %}
 </head>
 <body class="preload">
+    <div class="mobile-topbar">
+        <div class="mobile-topbar-left">
+            <button class="mobile-hamburger" id="sidebarToggle" aria-label="Abrir menú">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <span class="ines-header-logo" role="img" aria-label="INES Logo">INES</span>
+        </div>
+    </div>
+    
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     <div class="main-layout">
         {% include 'core/components/sidebar.html' %}
 

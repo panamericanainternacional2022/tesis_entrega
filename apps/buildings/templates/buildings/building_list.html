@@ -46,9 +46,9 @@
 <thead>
     <tr>
         <th>Nombre</th>
-        <th>Equipamiento</th>
+        <th class="hide-on-mobile">Equipamiento</th>
         <th class="col-rif">RIF</th>
-        <th class="col-address">Dirección</th>
+        <th class="col-address hide-on-mobile">Dirección</th>
         <th class="col-actions">Acciones</th>
     </tr>
 </thead>
@@ -57,7 +57,7 @@
         {% for building in buildings %}
             <tr>
                 <td title="{{ building.name }}">{{ building.name }}</td>
-                <td>
+                <td class="hide-on-mobile">
                     {% with equipment_list=building.equipment.all %}
                         {% for eq in equipment_list %}
                             {% if eq.equipment_type == "bomba" %}Bomba de agua{% if not forloop.last %} y {% endif %}{% endif %}
@@ -68,7 +68,7 @@
                     {% endwith %}
                 </td>
                 <td class="col-rif" title="{{ building.rif }}">{{ building.rif }}</td>
-                <td class="col-address" title="{{ building.address }}">{{ building.address }}</td>
+                <td class="col-address hide-on-mobile" title="{{ building.address }}">{{ building.address }}</td>
                 <td class="col-actions">
                     <div class="actions-dropdown">
                         <button type="button" class="btn btn-icon" aria-label="Acciones para {{ building.name }}" aria-haspopup="true" aria-expanded="false" title="Acciones">

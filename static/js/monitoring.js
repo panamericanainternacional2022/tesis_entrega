@@ -168,6 +168,7 @@
 
         var chartDefaults = {
             responsive: true,
+            maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             layout: { padding: { top: 8, right: 12, bottom: 16, left: 4 } },
             plugins: {
@@ -409,7 +410,7 @@
                 + '<td>' + formatNumeric(v.avg, k) + '</td>'
                 + '<td>' + formatNumeric(v.min, k) + '</td>'
                 + '<td>' + formatNumeric(v.max, k) + '</td>'
-                + '<td>' + std + '</td></tr>';
+                + '<td class="hide-on-mobile">' + std + '</td></tr>';
         }).join('');
         tbody.innerHTML = rows;
     }
