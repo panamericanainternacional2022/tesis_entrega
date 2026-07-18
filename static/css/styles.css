@@ -1179,7 +1179,7 @@ button {
     text-align: right;
 }
 
-.stats-table td:first-child {
+.stats-table td:first-child:not(.table-empty-cell) {
     font-weight: var(--weight-bold);
     color: var(--color-ink);
 }

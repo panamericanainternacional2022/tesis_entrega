@@ -121,9 +121,7 @@ def _build_history_records(sim: BuildingSimulator, alert_vars: set[str], risk_ca
     for var, value in sim.sensor_data.items():
         if var not in alert_vars:
             continue
-        # Skip pump readings during start-up grace period (no pump fault active)
-        if var in PUMP_VARS and getattr(sim, "_pump_start_grace_ticks", 0) > 0 and not sim.sim_faults.get("pump"):
-            continue
+
         if var in ENUM_VARS:
             continue
         if risk_cache and var in risk_cache:
