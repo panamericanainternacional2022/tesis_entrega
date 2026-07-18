@@ -164,6 +164,8 @@ def reset_simulator(edificio_id: int) -> str:
         sim._alert_consecutive.clear()
 
     sim.protection_on = False
+    sim.auto_faults_enabled = False
+    sim._auto_fault_ticks = 0.0
     sim._protection_grace_ticks_pump = 0
     sim._protection_grace_ticks_elev = 0
 
