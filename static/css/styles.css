@@ -1169,11 +1169,6 @@ button {
     text-align: right;
 }
 
-.stats-table td:first-child:not(.table-empty-cell) {
-    font-weight: var(--weight-bold);
-    color: var(--color-ink);
-}
-
 .table-empty-cell {
     text-align: center;
     padding: var(--sp-5) 0;
