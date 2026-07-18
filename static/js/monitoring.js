@@ -17,6 +17,9 @@
     let _fetchingDaily = false;
     const _PERSIST_INTERVAL = 30;
 
+    // Caché de tarjetas DOM para evitar repintados y búsquedas innecesarias (DOM Thrashing)
+    const _cardCache = new Map();
+
     function updateCards(readings, riskData) {
         const bombaContainer = document.getElementById('bombaCards');
         const elevadorContainer = document.getElementById('elevadorCards');
@@ -26,7 +29,11 @@
             const ri = riskData?.[k] || { badge: 'badge-normal', label: _RISK.normal };
             const displayValue = translateSensorValue(k, v) ?? `${formatNumeric(v, k)} ${getUnit(k)}`;
 
-            let card = document.getElementById(`sensor-card-${k}`);
+            let card = _cardCache.get(k);
+            if (!card) {
+                card = document.getElementById(`sensor-card-${k}`);
+            }
+
             if (!card) {
                 card = document.createElement('div');
                 card.id = `sensor-card-${k}`;
@@ -56,6 +63,8 @@
 
                 if (_BOMBA_VARS.includes(k)) bombaContainer.appendChild(card);
                 else if (_ELEVADOR_VARS.includes(k)) elevadorContainer.appendChild(card);
+                
+                _cardCache.set(k, card);
             } else {
                 card.className = 'sensor-card';
                 const valEl = card.querySelector('[data-sensor-value], .sensor-card-value');
@@ -310,18 +319,15 @@
     }
 
     function connectSSE() {
-        if (sseSource) sseSource.close();
-
-        if (!SSE_URL || typeof EventSource === 'undefined') {
+        if (!EDIFICIO_ID) {
             fetchInitialData_monitoring();
             return;
         }
 
-        sseSource = new EventSource(SSE_URL);
+        window.isMonitoringPageActive = true;
 
-        sseSource.onopen = () => { renderConnectionStatus(true); };
-
-        sseSource.onerror = () => {
+        window.onGlobalSSEOpen = () => { renderConnectionStatus(true); };
+        window.onGlobalSSEError = () => {
             if (!monitorConnectionTimeout) {
                 monitorConnectionTimeout = setTimeout(() => {
                     showState('stateOffline');
@@ -330,14 +336,15 @@
             }
         };
 
-        sseSource.onmessage = (event) => {
-            try { applyPayload(JSON.parse(event.data)); } catch (_) { }
-        };
-
-        sseSource.addEventListener('history-event', (event) => {
-            try { addLiveHistoryEvent(JSON.parse(event.data)); } catch (_) { }
+        window.GlobalSSE.addListener('message', (event) => {
+            try { applyPayload(JSON.parse(event.data)); } catch (err) { console.error('[Monitoring] Payload parse error:', err); }
         });
 
+        window.GlobalSSE.addListener('history-event', (event) => {
+            try { addLiveHistoryEvent(JSON.parse(event.data)); } catch (err) { console.error('[Monitoring] History event parse error:', err); }
+        });
+
+        window.GlobalSSE.connect(EDIFICIO_ID);
         fetchInitialData_monitoring();
     }
 
@@ -662,6 +669,7 @@
         var _origClear = window.clearCurrentReadings || function () {};
         window.clearCurrentReadings = function () {
             _persistCounter = 0;
+            _cardCache.clear();
             _origClear();
             [chart1, chart2].forEach(function (c) {
                 if (!c) return;

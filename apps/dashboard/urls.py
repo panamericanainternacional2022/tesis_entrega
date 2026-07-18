@@ -19,6 +19,7 @@ from .simulation.controls import (
 urlpatterns = [
     path("", RedirectView.as_view(url="/login/", permanent=False), name="home"),
     path("monitor/", monitoring_view, name="monitor"),
+    path("sse/", sse_stream, name="sse_stream_global"),
     path("sse/<int:building_id>/", sse_stream, name="sse_stream"),
     path("api/status/", api_status, name="api_status"),
     path(

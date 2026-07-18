@@ -11,30 +11,56 @@ from .shared import get_simulator
 logger = logging.getLogger(__name__)
 
 
-def sse_stream(request, building_id: int) -> StreamingHttpResponse:
-    sim = get_simulator(building_id)
-    if sim is None:
-        return json_error("No hay simulador activo para este edificio", 404)
+def sse_stream(request, building_id: int = None) -> StreamingHttpResponse:
+    usuario_id = request.session.get("usuario_id")
+    if not usuario_id:
+        return json_error("No autorizado", 401)
+        
+    rol = request.session.get("usuario_rol", "US")
+    sim = None
+    
+    if building_id:
+        sim = get_simulator(building_id)
+        if sim is None:
+            return json_error("No hay simulador activo para este edificio", 404)
 
     def event_stream():
         from apps.sensors.payload import build_live_payload_for_sim
+        from apps.history.shared import _build_history_query
+        from apps.sensors.sensor_config import SIM_TICK_INTERVAL
         from collections import deque
+        
         client_queue = deque()
-        if hasattr(sim.pending_alerts, "subscribers"):
+        if sim and hasattr(sim.pending_alerts, "subscribers"):
             sim.pending_alerts.subscribers.append(client_queue)
+            
+        last_count = -1
+
         try:
             while True:
-                from apps.sensors.sensor_config import SIM_TICK_INTERVAL
                 eventlet.sleep(SIM_TICK_INTERVAL)
-                payload = build_live_payload_for_sim(sim)
-                yield f"data: {json.dumps(payload)}\n\n"
-                while client_queue:
-                    notif = client_queue.popleft()
-                    yield f"event: history-event\ndata: {json.dumps(notif)}\n\n"
+                
+                # 1. Telemetría y eventos del simulador
+                if sim:
+                    payload = build_live_payload_for_sim(sim)
+                    yield f"data: {json.dumps(payload)}\n\n"
+                    
+                    while client_queue:
+                        notif = client_queue.popleft()
+                        yield f"event: history-event\ndata: {json.dumps(notif)}\n\n"
+                        
+                # 2. Conteo global de historial no leído (multiplexación)
+                records, _ = _build_history_query(usuario_id, rol)
+                count = records.filter(resolved=False).distinct().count()
+                
+                if count != last_count:
+                    yield f"event: count-update\ndata: {json.dumps({'count': count})}\n\n"
+                    last_count = count
+
         except (GeneratorExit, IOError, OSError):
-            logger.info("Cliente SSE desconectado del edificio %s", building_id)
+            logger.info("Cliente SSE desconectado (usuario %s)", usuario_id)
         finally:
-            if hasattr(sim.pending_alerts, "subscribers"):
+            if sim and hasattr(sim.pending_alerts, "subscribers"):
                 try:
                     sim.pending_alerts.subscribers.remove(client_queue)
                 except ValueError:

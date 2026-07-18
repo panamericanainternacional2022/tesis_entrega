@@ -434,15 +434,87 @@ const initConfirmDelete = () => {
     });
 };
 
-// Delegación para auto-envío de formularios
+// Delegación para auto-envío de formularios con Debounce
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
 function initAutoSubmit() {
+    const debouncedSubmit = debounce((form) => form.submit(), 300);
     document.addEventListener('change', (e) => {
         const el = e.target.closest('[data-auto-submit], .js-auto-submit');
         if (el && el.form) {
-            el.form.submit();
+            debouncedSubmit(el.form);
         }
     });
 }
+
+// =============================================================================
+// GLOBAL SSE MANAGER (Multiplexing)
+// =============================================================================
+window.GlobalSSE = (function() {
+    let sseSource = null;
+    let pollInterval = null;
+    const listeners = {
+        'message': [],
+        'history-event': [],
+        'count-update': []
+    };
+
+    function connect(buildingId) {
+        if (sseSource) sseSource.close();
+        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+
+        const url = buildingId ? `/sse/${buildingId}/` : '/sse/';
+        if (typeof EventSource !== 'undefined') {
+            sseSource = new EventSource(url);
+            
+            sseSource.onmessage = (e) => listeners['message'].forEach(cb => cb(e));
+            sseSource.addEventListener('history-event', (e) => listeners['history-event'].forEach(cb => cb(e)));
+            sseSource.addEventListener('count-update', (e) => listeners['count-update'].forEach(cb => cb(e)));
+            
+            sseSource.onerror = () => {
+                if (typeof window.onGlobalSSEError === 'function') window.onGlobalSSEError();
+                if (!pollInterval) pollInterval = setInterval(pollFallback, 5000);
+            };
+            sseSource.onopen = () => {
+                if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+                if (typeof window.onGlobalSSEOpen === 'function') window.onGlobalSSEOpen();
+            };
+        } else {
+            pollFallback();
+            pollInterval = setInterval(pollFallback, 5000);
+        }
+    }
+
+    async function pollFallback() {
+        try {
+            const resp = await fetch('/history/api/count/', { credentials: 'same-origin' });
+            if (resp.ok) {
+                const data = await resp.json();
+                listeners['count-update'].forEach(cb => cb({ data: JSON.stringify({count: data.count || 0}) }));
+            }
+        } catch (err) { console.warn('[GlobalSSE] Fallback polling error:', err); }
+    }
+
+    function addListener(type, callback) {
+        if (listeners[type] && !listeners[type].includes(callback)) {
+            listeners[type].push(callback);
+        }
+    }
+    
+    function close() {
+        if (sseSource) { sseSource.close(); sseSource = null; }
+        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    }
+
+    return { connect, addListener, close };
+})();
+
 
 // SSE en vivo para actualizar badge del sidebar
 function initLiveBadge() {
@@ -451,23 +523,16 @@ function initLiveBadge() {
 
     var isHistoryPage = !!document.getElementById('live-history-list');
     var newEventsBtn = isHistoryPage ? document.getElementById('newEventsBtn') : null;
-    var SSE_URL = '/history/api/sse/count/';
     var lastCount = parseInt(sidebarBadge.textContent, 10) || 0;
-    var sseSource = null;
-    var pollInterval = null;
 
     // Botón "Recargar eventos" recarga la página
     if (newEventsBtn) {
-        newEventsBtn.addEventListener('click', function () {
-            location.reload();
-        });
+        newEventsBtn.addEventListener('click', function () { location.reload(); });
     }
 
     function applyCount(count) {
-        // Sincronizar variable global para consistencia con monitoring.js
-        unreadHistoryCount = count;
+        window.unreadHistoryCount = count;
 
-        // Actualizar sidebar badge
         if (count > 0) {
             sidebarBadge.textContent = count;
             sidebarBadge.classList.add('visible');
@@ -476,17 +541,13 @@ function initLiveBadge() {
             sidebarBadge.classList.remove('visible');
         }
 
-        // Pulse cuando sube el conteo
         if (lastCount >= 0 && count > lastCount && count > 0) {
             sidebarBadge.classList.remove('badge-pulse');
             void sidebarBadge.offsetWidth;
             sidebarBadge.classList.add('badge-pulse');
             setTimeout(function () { sidebarBadge.classList.remove('badge-pulse'); }, 2000);
 
-            // Habilitar botón de nuevos eventos y filtro en history page
-            if (newEventsBtn) {
-                newEventsBtn.disabled = false;
-            }
+            if (newEventsBtn) newEventsBtn.disabled = false;
             var filterBtn = document.getElementById('openFilterPanel');
             if (filterBtn) filterBtn.disabled = false;
         }
@@ -494,41 +555,24 @@ function initLiveBadge() {
         lastCount = count;
     }
 
-    async function pollCount() {
+    window.GlobalSSE.addListener('count-update', function (e) {
         try {
-            var resp = await fetch('/history/api/count/', { credentials: 'same-origin' });
-            if (!resp.ok) return;
-            var data = await resp.json();
+            var data = JSON.parse(e.data);
             applyCount(data.count || 0);
-        } catch (_) { }
-    }
+        } catch (err) { console.error('[GlobalSSE] Error al procesar count-update:', err); }
+    });
+    
+    // Iniciar la conexión usando el ID global del edificio (si existe) o sin él (global)
+    // Se ejecuta con un delay pequeño para asegurar que _CONFIG se haya parseado
+    setTimeout(() => {
+        if (!window.isMonitoringPageActive) {
+            window.GlobalSSE.connect(window.EDIFICIO_ID || null);
+        }
+    }, 50);
 
-    if (typeof EventSource !== 'undefined') {
-        sseSource = new EventSource(SSE_URL);
-        sseSource.addEventListener('count-update', function (e) {
-            try {
-                var data = JSON.parse(e.data);
-                applyCount(data.count || 0);
-            } catch (_) { }
-        });
-        sseSource.onerror = function () {
-            if (!pollInterval) {
-                pollInterval = setInterval(pollCount, 5000);
-            }
-        };
-        sseSource.onopen = function () {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        };
-        window.addEventListener('beforeunload', function () {
-            if (sseSource) sseSource.close();
-        });
-    } else {
-        pollCount();
-        pollInterval = setInterval(pollCount, 5000);
-    }
+    window.addEventListener('beforeunload', function () {
+        window.GlobalSSE.close();
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
