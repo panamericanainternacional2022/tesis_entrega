@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpRequest
@@ -15,7 +15,9 @@ from apps.thresholds.services import get_thresholds
 
 
 @login_required
+@admin_required
 def render_admin_limits(request) -> HttpResponse:
+    from apps.core.auth_decorators import is_admin_role
     rol = request.session.get("usuario_rol", "US")
     buildings = list(Building.objects.all())
     valid_ids = [b.pk for b in buildings]
@@ -38,7 +40,7 @@ def render_admin_limits(request) -> HttpResponse:
             "edificios": buildings,
             "edificio_id": building_id,
             "config_json": build_monitoring_config(building_id),
-            "is_admin": True,
+            "is_admin": is_admin_role(rol),
         },
     )
 

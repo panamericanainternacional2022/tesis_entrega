@@ -20,6 +20,7 @@ class AuthMiddleware:
                 reverse("user_create"),
                 reverse("building_list"),
                 reverse("register_building"),
+                reverse("sensor_limits"),
                 reverse("user_edit", args=[0]).rstrip("0/"),
                 reverse("user_delete", args=[0]).rstrip("0/"),
                 reverse("edit_building", args=[0]).rstrip("0/"),
