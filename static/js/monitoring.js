@@ -395,39 +395,29 @@
 
     }
 
-    function renderStatsTable(entries, containerId, firstColLabel) {
-        var div = document.getElementById(containerId);
-        if (!div) return;
-        if (!entries.length) { div.innerHTML = ''; return; }
+    function renderStatsTable(entries, tbodyId) {
+        var tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        if (!entries.length) { 
+            tbody.innerHTML = '<tr><td colspan="5" class="table-empty-cell">Aún no hay suficientes datos para generar estadísticas.</td></tr>'; 
+            return; 
+        }
         var rows = entries.map(function (entry) {
             var k = entry[0], v = entry[1];
             var std = v.std != null ? formatNumeric(v.std, k) : '-';
-            return '<tr><td>' + getVariableName(k) + '</td>'
+            return '<tr><td title="' + safeText(getVariableName(k)) + '">' + safeText(getVariableName(k)) + '</td>'
                 + '<td>' + formatNumeric(v.avg, k) + '</td>'
                 + '<td>' + formatNumeric(v.min, k) + '</td>'
                 + '<td>' + formatNumeric(v.max, k) + '</td>'
                 + '<td>' + std + '</td></tr>';
         }).join('');
-        div.innerHTML =
-            '<section class="chart-panel">' +
-                '<div class="form-section-header">' +
-                    '<h2 class="form-page-title form-section-title">' + firstColLabel + '</h2>' +
-                '</div>' +
-                '<div class="table-wrapper">' +
-                '<table class="report-table stats-table">' +
-                '<thead><tr>' +
-                '<th>Variable</th>' +
-                '<th>Prom.</th><th>Mín.</th><th>Máx.</th><th>Desv. Est.</th>' +
-                '</tr></thead>' +
-                '<tbody>' + rows + '</tbody>' +
-                '</table></div>' +
-            '</section>';
+        tbody.innerHTML = rows;
     }
 
     function updateStats(stats) {
         var entries = stats && Object.keys(stats).length ? Object.entries(stats) : [];
-        renderStatsTable(entries.filter(function (e) { return _BOMBA_VARS.includes(e[0]); }), 'statsBombaPanel', 'Estadísticas de la bomba');
-        renderStatsTable(entries.filter(function (e) { return _ELEVADOR_VARS.includes(e[0]); }), 'statsElevadorPanel', 'Estadísticas del elevador');
+        renderStatsTable(entries.filter(function (e) { return _BOMBA_VARS.includes(e[0]); }), 'tbodyStatsBomba');
+        renderStatsTable(entries.filter(function (e) { return _ELEVADOR_VARS.includes(e[0]); }), 'tbodyStatsElevador');
     }
 
     // Admin manual controls
@@ -653,9 +643,9 @@
                 if (isAdmin() && data.thresholds && typeof renderThresholdsPanel === 'function') renderThresholdsPanel(data.thresholds);
             } catch (_) {
                 if (isAdmin()) {
-                    ['statsBombaPanel', 'statsElevadorPanel'].forEach(id => {
+                    ['tbodyStatsBomba', 'tbodyStatsElevador'].forEach(id => {
                         const el = document.getElementById(id);
-                        if (el) el.innerHTML = '<span class="text-secondary text-sm">Sin datos de telemetría para este edificio.</span>';
+                        if (el) el.innerHTML = '<tr><td colspan="5" class="table-empty-cell">Sin datos de telemetría para este edificio.</td></tr>';
                     });
                 }
             }

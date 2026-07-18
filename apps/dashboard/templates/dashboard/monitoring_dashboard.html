@@ -177,8 +177,47 @@
         </div>
 
         <div class="grid-charts">
-            <div id="statsBombaPanel"></div>
-            <div id="statsElevadorPanel"></div>
+            <section id="statsBombaPanel">
+                <div class="table-wrapper" tabindex="0" role="region" aria-label="Estadísticas de la bomba de agua">
+                    <table class="report-table stats-table">
+                        <thead>
+                            <tr>
+                                <th>Variable</th>
+                                <th>Promedio</th>
+                                <th>Mínimo</th>
+                                <th>Máximo</th>
+                                <th>Desv. Est.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyStatsBomba">
+                            <tr>
+                                <td colspan="5" class="table-empty-cell">Esperando datos para generar estadísticas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="statsElevadorPanel">
+                <div class="table-wrapper" tabindex="0" role="region" aria-label="Estadísticas del elevador">
+                    <table class="report-table stats-table">
+                        <thead>
+                            <tr>
+                                <th>Variable</th>
+                                <th>Promedio</th>
+                                <th>Mínimo</th>
+                                <th>Máximo</th>
+                                <th>Desv. Est.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyStatsElevador">
+                            <tr>
+                                <td colspan="5" class="table-empty-cell">Esperando datos para generar estadísticas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </div>
 

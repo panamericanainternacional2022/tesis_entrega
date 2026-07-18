@@ -1746,6 +1746,9 @@ button {
 .grid-charts .chart-panel .table-wrapper {
     border: none;
     box-shadow: none;
+    margin: 0 calc(var(--sp-5) * -1) calc(var(--sp-5) * -1);
+    width: calc(100% + calc(var(--sp-5) * 2));
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .grid-charts .chart-panel .table-wrapper::before {
@@ -1756,19 +1759,12 @@ button {
     margin: 0;
 }
 
-.grid-charts .chart-panel .report-table th {
-    background: var(--color-ink);
-    color: var(--color-surface);
-    font-weight: var(--weight-bold);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-wide);
-    font-size: var(--text-xs);
-}
-
 .grid-charts .chart-panel .report-table td {
     font-size: var(--text-sm);
     font-variant-numeric: tabular-nums;
 }
+
+
 
 @media (max-width: 1024px) {
     .grid-charts {
