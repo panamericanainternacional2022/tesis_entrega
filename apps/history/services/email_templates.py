@@ -7,18 +7,18 @@ logger = logging.getLogger(__name__)
 
 _BRAND_NAME      = "INES"
 _BRAND_SUBTITLE  = "Sistema inteligente en monitoreo"
-_ALERT_H1        = "AnomalÃ­a detectada en la infraestructura"
+_ALERT_H1        = "Anomalía detectada en la infraestructura"
 _ALERT_TAG_LABEL = "Severidad"
 _ACTION_LABEL    = "Medida correctiva recomendada"
 _DETAILS_LABEL   = "Detalles del evento"
 _FOOTER_TEXT     = (
-    "Este mensaje ha sido generado automÃ¡ticamente por INES â€” Sistema inteligente en monitoreo.<br>"
+    "Este mensaje ha sido generado automáticamente por INES — Sistema inteligente en monitoreo.<br>"
     "Por favor, no responda a este correo."
 )
 _CONTEXT_DEFAULT = (
     "El sistema ha registrado una lectura fuera de los rangos operativos "
-    "establecidos para el presente edificio. A continuaciÃ³n se detallan "
-    "los parÃ¡metros del evento y la medida correctiva recomendada."
+    "establecidos para el presente edificio. A continuación se detallan "
+    "los parámetros del evento y la medida correctiva recomendada."
 )
 _ACCENT          = "#2563eb"
 _INK             = "#0a0a0a"
@@ -143,15 +143,15 @@ def build_activation_email_html(link: str) -> str:
           <tr>
             <td style="padding: 20px 28px; border-top: 0; border-bottom: 3px solid {_INK}; background-color: {_ACCENT_BG}; border-left: 5px solid {_ACCENT};">
               <span style="font-size: 10px; font-weight: 700; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Acceso al sistema</span>
-              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: {_TEXT_PRIMARY};">ActivaciÃ³n de su cuenta</h1>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; line-height: 1.25; color: {_TEXT_PRIMARY};">Activación de su cuenta</h1>
             </td>
           </tr>
 
           <tr>
             <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">
               <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Estimado/a usuario/a:</p>
-              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">INES â€” Sistema inteligente en monitoreo</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseÃ±a.</p>
-              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Para ello, haga clic en el botÃ³n que figura a continuaciÃ³n:</p>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Su cuenta ha sido registrada en el <strong style="color: {_TEXT_PRIMARY};">INES — Sistema inteligente en monitoreo</strong>. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña.</p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">Para ello, haga clic en el botón que figura a continuación:</p>
 
               <div style="margin: 0 0 28px 0; text-align: left;">
                 <a href="{link}" target="_blank"
@@ -161,12 +161,12 @@ def build_activation_email_html(link: str) -> str:
               </div>
 
               <div style="padding: 16px 20px; background-color: {_ACCENT_BG}; border: 2px solid {_INK}; border-left: 5px solid {_ACCENT}; border-radius: 0; margin-bottom: 24px;">
-                <span style="font-size: 10px; font-weight: 700; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">InformaciÃ³n de seguridad</span>
-                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">â€¢ Este enlace es vÃ¡lido durante las prÃ³ximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
-                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">â€¢ Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
+                <span style="font-size: 10px; font-weight: 700; color: {_ACCENT}; display: block; margin-bottom: 6px; text-transform: uppercase;">Información de seguridad</span>
+                <p style="margin: 0 0 6px 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Este enlace es válido durante las próximas <strong style="color: {_TEXT_PRIMARY};">24 horas</strong>.</p>
+                <p style="margin: 0; font-size: 13px; color: {_TEXT_SECONDARY};">• Si usted no ha solicitado este registro, puede ignorar el presente correo sin que ello implique ninguna consecuencia.</p>
               </div>
 
-              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el botÃ³n no funciona correctamente, copie y pegue la siguiente direcciÃ³n en su navegador:<br>
+              <p style="margin: 0; font-size: 12px; color: {_TEXT_MUTED};">Si el botón no funciona correctamente, copie y pegue la siguiente dirección en su navegador:<br>
               <a href="{link}" style="color: {_ACCENT}; text-decoration: underline; word-break: break-all;">{link}</a></p>
             </td>
           </tr>"""
@@ -178,8 +178,8 @@ def build_report_email_html(edificio: str = "", contexto: str = "") -> str:
     ctx = contexto or (
         f"Se adjunta el informe en formato PDF con el estado actual de los "
         f"sensores de infraestructura{' de ' + edificio if edificio else ''}. "
-        f"El documento incluye las lecturas mÃ¡s recientes, las estadÃ­sticas de "
-        f"operaciÃ³n y un resumen del nivel de riesgo de cada parÃ¡metro monitoreado."
+        f"El documento incluye las lecturas más recientes, las estadísticas de "
+        f"operación y un resumen del nivel de riesgo de cada parámetro monitoreado."
     )
     inner_html = f"""
           <tr>
@@ -219,7 +219,7 @@ def build_compound_alert_email_html(
     contexto = (
         f"Se ha detectado una <strong style='color: {_TEXT_PRIMARY};'>{fault_name}</strong> "
         f"que afecta <strong style='color: {_TEXT_PRIMARY};'>{num_vars} sensor(es)</strong>. "
-        f"A continuaciÃ³n se detallan las lecturas de cada parÃ¡metro comprometido."
+        f"A continuación se detallan las lecturas de cada parámetro comprometido."
     )
     inner = f'<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: {_TEXT_SECONDARY};">{contexto}</p>'
 
@@ -245,7 +245,7 @@ def build_compound_alert_email_html(
         <p style="margin: 20px 0 8px 0; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase;">{_DETAILS_LABEL}</p>
         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 2px solid {_INK}; margin-bottom: 24px;">
           <tr style="background-color: {_BG};">
-            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase;">ParÃ¡metro</td>
+            <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase;">Parámetro</td>
             <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Lectura</td>
             <td style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: {_TEXT_SECONDARY}; text-transform: uppercase; text-align: right;">Severidad</td>
           </tr>

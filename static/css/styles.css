@@ -13,7 +13,7 @@
        ========================================== */
     --font: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
-    /* Escala TipogrÃ¡fica de Base 16px */
+     /* Escala Tipográfica de Base 16px */
     --text-xs: 0.75rem;
     /* 12px */
     --text-sm: 0.875rem;
@@ -29,14 +29,14 @@
     --text-2xl: 2rem;
     /* 32px */
     --text-3xl: 2.5rem;
-    /* 40px - TÃ­tulos gigantes */
+    /* 40px - Títulos gigantes */
 
     /* Grosores */
     --weight-normal: 400;
     --weight-medium: 500;
     --weight-bold: 700;
 
-    /* Alturas de LÃ­nea (Line Heights) */
+    /* Alturas de Línea (Line Heights) */
     --leading-none: 1;
     --leading-tight: 1.2;
     --leading-normal: 1.55;
@@ -74,7 +74,7 @@
     --color-accent-hover: #1d4ed8;
     --color-accent-bg: #eff6ff;
 
-    /* Estados SemÃ¡nticos (Normalizados) */
+    /* Estados Semánticos (Normalizados) */
     --state-normal: #16a34a;
     --state-normal-bg: #f0fdf4;
     --state-high: #d97706;
@@ -83,7 +83,7 @@
     --state-critical-hover: #991515;
     --state-critical-bg: #fef2f2;
 
-    /* Gris azulado para evitar mimetizaciÃ³n con el fondo general #f5f5f5 */
+    /* Gris azulado para evitar mimetización con el fondo general #f5f5f5 */
     --state-info: #475569;
     --state-info-bg: #f1f5f9;
 
@@ -142,7 +142,7 @@
     --radius: 0px;
     --radius-badge: 0px;
 
-    /* MiscelÃ¡nea */
+    /* Miscelánea */
     --overlay-bg: rgba(10, 10, 10, 0.4);
     --transition-fast: 120ms ease;
     --transition-base: 200ms ease;
@@ -213,7 +213,7 @@ button {
     transition: none !important;
 }
 
-/* Accesibilidad: ocultar visualmente sin perder semÃ¡ntica */
+/* Accesibilidad: ocultar visualmente sin perder semántica */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -704,7 +704,7 @@ button {
     box-shadow: var(--shadow-disabled) !important;
 }
 
-/* Input estÃ¡tico (solo lectura visual) */
+/* Input estático (solo lectura visual) */
 .input-static {
     height: 38px;
     padding: var(--sp-2) var(--sp-3);
@@ -716,7 +716,7 @@ button {
     align-self: stretch;
 }
 
-/* â”€â”€â”€ Input con Ã­cono â”€â”€â”€ */
+/* ─── Input con ícono ─── */
 .input-with-icon {
     position: relative;
     display: flex;
@@ -879,7 +879,7 @@ button {
     z-index: 1300;
 }
 
-/* â”€â”€â”€ ValidaciÃ³n â”€â”€â”€ */
+/* ─── Validación ─── */
 .error-msg {
     color: var(--state-critical);
     font-size: var(--text-xs);
@@ -988,7 +988,7 @@ button {
     box-shadow: var(--shadow-disabled) !important;
 }
 
-/* â”€â”€â”€ BotÃ³n Ã­cono â”€â”€â”€ */
+/* ─── Botón ícono ─── */
 .btn-icon {
     width: var(--control-height);
     padding: 0;
@@ -1160,7 +1160,7 @@ button {
 }
 
 
-/* Variante: tabla de estadÃ­sticas */
+/* Variante: tabla de estadísticas */
 .stats-table th:not(:first-child),
 .stats-table td:not(:first-child) {
     text-align: right;
@@ -1252,7 +1252,7 @@ button {
     color: var(--state-normal);
 }
 
-/* Badges de direcciÃ³n */
+/* Badges de dirección */
 .badge-dir-up {
     color: var(--state-critical);
     font-weight: var(--weight-bold);
@@ -1271,7 +1271,7 @@ button {
     font-size: var(--text-xs);
 }
 
-/* Badge de cÃ³digo */
+/* Badge de código */
 .code-badge {
     font-family: monospace;
     font-size: var(--text-xs);
@@ -1450,7 +1450,7 @@ button {
 
 }
 
-/* â”€â”€â”€ Estado vacÃ­o â”€â”€â”€ */
+/* ─── Estado vacío ─── */
 .no-history {
     text-align: center;
     padding: var(--sp-9) var(--sp-5);
@@ -1616,7 +1616,7 @@ button {
 
 
 /* ============================================================
-   13. DASHBOARD â€” SENSORES Y GRÃFICAS
+   13. DASHBOARD — SENSORES Y GRÁFICAS
    ============================================================ */
 .grid-charts {
     display: grid;
@@ -2098,7 +2098,7 @@ button {
     }
 }
 
-/* 16.1 THRESHOLDS â€” REDISEÃ‘O */
+/* 16.1 THRESHOLDS — REDISEÑO */
 .thresh-grid>.thresh-card {
     background: var(--color-surface);
     transition: background var(--transition-base);
@@ -2231,7 +2231,7 @@ input.is-dirty.input-error-state:active {
    18. MISCELLANEOUS COMPONENTS
    ============================================================ */
 
-/* â”€â”€â”€ PaginaciÃ³n â”€â”€â”€ */
+/* ─── Paginación ─── */
 .pagination-container {
     display: flex;
     justify-content: center;
@@ -2249,7 +2249,7 @@ input.is-dirty.input-error-state:active {
     border: 3px solid transparent;
 }
 
-/* â”€â”€â”€ Estado vacÃ­o â”€â”€â”€ */
+/* ─── Estado vacío ─── */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -2315,7 +2315,7 @@ input.is-dirty.input-error-state:active {
     color: var(--color-ink);
 }
 
-/* â”€â”€â”€ DuraciÃ³n grid â”€â”€â”€ */
+/* ─── Duración grid ─── */
 .duration-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -2637,7 +2637,7 @@ input.is-dirty.input-error-state:active {
     flex-wrap: wrap;
 }
 
-/* TipografÃ­a */
+/* Tipografía */
 .text-ink {
     color: var(--color-ink);
 }
