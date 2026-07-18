@@ -170,7 +170,7 @@
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
-            layout: { padding: { top: 8, right: 12, bottom: 16, left: 4 } },
+            layout: { padding: { top: 12, right: 48, bottom: 16, left: 0 } },
             plugins: {
                 legend: {
                     display: true,
