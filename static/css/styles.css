@@ -1733,31 +1733,8 @@ button {
     font-weight: var(--weight-semibold);
 }
 
-/* ─── Chart panel ─── */
-.chart-panel {
-    padding: var(--sp-6);
-    padding-bottom: 0px;
-}
-
 .chart-panel canvas {
     max-height: 340px;
-    width: 100%;
-    margin-bottom: var(--sp-2);
-}
-
-/* ─── Chart legend (brutalist overrides) ─── */
-.chart-panel canvas+.mb-3,
-.chart-panel .chartjs-legend {
-    margin-top: var(--sp-4);
-}
-
-/* ─── Stats tables inside chart panels ─── */
-.grid-charts .chart-panel .table-wrapper {
-    border: none;
-    box-shadow: none;
-    margin: 0 calc(var(--sp-5) * -1) calc(var(--sp-5) * -1);
-    width: calc(100% + calc(var(--sp-5) * 2));
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .grid-charts .chart-panel .table-wrapper::before {
