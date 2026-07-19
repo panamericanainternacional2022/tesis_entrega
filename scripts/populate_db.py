@@ -144,6 +144,18 @@ def populate():
         )
         personas.append(p)
 
+    print("Creando administrador...")
+    admin_persona, _ = Persona.objects.get_or_create(
+        ci="V-99999999",
+        defaults={
+            "first_name": "Admin",
+            "middle_name": "",
+            "first_last_name": "Sistema",
+            "second_last_name": "",
+            "email": "admin@sistema.com",
+        },
+    )
+
     print("Creando 20 Usuarios...")
     _hashed_pw = make_password("password123")
     usuarios = []
@@ -158,6 +170,17 @@ def populate():
             },
         )
         usuarios.append(u)
+
+    print("Creando usuario administrador...")
+    admin_user, _ = Usuario.objects.get_or_create(
+        username="admin",
+        defaults={
+            "password": _hashed_pw,
+            "id_persona": admin_persona,
+            "rol": "SA",
+            "registered": True,
+        },
+    )
 
     print("Creando 20 Edificios...")
     _building_names = [
@@ -222,6 +245,10 @@ def populate():
         assigned = random.sample(edificios, k=random.randint(1, 3))
         for b in assigned:
             UserBuilding.objects.get_or_create(user=u, building=b)
+
+    print("Vinculando administrador a todos los edificios...")
+    for b in edificios:
+        UserBuilding.objects.get_or_create(user=admin_user, building=b)
 
     print("Creando Equipos de Monitoreo...")
     for b in edificios:

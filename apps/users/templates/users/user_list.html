@@ -67,7 +67,7 @@
 {% block list_table %}
 <thead>
     <tr>
-        <th>Cédula</th>
+        <th class="col-cedula">Cédula</th>
         <th>Nombre</th>
         <th class="hide-on-mobile">Apellido</th>
         <th class="hide-on-mobile">Edificio(s)</th>
@@ -79,7 +79,7 @@
     {% if usuarios %}
         {% for usuario in usuarios %}
             <tr>
-                <td>{{ usuario.cedula }}</td>
+                <td class="col-cedula">{{ usuario.cedula }}</td>
                 <td>{{ usuario.nombre }}</td>
                 <td class="hide-on-mobile">{{ usuario.last_name }}</td>
                 <td class="hide-on-mobile" title="{{ usuario.edificio_nombre }}">{{ usuario.edificio_nombre|default:'—' }}</td>
@@ -113,7 +113,7 @@
             </tr>
         {% endfor %}
     {% elif request.GET.q or selected_edificio_id or current_estado %}
-        <tr>
+        <tr class="table-empty-row">
             <td colspan="6" class="table-empty-cell">
                 No se encontraron usuarios que coincidan con los filtros aplicados. Prueba con otros criterios de búsqueda.
                 <div class="empty-state-action">
@@ -122,7 +122,7 @@
             </td>
         </tr>
     {% else %}
-        <tr>
+        <tr class="table-empty-row">
             <td colspan="6" class="table-empty-cell">
                 No hay usuarios registrados en el sistema. Agrega el primero para comenzar.
             </td>

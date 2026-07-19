@@ -97,7 +97,7 @@
             </tr>
         {% endfor %}
     {% elif request.GET.q %}
-        <tr>
+        <tr class="table-empty-row">
             <td colspan="5" class="table-empty-cell">
                 No se encontraron edificios que coincidan con &laquo;{{ request.GET.q }}&raquo;. Prueba con otro nombre o RIF.
                 <div class="empty-state-action">
@@ -106,7 +106,7 @@
             </td>
         </tr>
     {% else %}
-        <tr>
+        <tr class="table-empty-row">
             <td colspan="5" class="table-empty-cell">
                 No hay edificios registrados en el sistema. Agrega el primero para comenzar.
             </td>

@@ -1137,6 +1137,10 @@ button {
     word-break: break-word;
 }
 
+.report-table tbody tr:not(.table-empty-row):nth-child(even) td {
+    background: var(--color-bg);
+}
+
 .report-table tbody tr:hover td {
     background: var(--color-accent-bg);
 }
@@ -1155,6 +1159,10 @@ button {
 .report-table .col-actions {
     white-space: nowrap;
     width: 1%;
+}
+
+.report-table .col-cedula {
+    white-space: nowrap;
 }
 
 .report-table .col-email {
