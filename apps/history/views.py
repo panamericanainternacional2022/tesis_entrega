@@ -350,14 +350,17 @@ def history_pdf_view(request: Any) -> HttpResponse:
 
         render_severity_legend(pdf, severity_levels=HISTORY_SEVERITY_DISPLAY_LEVELS)
 
-        groups: OrderedDict[str, list[Any]] = OrderedDict()
+        groups_raw: OrderedDict[str, list[Any]] = OrderedDict()
         for n in parsed_list:
             bld = (
                 n.monitoring_equipment.building.name
                 if (n.monitoring_equipment and n.monitoring_equipment.building)
                 else "Sin edificio"
             )
-            groups.setdefault(bld, []).append(n)
+            groups_raw.setdefault(bld, []).append(n)
+
+        sorted_keys = sorted(groups_raw.keys(), key=lambda x: (x == "Sin edificio", x.lower()))
+        groups = OrderedDict((k, groups_raw[k]) for k in sorted_keys)
 
         if len(groups) > 1:
             _render_building_summary(pdf, groups)

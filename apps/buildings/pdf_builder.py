@@ -337,7 +337,7 @@ def _render_history_section(
     if not counts:
         pdf.set_text_color(95, 95, 95)
         _pdf_font(pdf, "I", 10)
-        pdf.cell(0, 9, safe_text("No se registraron eventos en las últimas 24 horas."), ln=1)
+        pdf.cell(0, 9, safe_text("No se encontraron eventos registrados para este edificio."), ln=1)
         pdf.ln(4)
         return
 
@@ -408,9 +408,9 @@ def _render_thresholds(
 
     render_section_divider(pdf, "Umbrales de riesgo configurados")
 
-    col_widths = [58, 24, 24, 24, 22]
-    col_headers = ["Variable", "Bajo", "Medio", "Alto", "Unidad"]
-    col_aligns = ["L", "C", "C", "C", "C"]
+    col_widths = [72, 40, 40, 38]
+    col_headers = ["Variable", "Umbral Alto", "Umbral Crítico", "Unidad"]
+    col_aligns = ["L", "C", "C", "C"]
 
     render_table_header(pdf, col_widths, col_aligns, col_headers)
 
@@ -423,18 +423,27 @@ def _render_thresholds(
         unit = _UNITS.get(var, "")
         var_name = _VAR_NAMES.get(var, var)
         d = cfg.get("direction", "higher")
+        
+        high = cfg.get("high", 0)
+        critic = cfg.get("critic", 0)
+        
         if d == "range":
+            margin = (critic - high) * 0.20
+            a_low = high + margin
+            a_high = critic - margin
             draw_row(
                 pdf, col_widths, col_aligns,
-                [var_name, f"{cfg['low']}", "-", f"{cfg['high']}", unit],
+                [var_name, f"< {a_low:.1f} o > {a_high:.1f}", f"< {high} o > {critic}", unit],
+                row_index=idx)
+        elif d == "lower":
+            draw_row(
+                pdf, col_widths, col_aligns,
+                [var_name, f"<= {high}", f"<= {critic}", unit],
                 row_index=idx)
         else:
-            low = cfg.get("low", 0)
-            med = cfg.get("medium", 0)
-            high = cfg.get("high", 0)
             draw_row(
                 pdf, col_widths, col_aligns,
-                [var_name, str(low), str(med), str(high), unit],
+                [var_name, f">= {high}", f">= {critic}", unit],
                 row_index=idx)
 
     pdf.ln(4)

@@ -30,10 +30,17 @@ def user_pdf_view(request: HttpRequest) -> HttpResponse:
 
         users = [{"rol": u.rol, **build_user_data(u)} for u in usuarios]
 
-        groups: OrderedDict[str, list[Any]] = OrderedDict()
+        groups_raw: dict[str, list[Any]] = {}
         for b in users:
-            key = b["edificio_nombre"] or "Sin edificio"
-            groups.setdefault(key, []).append(b)
+            if b.get("edificios_list"):
+                for ed in b["edificios_list"]:
+                    key = ed["nombre"]
+                    groups_raw.setdefault(key, []).append(b)
+            else:
+                groups_raw.setdefault("Sin edificio", []).append(b)
+                
+        sorted_keys = sorted(groups_raw.keys(), key=lambda x: (x == "Sin edificio", x.lower()))
+        groups = OrderedDict((k, groups_raw[k]) for k in sorted_keys)
 
         now = dt.datetime.now()
         pdf = _create_report_pdf("Reporte de usuarios")
