@@ -396,13 +396,20 @@ const initDropdowns = () => {
                 if (trigger.closest('.table-wrapper')) {
                     const rect = trigger.getBoundingClientRect();
                     const menuWidth = menu.offsetWidth || 180;
+                    const menuHeight = menu.offsetHeight;
                     let left = rect.right - menuWidth;
                     if (left < 8) left = 8;
                     menu.style.position = 'fixed';
-                    menu.style.top = (rect.bottom + 4) + 'px';
                     menu.style.left = left + 'px';
                     menu.style.right = 'auto';
-                    menu.style.bottom = 'auto';
+                    const spaceBelow = window.innerHeight - rect.bottom - 4;
+                    if (menuHeight && menuHeight > spaceBelow && rect.top - 4 > menuHeight) {
+                        menu.style.top = 'auto';
+                        menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    } else {
+                        menu.style.top = (rect.bottom + 4) + 'px';
+                        menu.style.bottom = 'auto';
+                    }
                 }
             }
         } else {
