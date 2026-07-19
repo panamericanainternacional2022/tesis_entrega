@@ -1982,7 +1982,7 @@ button {
     color: var(--color-text-secondary);
     line-height: var(--leading-normal);
     margin-bottom: var(--sp-5);
-    white-space: nowrap;
+    overflow-wrap: break-word;
     word-break: break-word;
 }
 
