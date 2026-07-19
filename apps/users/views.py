@@ -3,11 +3,14 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core import signing
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+
+from apps.sensors.sensor_config import PAGE_SIZE
 
 from apps.buildings.models import Building, UserBuilding
 from apps.core.auth_decorators import login_required, admin_required
@@ -60,8 +63,11 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
 
     estado_display = {"registrado": "Registrados", "por_registrar": "Por registrar"}.get(estado, estado)
 
+    paginator = Paginator(users, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     return render(request, "users/user_list.html", {
-        "usuarios": users,
+        "usuarios": page_obj,
         "edificios": buildings,
         "selected_edificio_id": int(building_id) if building_id.isdigit() else None,
         "selected_edificio_nombre": building_name,

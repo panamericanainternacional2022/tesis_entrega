@@ -23,6 +23,10 @@
 </div>
 {% endblock %}
 
+{% block list_pagination %}
+{% include 'core/components/pagination.html' with page_obj=buildings extra_query=filter_query_string %}
+{% endblock %}
+
 {% block list_actions %}
 {% url 'register_building' as registro_url %}
                 {% include 'core/components/button.html' with url=registro_url class='btn btn-primary' text='Agregar edificio' icon='fa-solid fa-plus' %}

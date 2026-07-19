@@ -1,13 +1,17 @@
 import logging as _logging_bld
 from typing import Any
+from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
+
+from apps.sensors.sensor_config import PAGE_SIZE
 
 from apps.core.auth_decorators import login_required, admin_required
 from apps.core.services.http_response import json_ok
@@ -40,13 +44,25 @@ def building_list_view(request: HttpRequest) -> HttpResponse:
             | Q(rif__icontains=query)
         )
 
-    buildings = buildings.distinct()
+    buildings = buildings.distinct().order_by("name")
+
+    filter_params = {}
+    if query:
+        filter_params["q"] = query
+    if equipamiento:
+        filter_params["equipamiento"] = equipamiento
+    filter_query_string = urlencode(filter_params)
+
+    paginator = Paginator(buildings, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
     return render(
         request,
         "buildings/building_list.html",
         {
-            "buildings": list(buildings),
+            "buildings": page_obj,
             "current_equipamiento": equipamiento,
+            "filter_query_string": filter_query_string,
         })
 
 

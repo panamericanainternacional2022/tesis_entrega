@@ -131,6 +131,10 @@
 </tbody>
 {% endblock %}
 
+{% block list_pagination %}
+{% include 'core/components/pagination.html' with page_obj=usuarios extra_query=filter_query_string %}
+{% endblock %}
+
 {% block list_after %}
 <div id="userFilterOverlay" class="filter-overlay" aria-hidden="true"></div>
 <aside id="userFilterPanel" class="filter-panel" aria-labelledby="user-filter-title">
