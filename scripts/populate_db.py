@@ -100,18 +100,29 @@ def populate():
 
     print("Creando 20 Personas...")
 
-    _first_names = [
-        "Juan", "Maria", "David", "Admin", "Carlos",
-        "Ana", "Luis", "Sofia", "Pedro", "Laura",
-        "Jorge", "Diana", "Miguel", "Carmen", "Andres",
-        "Valentina", "Ricardo", "Isabel", "Fernando", "Monica",
+    _people = [
+        ("Juan",      "Carlos", "Perez",     "Gomez"),
+        ("Maria",     "Elena",  "Gomez",     "Rodriguez"),
+        ("David",     "Alejandro", "Martinez", "Lopez"),
+        ("Carlos",    "Jose",   "Rodriguez", "Diaz"),
+        ("Ana",       "Luisa",  "Garcia",    "Sanchez"),
+        ("Luis",      "Alberto", "Torres",   "Ramirez"),
+        ("Sofia",     "Beatriz", "Flores",   "Morales"),
+        ("Pedro",     "Manuel", "Castillo",  "Ortiz"),
+        ("Laura",     "Isabel", "Moreno",    "Alvarez"),
+        ("Jorge",     "Luis",   "Romero",    "Navarro"),
+        ("Diana",     "Carolina", "Mendoza",  "Rojas"),
+        ("Miguel",    "Angel",  "Contreras", "Medina"),
+        ("Carmen",    "Elena",  "Hernandez", "Jimenez"),
+        ("Andres",    "Eduardo", "Cardenas",  "Vargas"),
+        ("Valentina", "Sofia",  "Cordero",   "Acosta"),
+        ("Ricardo",   "Andres", "Campos",    "Herrera"),
+        ("Isabel",    "Cristina", "Rivas",   "Cruz"),
+        ("Fernando",  "Jose",   "Arias",     "Paredes"),
+        ("Monica",    "Patricia", "Molina",  "Pena"),
+        ("Jose",      "Rafael", "Santos",    "Suarez"),
     ]
-    _last_names = [
-        "Perez", "Gomez", "Mantilla", "Admin", "Lopez",
-        "Rodriguez", "Martinez", "Garcia", "Sanchez", "Diaz",
-        "Torres", "Ramirez", "Flores", "Morales", "Castillo",
-        "Ortiz", "Moreno", "Alvarez", "Romero", "Navarro",
-    ]
+    _email_domains = ["gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "cantv.net"]
 
     def random_ci(num):
         prefix = random.choice(["V-", "E-"])
@@ -119,14 +130,16 @@ def populate():
 
     personas = []
     for i in range(20):
+        fn, mn, ln1, ln2 = _people[i]
+        email_local = f"{fn.lower()}.{ln1.lower()}"
         p, _ = Persona.objects.get_or_create(
             ci=random_ci(10000000 + i),
             defaults={
-                "first_name": _first_names[i],
-                "middle_name": "",
-                "first_last_name": _last_names[i],
-                "second_last_name": "",
-                "email": f"user{i}@example.com",
+                "first_name": fn,
+                "middle_name": mn,
+                "first_last_name": ln1,
+                "second_last_name": ln2,
+                "email": f"{email_local}@{random.choice(_email_domains)}",
             },
         )
         personas.append(p)
@@ -140,7 +153,7 @@ def populate():
             defaults={
                 "password": _hashed_pw,
                 "id_persona": personas[i],
-                "rol": "SA" if i == 0 else "US",
+                "rol": "US",
                 "registered": True,
             },
         )
