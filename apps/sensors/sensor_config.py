@@ -286,6 +286,25 @@ SENSOR_RANGES = {
     "elev_voltage":      (0.0,  500.0),   # Límite Máx spec = 500.0 V (antes 450)
 }
 
+SENSOR_ABSOLUTE_RANGES = {
+    # ── Límites absolutos máximos permitidos en configuración ──
+    "pump_flow_rate":    (0.0, 100000.0),
+    "pump_pressure":     (0.0,   500.0),
+    "pump_temperature":  (22.0,  500.0),
+    "pump_vibration":    (0.0,   100.0),
+    "pump_tank_level":   (0.0,   100.0),
+    "pump_voltage":      (0.0,  2000.0),
+    "pump_current":      (0.0,  1000.0),
+    "pump_water_quality":(0.0, 10000.0),
+    "elev_speed":        (0.0,    30.0),
+    "elev_load":         (0.0, 10000.0),
+    "elev_position":     (0.0,   300.0),
+    "elev_temperature":  (22.0,  500.0),
+    "elev_current":      (0.0,  1000.0),
+    "elev_vibration":    (0.0,   100.0),
+    "elev_voltage":      (0.0,  2000.0),
+}
+
 FAULT_NAMES_ES = {
     "dry_run":             "Sequía",
     "blocked_discharge":   "Descarga bloqueada",

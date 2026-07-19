@@ -205,7 +205,7 @@
             <p class="text-sm text-secondary mb-3 m-0">Selecciona las fechas de inicio y fin del período que quieres consultar.</p>
 
             <div class="col-stack">
-                <div>
+                <div class="first-date">
                     <label class="field-label d-block" for="modal-fecha-desde">Desde</label>
                     <input type="date" id="modal-fecha-desde"
                            value="{{ fecha_desde }}" class="form-input">
@@ -216,7 +216,7 @@
                            value="{{ fecha_hasta }}" class="form-input">
                 </div>
 
-                <div id="customDateError" class="error-msg v-hidden mt-2">
+                <div id="customDateError" class="error-msg v-hidden">
                     La fecha "Desde" no puede ser posterior a "Hasta"
                 </div>
             </div>
