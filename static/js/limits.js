@@ -131,7 +131,10 @@
             const panel = document.getElementById(panelId);
             if (!panel) return;
             panel.querySelectorAll('input[type="number"]').forEach(inp => {
-                newLimits[inp.dataset.var] = parseFloat(inp.value);
+                const varName = inp.dataset.var;
+                if (varName) {
+                    newLimits[varName] = parseFloat(inp.value);
+                }
             });
         });
         try {
