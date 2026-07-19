@@ -1982,7 +1982,7 @@ button {
     color: var(--color-text-secondary);
     line-height: var(--leading-normal);
     margin-bottom: var(--sp-5);
-    white-space: pre-line;
+    white-space: nowrap;
     word-break: break-word;
 }
 
@@ -2801,6 +2801,11 @@ th.hide-on-mobile {
         display: none !important;
     }
 }
-.w-100 { width: 100%; }
-.text-left { text-align: left; }
 
+.w-100 {
+    width: 100%;
+}
+
+.text-left {
+    text-align: left;
+}

@@ -62,7 +62,8 @@ def _send_compound_email(
                 pass
 
     try:
-        threading.Thread(target=_do_send, daemon=True).start()
+        import eventlet
+        eventlet.spawn(_do_send)
     except Exception:
         logger.exception("No se pudo iniciar thread de email para alerta compuesta %s", fault_name)
 
