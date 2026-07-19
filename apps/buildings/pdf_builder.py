@@ -426,7 +426,7 @@ def _render_thresholds(
         if d == "range":
             draw_row(
                 pdf, col_widths, col_aligns,
-                [var_name, f"{cfg['low']}", "—", f"{cfg['high']}", unit],
+                [var_name, f"{cfg['low']}", "-", f"{cfg['high']}", unit],
                 row_index=idx)
         else:
             low = cfg.get("low", 0)

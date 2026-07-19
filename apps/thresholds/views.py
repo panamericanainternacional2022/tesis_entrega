@@ -93,7 +93,7 @@ def _validate_threshold_config(
             return f"Valor numérico inválido (NaN/Inf) en umbrales: config={config}"
     except (ValueError, TypeError) as e:
         logger.warning(
-            "Threshold non-numeric for %s: %s — config=%s", variable, e, config
+            "Threshold non-numeric for %s: %s - config=%s", variable, e, config
         )
         return f"Non-numeric threshold value: config={config}"
 

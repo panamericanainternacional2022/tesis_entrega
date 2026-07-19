@@ -18,15 +18,15 @@ RATED_LOAD: float = 500.0               # Rated load capacity (kg)
 COUNTERWEIGHT_MASS: float = 1025.0      # M_cw = M_empty + 0.45 * M_rated = 800 + 0.45*500
 MOTOR_EFFICIENCY: float = 0.85          # Motor + drive system efficiency
 
-# Door timing (seconds, real-world range: 1.5–2.5 s)
+# Door timing (seconds, real-world range: 1.5-2.5 s)
 DOOR_OPEN_TIME: float = 2.0
 DOOR_CLOSE_TIME: float = 2.0
 
 # Overload fault
-OVERLOAD_EXTRA_KG: float = 900.0        # Extra virtual mass during overload fault (kg) — garantiza total > 800 kg con cabina vacía (spec: bloqueo en >800 kg)
+OVERLOAD_EXTRA_KG: float = 900.0        # Extra virtual mass during overload fault (kg) - garantiza total > 800 kg con cabina vacía (spec: bloqueo en >800 kg)
 
 # Power outage phases (seconds)
-POWER_OUTAGE_BRAKE_TIME: float = 0.1    # Emergency brake — frenos mecánicos actúan en ≤1 tick (spec: speed→0 inmediato)
+POWER_OUTAGE_BRAKE_TIME: float = 0.1    # Emergency brake - frenos mecánicos actúan en ≤1 tick (spec: speed→0 inmediato)
 POWER_OUTAGE_BATTERY_WAIT: float = 3.0  # Wait before battery rescue activates
 BATTERY_RESCUE_SPEED: float = 0.3       # Low-speed rescue (m/s)
 
@@ -47,7 +47,7 @@ MAX_SIM_SPEED: float = 10.0
 PROTECTION_GRACE_TICKS: int = 5
 
 DEFAULT_SENSOR_DATA: dict = {
-    # ── SISTEMA BOMBA — Reposo Seguro ──────────────────────────────────────
+    # ── SISTEMA BOMBA - Reposo Seguro ──────────────────────────────────────
     "pump_pressure":     1.0,      # Presión atmosférica base (bar)
     "pump_temperature":  25.0,     # Temperatura ambiente (°C)
     "pump_vibration":    0.0,      # Detenida (mm/s)
@@ -56,7 +56,7 @@ DEFAULT_SENSOR_DATA: dict = {
     "pump_water_quality": 150.0,   # Calidad de agua estándar (ppm)
     "pump_flow_rate":    0.0,      # Apagada
     "pump_tank_level":   50.0,     # Nivel medio seguro (%)
-    # ── SISTEMA ELEVADOR — Reposo Seguro ───────────────────────────────────
+    # ── SISTEMA ELEVADOR - Reposo Seguro ───────────────────────────────────
     "elev_speed":        0.0,      # Detenido (m/s)
     "elev_load":         0,        # Vacío (kg)
     "elev_temperature":  25.0,     # Temperatura ambiente (°C)

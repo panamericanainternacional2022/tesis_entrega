@@ -53,8 +53,8 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
     # 1. Door status risk classification (enum vars always Normal)
     # -----------------------------------------------------------------------
     def test_door_status_alert_logic(self):
-        """'open' sin fallo activo es Normal — puerta abierta en parada es esperado.
-        'closing' es Normal — estado transitorio per spec."""
+        """'open' sin fallo activo es Normal - puerta abierta en parada es esperado.
+        'closing' es Normal - estado transitorio per spec."""
         risk, _ = classify_risk("elev_door_status", "open", {})
         self.assertEqual(risk, RISK_NORMAL)
 
@@ -77,7 +77,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
 
 
     # =======================================================================
-    # NEW TESTS — Float switch, pump ON/OFF, faults, elevator OFF
+    # NEW TESTS - Float switch, pump ON/OFF, faults, elevator OFF
     # =======================================================================
 
 
@@ -146,7 +146,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         sim.sim_faults["elevator"] = "motor_stuck"
         _update_elevator(sim)
         self.assertEqual(sim._elev_motor_torque_factor, 0.0)
-        # Now inject door_blocked — old motor_stuck params must be cleared
+        # Now inject door_blocked - old motor_stuck params must be cleared
         sim.sim_faults["elevator"] = "door_blocked"
         _update_elevator(sim)
         self.assertEqual(

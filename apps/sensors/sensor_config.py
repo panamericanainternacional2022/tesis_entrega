@@ -267,7 +267,7 @@ DAILY_PERSIST_INTERVAL: int = 30
 DAILY_RETENTION_DAYS: int = 8
 
 SENSOR_RANGES = {
-    # ── SISTEMA BOMBA — Límites físicos destructivos (simulator.md §2) ──────
+    # ── SISTEMA BOMBA - Límites físicos destructivos (simulator.md §2) ──────
     "pump_flow_rate":    (0.0, 50000.0),   # 50000 l/s máx realista industrial
     "pump_pressure":     (0.0,   10.0),   # Límite Máx spec = 10.0 bar (antes 12)
     "pump_temperature":  (22.0, 100.0),  # Límite Mín=22°C (T_AMBIENT), Máx=100°C
@@ -276,7 +276,7 @@ SENSOR_RANGES = {
     "pump_voltage":      (0.0,  300.0),   # Límite Mín=0 (corte), Máx=300 V spec (antes 180-260)
     "pump_current":      (0.0,   30.0),   # Límite Máx spec = 30.0 A (antes 70)
     "pump_water_quality":(0.0, 1000.0),   # sin cambio
-    # ── SISTEMA ELEVADOR — Límites físicos destructivos (simulator.md §2) ───
+    # ── SISTEMA ELEVADOR - Límites físicos destructivos (simulator.md §2) ───
     "elev_speed":        (0.0,    3.0),   # Límite Máx spec = 3.0 m/s (antes 6)
     "elev_load":         (0.0, 1200.0),   # sin cambio
     "elev_position":     (0.0, 50.0),     # máximo 50 pisos realista

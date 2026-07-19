@@ -17,17 +17,17 @@ from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.utils import clamp
 
 
-# Umbral de bloqueo físico por sobrecarga — derivado de DEFAULT_THRESHOLDS para
+# Umbral de bloqueo físico por sobrecarga - derivado de DEFAULT_THRESHOLDS para
 # que cada edificio con sus propios umbrales refleje el bloqueo correcto (spec: >800 kg)
 
 # ── Tasas de ramping progresivo por variable (unidades por tick) ──
 ELEV_RAMP_RATES = {
-    "elev_speed":       0.5,   # m/s/tick  — ~1.5→0 en ~3s
-    "elev_current":     4.0,   # A/tick    — régimen→0/40 en ~3-10s
-    "elev_temperature": 5.0,   # °C/tick   — ~25→110 en ~17s (masa térmica)
-    "elev_vibration":   2.0,   # mm/s/tick — ~1→10 en ~4.5s
-    "elev_voltage":     30.0,  # V/tick    — 380→0 en ~13s
-    "elev_load":        100.0, # kg/tick   — ~200→1000 en ~8s
+    "elev_speed":       0.5,   # m/s/tick  - ~1.5→0 en ~3s
+    "elev_current":     4.0,   # A/tick    - régimen→0/40 en ~3-10s
+    "elev_temperature": 5.0,   # °C/tick   - ~25→110 en ~17s (masa térmica)
+    "elev_vibration":   2.0,   # mm/s/tick - ~1→10 en ~4.5s
+    "elev_voltage":     30.0,  # V/tick    - 380→0 en ~13s
+    "elev_load":        100.0, # kg/tick   - ~200→1000 en ~8s
     "elev_position":    1.0,   # pisos/tick
 }
 

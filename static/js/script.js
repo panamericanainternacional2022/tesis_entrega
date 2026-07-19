@@ -1,5 +1,5 @@
 // =============================================================================
-// script.js — Dispatcher principal de inicialización por página
+// script.js - Dispatcher principal de inicialización por página
 // =============================================================================
 // shared.js, forms.js, y el JS específico de cada página se cargan por separado.
 // Este archivo solo orquesta la inicialización según la página activa.

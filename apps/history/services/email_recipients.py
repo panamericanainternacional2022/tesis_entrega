@@ -24,7 +24,7 @@ def get_building_emails(edificio_id: Optional[int] = None) -> List[str]:
                 else:
                     return []
             logger.warning(
-                "get_building_emails llamado sin edificio_id — usando fallback edificio %s. "
+                "get_building_emails llamado sin edificio_id - usando fallback edificio %s. "
                 "Los eventos del simulador deberían pasar siempre un edificio_id explícito.",
                 edificio_id,
             )

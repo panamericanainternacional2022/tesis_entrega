@@ -106,7 +106,7 @@ def save_compound_history_record(
     except Exception as e:
         # FIX-11 (BRECHA-11): Upgrade to error so compound data-loss is visible
         logger.error(
-            "LOSS: Could not save compound history record in Django DB — "
+            "LOSS: Could not save compound history record in Django DB - "
             "fault_type=%s risk=%s error=%s",
             fault_type, risk_level, e,
         )

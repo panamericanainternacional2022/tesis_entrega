@@ -75,11 +75,11 @@ def _engine_watchdog():
         try:
             gt.wait()
             logger.warning(
-                "Loop de simulación terminó normalmente (inesperado) — reintentando"
+                "Loop de simulación terminó normalmente (inesperado) - reintentando"
             )
         except Exception:
             logger.exception(
-                "Loop de simulación falló con excepción — reintentando en 5 s"
+                "Loop de simulación falló con excepción - reintentando en 5 s"
             )
         eventlet.sleep(5)
 

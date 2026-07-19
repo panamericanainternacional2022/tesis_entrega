@@ -66,13 +66,13 @@ class ClassifyRiskTests(TestCase):
     # ── Sensores de enumeración (elev_door_status) ──────────────────────────
 
     def test_door_status_open_is_normal_without_fault(self):
-        """'open' sin fallo activo es Normal — puerta abierta en parada es esperado."""
+        """'open' sin fallo activo es Normal - puerta abierta en parada es esperado."""
         risk, color = classify_risk("elev_door_status", "open")
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
     def test_door_status_closing_is_normal(self):
-        """'closing' ya no es riesgoso — estado transitorio normal per spec."""
+        """'closing' ya no es riesgoso - estado transitorio normal per spec."""
         risk, color = classify_risk("elev_door_status", "closing")
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")

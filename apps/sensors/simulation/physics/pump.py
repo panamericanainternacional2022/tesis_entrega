@@ -13,14 +13,14 @@ from apps.sensors.simulation.utils import clamp
 
 # ── Tasas de ramping progresivo por variable (unidades por tick) ──
 PUMP_RAMP_RATES = {
-    "pump_flow_rate":     3.0,   # l/s/tick  — 12→0 en ~4s
-    "pump_pressure":      1.5,   # bar/tick  — 5→0 en ~3s
-    "pump_temperature":   8.0,   # °C/tick   — 50→90 en ~5s (masa térmica)
-    "pump_vibration":     2.0,   # mm/s/tick — 1→10 en ~4.5s
-    "pump_current":       4.0,   # A/tick    — 13→0/25 en ~3-6s
-    "pump_voltage":       30.0,  # V/tick    — 220→0/300 en ~7-10s
-    "pump_tank_level":    5.0,   # %/tick    — 50→0 en ~10s
-    "pump_water_quality": 30.0,  # ppm/tick  — 200→600 en ~13s
+    "pump_flow_rate":     3.0,   # l/s/tick  - 12→0 en ~4s
+    "pump_pressure":      1.5,   # bar/tick  - 5→0 en ~3s
+    "pump_temperature":   8.0,   # °C/tick   - 50→90 en ~5s (masa térmica)
+    "pump_vibration":     2.0,   # mm/s/tick - 1→10 en ~4.5s
+    "pump_current":       4.0,   # A/tick    - 13→0/25 en ~3-6s
+    "pump_voltage":       30.0,  # V/tick    - 220→0/300 en ~7-10s
+    "pump_tank_level":    5.0,   # %/tick    - 50→0 en ~10s
+    "pump_water_quality": 30.0,  # ppm/tick  - 200→600 en ~13s
 }
 
 
@@ -32,7 +32,7 @@ def _update_pump(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
 
-    # â”€â”€ Tank level physics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Tank level physics ──────────────────────────────────────────────────
     if sim.pump_on:
         is_pumping = "pump" not in sim.sim_faults
         inflow = sd.get("pump_flow_rate", 0.0) if is_pumping else 0.0
@@ -65,9 +65,9 @@ def _update_pump(sim: BuildingSimulator) -> None:
             
         sd["pump_tank_level"] = round(clamp(new_tank, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1]), 1)
 
-    # Float switch automático eliminado — la bomba se controla únicamente de forma manual.
+    # Float switch automático eliminado - la bomba se controla únicamente de forma manual.
 
-    # â”€â”€ Dispatch to correct operating mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Dispatch to correct operating mode ─────────────────────────────────
     # Recovery countdown (debe ejecutarse incluso con bomba apagada,
     # de lo contrario auto-proteccion deja fault_transition atascado en "recovering")
     if sim.fault_transition_pump == "recovering":
@@ -347,13 +347,13 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     from apps.thresholds.services import get_thresholds
     thresh = get_thresholds(sim.edificio_id)
     
-    # â”€â”€ Voltage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Voltage ────────────────────────────────────────────────────────────
     volt = sd["pump_voltage"] + (220.0 - sd["pump_voltage"]) * 0.05 * dt + random.uniform(-0.5, 0.5) * dt
     sd["pump_voltage"] = round(clamp(volt, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[0], sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1]), 1)
 
     volt = sd["pump_voltage"]
 
-    # Voltage collapse â†’ all outputs drop
+    # Voltage collapse → all outputs drop
     if volt < 50.0:
         sd["pump_flow_rate"]  = round(clamp(sd["pump_flow_rate"]  - 5.0 * dt, 0.0, sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[1]), 1)
         sd["pump_pressure"]   = round(clamp(sd["pump_pressure"]   - 2.0 * dt, 0.0, sim.sensor_limits.get('pump_pressure', (0.0, 10.0))[1]), 1)
@@ -365,7 +365,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         )
         return
 
-    # â”€â”€ Tank < 10% â†’ cavitation / starvation mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Tank < 10% → cavitation / starvation mode ──────────────────────────
     tank = sd["pump_tank_level"]
     if tank < 10.0:
         sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"]   - 3.0 * dt, sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[0], 2.0),        1)
@@ -375,7 +375,7 @@ def _run_pump_normal(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         sd["pump_current"]     = round(clamp(sd["pump_current"]     - 2.0 * dt, 0.0, 8.0),   1)
         return
 
-    # â”€â”€ Normal operating regime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Normal operating regime ────────────────────────────────────────────
     flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
     target_max = max(5.0, flow_high * 0.85)
     target_min = max(0.0, target_max - 5.0)

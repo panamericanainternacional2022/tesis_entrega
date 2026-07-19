@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def _build_email_subject(fault_name: str, risk_level: str) -> str:
-    return f"{fault_name} — Nivel {risk_level}"
+    return f"{fault_name} - Nivel {risk_level}"
 
 
 def _send_compound_email(
@@ -101,7 +101,7 @@ def send_compound_alert(
     from apps.sensors.sensor_config import FAULT_ALERT_MESSAGES
     recommended_action = FAULT_ALERT_MESSAGES.get(
         fault_type,
-        f"{fault_name} — Anomalía detectada en múltiples sensores de forma simultánea.",
+        f"{fault_name} - Anomalía detectada en múltiples sensores de forma simultánea.",
     )
 
     from apps.sensors.simulation.constants import LOG_SIM

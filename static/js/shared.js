@@ -1,5 +1,5 @@
 // =============================================================================
-// shared.js — Utilitarias compartidas, configuración y estado global
+// shared.js - Utilitarias compartidas, configuración y estado global
 // =============================================================================
 
 'use strict';
@@ -91,7 +91,7 @@ class CustomSelect {
             this.toggle();
         });
 
-        // Delegación de eventos en el menú — cubre también elementos repoblados dinámicamente
+        // Delegación de eventos en el menú - cubre también elementos repoblados dinámicamente
         this.menu.addEventListener('click', (e) => {
             const item = e.target.closest('[data-select-item], .custom-select-item');
             if (!item || item.disabled) return;

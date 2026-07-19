@@ -1,5 +1,5 @@
 // =============================================================================
-// forms.js — Validación genérica de formularios (delegación en document)
+// forms.js - Validación genérica de formularios (delegación en document)
 // =============================================================================
 
 (function (window, document) {

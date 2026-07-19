@@ -16,7 +16,7 @@ def get_smtp_creds(
     smtp_user: Optional[str] = None,
     smtp_password: Optional[str] = None,
 ) -> tuple[str, int, str, str]:
-    from apps.sensors.sensor_config import SMTP_TIMEOUT as _  # noqa: F401 — ensure available
+    from apps.sensors.sensor_config import SMTP_TIMEOUT as _  # noqa: F401 - ensure available
     return (
         smtp_server or os.environ.get("SMTP_SERVER", "smtp.gmail.com"),
         smtp_port or int(os.environ.get("SMTP_PORT", 587)),

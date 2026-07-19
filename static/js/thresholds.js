@@ -1,5 +1,5 @@
 // =============================================================================
-// thresholds.js — Lógica específica de la página de umbrales de sensores
+// thresholds.js - Lógica específica de la página de umbrales de sensores
 // =============================================================================
 
 (function (window, document) {
@@ -54,7 +54,7 @@
             const name = getVariableName(k);
             const unit = getUnit(k);
             const bounds = _SENSOR_RANGES[k];
-            const boundsText = bounds ? `Límite: ${bounds[0]} – ${bounds[1]}${unit ? ' ' + unit : ''}` : '';
+            const boundsText = bounds ? `Límite: ${bounds[0]} - ${bounds[1]}${unit ? ' ' + unit : ''}` : '';
             const headerHtml = `<div class="thresh-card-header">
                 <span class="thresh-label">${name}${unit ? ` (${unit})` : ''}</span>
                 ${boundsText ? `<span class="thresh-bounds-badge">${boundsText}</span>` : ''}

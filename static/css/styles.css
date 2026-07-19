@@ -272,7 +272,7 @@ button {
     box-shadow: var(--shadow-brutal);
 }
 
-/* â”€â”€â”€ Barra de acento azul interna en contenedores grandes â”€â”€â”€ */
+/* ─── Barra de acento azul interna en contenedores grandes ─── */
 .page-header,
 .panel,
 .sensor-section,
@@ -431,7 +431,7 @@ button {
     background: var(--color-bg);
 }
 
-/* â”€â”€â”€ Header fijo (vista login / landing) â”€â”€â”€ */
+/* ─── Header fijo (vista login / landing) ─── */
 .ines-header {
     position: fixed;
     top: 0;
@@ -533,7 +533,7 @@ button {
 
 
 /* ============================================================
-   5. PÃGINA / CABECERA DE SECCIÃ“N
+   5. PÃGINA / CABECERA DE SECCIÃ"N
    ============================================================ */
 .page-header {
     padding: var(--sp-5);
@@ -555,7 +555,7 @@ button {
     line-height: var(--leading-normal);
 }
 
-/* â”€â”€â”€ Form page wrapper â”€â”€â”€ */
+/* ─── Form page wrapper ─── */
 .form-page {
     display: flex;
     justify-content: center;
@@ -594,7 +594,7 @@ button {
    6. COMPONENTES DE FORMULARIO
    ============================================================ */
 
-/* â”€â”€â”€ Card de formulario â”€â”€â”€ */
+/* ─── Card de formulario ─── */
 .reports-card {
     background: transparent;
     width: 100%;
@@ -653,7 +653,7 @@ button {
 
 
 
-/* â”€â”€â”€ Inputs base â”€â”€â”€ */
+/* ─── Inputs base ─── */
 .form-input,
 .search-input {
     width: 100%;
@@ -768,7 +768,7 @@ button {
     color: var(--color-text-placeholder);
 }
 
-/* â”€â”€â”€ Select personalizado â”€â”€â”€ */
+/* ─── Select personalizado ─── */
 .custom-select {
     position: relative;
     width: 100%;
@@ -885,7 +885,7 @@ button {
     pointer-events: none;
 }
 
-/* â”€â”€â”€ CustomSelect dentro de filter-panel: anclar a la derecha y abrir hacia afuera â”€â”€â”€ */
+/* ─── CustomSelect dentro de filter-panel: anclar a la derecha y abrir hacia afuera ─── */
 .filter-panel-body .custom-select-menu {
     z-index: 1300;
 }
@@ -1302,7 +1302,7 @@ button {
    11. HISTORIAL
    ============================================================ */
 
-/* â”€â”€â”€ Lista â”€â”€â”€ */
+/* ─── Lista ─── */
 .hist-list {
     list-style: none;
     background: var(--color-surface);
@@ -1478,13 +1478,13 @@ button {
     color: var(--color-ink);
 }
 
-/* â”€â”€â”€ Notif card â”€â”€â”€ */
+/* ─── Notif card ─── */
 .hist-card {
     overflow: hidden;
     margin-top: var(--sp-5);
 }
 
-/* â”€â”€â”€ Badges de conteo â”€â”€â”€ */
+/* ─── Badges de conteo ─── */
 .hist-count-badge,
 .sidebar-hist-badge {
     display: none;
@@ -1548,7 +1548,7 @@ button {
     animation: badgePulse 0.5s ease-in-out 3;
 }
 
-/* â”€â”€â”€ Toast â”€â”€â”€ */
+/* ─── Toast ─── */
 .toast-container {
     position: fixed;
     top: 24px;
@@ -1631,7 +1631,7 @@ button {
 
 
 /* ============================================================
-   13. DASHBOARD — SENSORES Y GRÁFICAS
+   13. DASHBOARD - SENSORES Y GRÁFICAS
    ============================================================ */
 .grid-charts {
     display: grid;
@@ -1640,7 +1640,7 @@ button {
     margin-bottom: var(--sp-5);
 }
 
-/* â”€â”€â”€ Sensor section â”€â”€â”€ */
+/* ─── Sensor section ─── */
 .sensor-section {
     margin-bottom: var(--sp-6);
 }
@@ -1779,7 +1779,7 @@ button {
     min-width: 260px;
 }
 
-/* â”€â”€â”€ Filter drawer â”€â”€â”€ */
+/* ─── Filter drawer ─── */
 .filter-overlay {
     position: fixed;
     inset: 0;
@@ -1876,7 +1876,7 @@ button {
     background: var(--state-high);
 }
 
-/* â”€â”€â”€ Active filters bar â”€â”€â”€ */
+/* ─── Active filters bar ─── */
 .active-filters-bar {
     display: flex;
     align-items: center;
@@ -2125,7 +2125,7 @@ button {
     }
 }
 
-/* 16.1 THRESHOLDS — REDISEÑO */
+/* 16.1 THRESHOLDS - REDISEÑO */
 .thresh-grid>.thresh-card {
     background: var(--color-surface);
     transition: background var(--transition-base);
@@ -2298,7 +2298,7 @@ input.is-dirty.input-error-state:active {
     margin-top: var(--sp-4);
 }
 
-/* â”€â”€â”€ Separador vertical â”€â”€â”€ */
+/* ─── Separador vertical ─── */
 .divider-v {
     width: 1px;
     height: 28px;
@@ -2308,7 +2308,7 @@ input.is-dirty.input-error-state:active {
     flex-shrink: 0;
 }
 
-/* â”€â”€â”€ Equipos (selector de equipo) â”€â”€â”€ */
+/* ─── Equipos (selector de equipo) ─── */
 .equipment-grid {
     display: flex;
     gap: var(--sp-3);
@@ -2350,7 +2350,7 @@ input.is-dirty.input-error-state:active {
     margin-bottom: var(--sp-5);
 }
 
-/* â”€â”€â”€ Admin controls â”€â”€â”€ */
+/* ─── Admin controls ─── */
 .admin-controls-row {
     display: flex;
     flex-wrap: wrap;
@@ -2398,14 +2398,14 @@ input.is-dirty.input-error-state:active {
     margin-top: var(--sp-1);
 }
 
-/* â”€â”€â”€ Drawer title â”€â”€â”€ */
+/* ─── Drawer title ─── */
 .drawer-title {
     font-size: var(--text-lg);
     font-weight: var(--weight-bold);
     color: var(--color-ink);
 }
 
-/* â”€â”€â”€ Risk preview â”€â”€â”€ */
+/* ─── Risk preview ─── */
 .risk-preview {
     font-size: var(--text-xs);
     margin-top: var(--sp-2);

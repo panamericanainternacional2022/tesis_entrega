@@ -18,7 +18,7 @@ from apps.users.models import Persona, Usuario
 
 _ACTIVATION_EMAIL_PLAIN = """Estimado/a usuario/a:
 
-Su cuenta ha sido registrada en INES — Sistema inteligente en monitoreo. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña a través del siguiente enlace:
+Su cuenta ha sido registrada en INES - Sistema inteligente en monitoreo. Para completar el proceso de registro y acceder a todas las funciones de la plataforma, es necesario que establezca su nombre de usuario y contraseña a través del siguiente enlace:
 
 {link}
 
@@ -56,7 +56,7 @@ def build_user_data(user: Usuario) -> dict[str, Any]:
         "username": user.username,
         # Lista completa de edificios (nueva UI)
         "edificios_list": edificios_list,
-        # Campos legacy (primer edificio) — usados por formulario de edición y PDF
+        # Campos legacy (primer edificio) - usados por formulario de edición y PDF
         "edificio_nombre": ", ".join(e["nombre"] for e in edificios_list) if edificios_list else "",
         "edificio_rif": first_building.rif if first_building else "",
         "edificio_direccion": first_building.address if first_building else "",

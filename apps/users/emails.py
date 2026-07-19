@@ -22,7 +22,7 @@ logger_email = logging.getLogger(__name__)
 def _build_report_email_body(sim) -> tuple[str, str]:
     timestamp = time_module.strftime("%d/%m/%Y %H:%M:%S")
     edificio = getattr(sim, "nombre", "") or ""
-    subject = f"Reporte de monitoreo: {edificio} — {timestamp}" if edificio else f"Reporte de monitoreo — {timestamp}"
+    subject = f"Reporte de monitoreo: {edificio} - {timestamp}" if edificio else f"Reporte de monitoreo - {timestamp}"
     body = build_report_email_html(edificio=edificio)
     return subject, body
 

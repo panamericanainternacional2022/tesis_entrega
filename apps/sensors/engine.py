@@ -199,12 +199,12 @@ def generate_data_and_emit() -> None:
                 fails = _consecutive_failures.get(eid, 0) + 1
                 _consecutive_failures[eid] = fails
                 logger.exception(
-                    "Error en tick de sim %s (%s) — fallo consecutivo #%s",
+                    "Error en tick de sim %s (%s) - fallo consecutivo #%s",
                     eid, sim.nombre, fails)
                 backoff = min(2 ** fails, _MAX_BACKOFF_TICKS)
                 _backoff_remaining[eid] = backoff
                 logger.warning(
-                    "Simulador %s (%s) en backoff por %s ticks — reintentará automáticamente",
+                    "Simulador %s (%s) en backoff por %s ticks - reintentará automáticamente",
                     eid, sim.nombre, backoff)
 
 

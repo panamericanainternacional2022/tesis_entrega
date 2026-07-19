@@ -1,5 +1,5 @@
 // =============================================================================
-// limits.js — Lógica específica de la página de límites de sensores
+// limits.js - Lógica específica de la página de límites de sensores
 // =============================================================================
 
 (function (window, document) {

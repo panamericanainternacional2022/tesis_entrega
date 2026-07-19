@@ -82,8 +82,8 @@
                 <td class="col-cedula">{{ usuario.cedula }}</td>
                 <td>{{ usuario.nombre }}</td>
                 <td class="hide-on-mobile">{{ usuario.last_name }}</td>
-                <td class="hide-on-mobile" title="{{ usuario.edificio_nombre }}">{{ usuario.edificio_nombre|default:'—' }}</td>
-                <td class="col-email hide-on-mobile">{{ usuario.email|default:'—' }}</td>
+                <td class="hide-on-mobile" title="{{ usuario.edificio_nombre }}">{{ usuario.edificio_nombre|default:'-' }}</td>
+                <td class="col-email hide-on-mobile">{{ usuario.email|default:'-' }}</td>
                 <td class="col-actions">
                     <div class="actions-dropdown">
                         <button type="button" class="btn btn-icon" aria-label="Acciones" aria-haspopup="true" aria-expanded="false" title="Acciones">

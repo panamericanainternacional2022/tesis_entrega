@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Historial{% endblock %}
-{% block meta_description %}<meta name="description" content="Historial completo de eventos y registros de INES — Sistema inteligente en monitoreo.">{% endblock %}
+{% block meta_description %}<meta name="description" content="Historial completo de eventos y registros de INES - Sistema inteligente en monitoreo.">{% endblock %}
 
 {% block content %}
 <section class="reports-card" aria-labelledby="history-title">
@@ -99,7 +99,7 @@
                 <span class="filter-chip">Variable: {{ variable_filter }}</span>
                 {% endif %}
                 {% if fecha_desde %}
-                <span class="filter-chip">{{ fecha_desde }} – {{ fecha_hasta }}</span>
+                <span class="filter-chip">{{ fecha_desde }} - {{ fecha_hasta }}</span>
                 {% endif %}
             </span>
         </div>
@@ -109,7 +109,7 @@
     <div class="hist-card">
         <div id="stateLoading" class="no-history empty-state d-none" role="status">
             <i class="fa-solid fa-spinner fa-spin empty-state-icon" aria-hidden="true"></i>
-            <h2 class="section-label">Cargando historial…</h2>
+            <h2 class="section-label">Cargando historial...</h2>
         </div>
 
         <div id="live-history-list">

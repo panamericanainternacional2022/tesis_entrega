@@ -1,5 +1,5 @@
 // =============================================================================
-// monitoring.js — Lógica específica de la página de monitoreo en vivo
+// monitoring.js - Lógica específica de la página de monitoreo en vivo
 // =============================================================================
 
 (function (window, document) {
@@ -682,7 +682,7 @@
 
         connectSSE();
 
-        // Admin manual controls — delegados a SimulationController (sin optimistic update)
+        // Admin manual controls - delegados a SimulationController (sin optimistic update)
         var togglePumpBtn = document.getElementById('togglePumpBtn');
         var toggleElevBtn = document.getElementById('toggleElevatorBtn');
         if (togglePumpBtn) togglePumpBtn.addEventListener('click', function () {
