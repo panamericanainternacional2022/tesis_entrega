@@ -141,38 +141,60 @@ def _update_elevator(sim: BuildingSimulator) -> None:
 
 
 def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
+    # ── Carga umbrales dinámicos del edificio ──────────────────────────────
+    try:
+        from apps.thresholds.services import get_thresholds
+        thresh = get_thresholds(sim.edificio_id)
+    except Exception:
+        thresh = {}
+
+    def _critic(var: str, default: float) -> float:
+        return thresh.get(var, {}).get("critic", default)
+
+    def _high(var: str, default: float) -> float:
+        return thresh.get(var, {}).get("high", default)
+
+    lim = sim.sensor_limits
+
+    def _above(var: str, default_critic: float, factor: float = 1.1) -> float:
+        return min(lim.get(var, (0.0, 9999.0))[1], _critic(var, default_critic) * factor)
+
     targets = {
         "motor_stuck": {
             "elev_speed": 0.0,
-            "elev_current": sim.sensor_limits.get('elev_current', (0.0, 40.0))[1],
+            # Corriente → superar el crítico (motor bloqueado, rotor forzado)
+            "elev_current": _above("elev_current", 30.0, 1.05),
             "elev_door_status": "closed",
-            "elev_temperature": 110.0,
+            # Temperatura → superar el crítico (motor atascado genera calor)
+            "elev_temperature": _above("elev_temperature", 75.0, 1.1),
             "elevator_state": "STUCK",
-            "elev_vibration": 9.5,     # Vibración severa por rotor bloqueado
-            "elev_voltage": 355.0,     # Caída de tensión por sobrecorriente en la línea
+            # Vibración → superar el crítico (rotor bloqueado genera vibración severa)
+            "elev_vibration": _above("elev_vibration", 5.0, 1.15),
+            "elev_voltage": max(0.0, _critic("elev_voltage", 400.0) * 0.9),  # Caída por sobrecorriente
         },
         "door_blocked": {
-            "elev_door_status": "open",    # Puerta no puede cerrar — coherente con FSM DOORS_OPEN
+            "elev_door_status": "open",
             "elev_speed": 0.0,
-            "elev_current": 0.0,           # Spec: puerta bloqueada → speed Y current = 0.0 (arranque abortado)
+            "elev_current": 0.0,
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
-            # Spec: speed > 1.6 m/s (crítico), dentro del límite físico 3.0 m/s
-            # Se usa valor fijo 2.0 m/s en vez de sim.sensor_limits.get('elev_speed', (0.0, 3.0))[1] * 0.75 para
-            # garantizar que siempre caiga en zona crítica independiente del rango configurado
-            "elev_speed": 2.0,
-            "elev_current": 5.0,
+            # Velocidad → superar el crítico (gobernador fallido)
+            "elev_speed": _above("elev_speed", 1.6, 1.15),
+            "elev_current": _high("elev_current", 10.0),
             "elev_door_status": "closed",
-            "elev_temperature": 80.0,
-            "elev_vibration": 6.5,         # Spec: exceso de velocidad → vibración incrementa (>5.0 = crítico)
+            # Temperatura → superar el umbral alto (por exceso de velocidad)
+            "elev_temperature": _above("elev_temperature", 75.0, 1.05),
+            # Vibración → superar el crítico (velocidad excesiva)
+            "elev_vibration": _above("elev_vibration", 5.0, 1.1),
             "elevator_state": "MOVING",
         },
         "overload": {
-            "elev_load": sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1] * 0.85,  # ~1020 kg (>800 = crítico)
+            # Carga → superar el crítico definido por el usuario
+            "elev_load": _above("elev_load", 800.0, 1.05),
             "elev_door_status": "open",
             "elev_speed": 0.0,
-            "elev_current": 0.0,              # Spec: motor bloqueado físicamente → current = 0.0
+            "elev_current": 0.0,
             "elevator_state": "DOORS_OPEN",
         },
         "pos_sensor_fail": {
@@ -182,11 +204,13 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elevator_state": "IDLE" if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else "MOVING",
         },
         "traction_loss": {
-            "elev_vibration": 12.0,
-            # Motor patina sin carga mecánica real → corriente de vacío (~20% de la nominal)
+            # Vibración → superar el crítico (pérdida de tracción genera golpes mecánicos)
+            "elev_vibration": _above("elev_vibration", 5.0, 1.15),
+            # Corriente de vacío (~20% de la nominal, por debajo del umbral alto)
             "elev_current": ELEVATOR_MOTOR_RATED_CURRENT * 0.2,
-            "elev_temperature": 95.0,
-            "elev_speed": CRUISING_SPEED,    # Spec: el motor gira a velocidad normal/alta mientras la cabina no avanza
+            # Temperatura → superar el crítico (motor sin carga real, se recalienta)
+            "elev_temperature": _above("elev_temperature", 75.0, 1.1),
+            "elev_speed": CRUISING_SPEED,
         }
     }
     if fault == "commercial_power_outage":
@@ -470,7 +494,12 @@ def _handle_elev_doors_open(
     door = "open"
 
     total_load = _effective_load(sim, load)
-    critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
+    try:
+        from apps.thresholds.services import get_thresholds
+        _t = get_thresholds(sim.edificio_id)
+        critic_load = _t.get("elev_load", {}).get("critic", DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0))
+    except Exception:
+        critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
     if total_load > critic_load:
         sim._elev_timer = 0
         if sim._elev_overload_extra_kg <= 0:
@@ -497,8 +526,13 @@ def _handle_elev_door_closing(
 ) -> None:
 
     total_load = _effective_load(sim, load)
-    # Spec: bloqueo físico quando load > umbral crítico de DEFAULT_THRESHOLDS (800 kg)
-    critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
+    # Bloqueo físico según el umbral crítico de carga configurado por el usuario
+    try:
+        from apps.thresholds.services import get_thresholds
+        _t = get_thresholds(sim.edificio_id)
+        critic_load = _t.get("elev_load", {}).get("critic", DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0))
+    except Exception:
+        critic_load = DEFAULT_THRESHOLDS.get("elev_load", {}).get("critic", 800.0)
     if total_load > critic_load:
         sim._elev_state = "DOOR_OPENING"
         sim._elev_timer = 0

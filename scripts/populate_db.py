@@ -98,114 +98,132 @@ def populate():
 
     print("Iniciando población de base de datos...")
 
-    print("Creando Personas...")
+    print("Creando 20 Personas...")
+
+    _first_names = [
+        "Juan", "Maria", "David", "Admin", "Carlos",
+        "Ana", "Luis", "Sofia", "Pedro", "Laura",
+        "Jorge", "Diana", "Miguel", "Carmen", "Andres",
+        "Valentina", "Ricardo", "Isabel", "Fernando", "Monica",
+    ]
+    _last_names = [
+        "Perez", "Gomez", "Mantilla", "Admin", "Lopez",
+        "Rodriguez", "Martinez", "Garcia", "Sanchez", "Diaz",
+        "Torres", "Ramirez", "Flores", "Morales", "Castillo",
+        "Ortiz", "Moreno", "Alvarez", "Romero", "Navarro",
+    ]
 
     def random_ci(num):
         prefix = random.choice(["V-", "E-"])
         return f"{prefix}{num}"
 
-    p1, _ = Persona.objects.get_or_create(
-        ci=random_ci(12345678),
-        defaults={
-            "first_name": "Juan",
-            "middle_name": "",
-            "first_last_name": "Perez",
-            "second_last_name": "",
-            "email": "mantillaqed@gmail.com",
-        },
-    )
-    p2, _ = Persona.objects.get_or_create(
-        ci=random_ci(87654321),
-        defaults={
-            "first_name": "Maria",
-            "middle_name": "",
-            "first_last_name": "Gomez",
-            "second_last_name": "",
-            "email": "elvistek2012@gmail.com",
-        },
-    )
-    p3, _ = Persona.objects.get_or_create(
-        ci=random_ci(44332211),
-        defaults={
-            "first_name": "David",
-            "middle_name": "",
-            "first_last_name": "Mantilla",
-            "second_last_name": "",
-            "email": "mantillaquid@gmail.com",
-        },
-    )
-    p4, _ = Persona.objects.get_or_create(
-        ci=random_ci(11223344),
-        defaults={
-            "first_name": "Admin",
-            "middle_name": "",
-            "first_last_name": "Admin",
-            "second_last_name": "",
-            "email": "admin@example.com",
-        },
-    )
+    personas = []
+    for i in range(20):
+        p, _ = Persona.objects.get_or_create(
+            ci=random_ci(10000000 + i),
+            defaults={
+                "first_name": _first_names[i],
+                "middle_name": "",
+                "first_last_name": _last_names[i],
+                "second_last_name": "",
+                "email": f"user{i}@example.com",
+            },
+        )
+        personas.append(p)
 
-    print("Creando Usuarios...")
+    print("Creando 20 Usuarios...")
     _hashed_pw = make_password("password123")
-    u1, _ = Usuario.objects.get_or_create(
-        username="juanp",
-        defaults={"password": _hashed_pw, "id_persona": p1, "rol": "US", "registered": True},
-    )
-    u2, _ = Usuario.objects.get_or_create(
-        username="mariag",
-        defaults={"password": _hashed_pw, "id_persona": p2, "rol": "US", "registered": True},
-    )
-    u3, _ = Usuario.objects.get_or_create(
-        username="davidm",
-        defaults={"password": _hashed_pw, "id_persona": p3, "rol": "US", "registered": True},
-    )
-    u4, _ = Usuario.objects.get_or_create(
-        username="admin",
-        defaults={"password": _hashed_pw, "id_persona": p4, "rol": "SA", "registered": True},
-    )
+    usuarios = []
+    for i in range(20):
+        u, _ = Usuario.objects.get_or_create(
+            username=f"user{i}",
+            defaults={
+                "password": _hashed_pw,
+                "id_persona": personas[i],
+                "rol": "SA" if i == 0 else "US",
+                "registered": True,
+            },
+        )
+        usuarios.append(u)
 
-    print("Creando Edificios...")
-    e1, _ = Building.objects.get_or_create(
-        rif="J-12345678-9",
-        defaults={
-            "name": "Conjunto Junin",
-            "address": "Centro de la ciudad",
-            "floors": 10,
-        },
-    )
-    e2, _ = Building.objects.get_or_create(
-        rif="J-98765432-1",
-        defaults={
-            "name": "Residencia La Campiña",
-            "address": "Norte de la ciudad",
-            "floors": 15,
-        },
-    )
+    print("Creando 20 Edificios...")
+    _building_names = [
+        "Conjunto Junin",
+        "Residencia La Campiña",
+        "Edificio Central",
+        "Torre del Parque",
+        "Complejo Aurora",
+        "Residencias El Sol",
+        "Edificio Mar Azul",
+        "Torre Bosque",
+        "Conjunto Vista Alegre",
+        "Edificio Los Pinos",
+        "Residencias del Valle",
+        "Torre Cristal",
+        "Complejo San Miguel",
+        "Edificio Pacifico",
+        "Residencias Alameda",
+        "Torre Nevada",
+        "Conjunto Monteverde",
+        "Edificio Horizonte",
+        "Residencias Palmar",
+        "Torre del Lago",
+    ]
+    _addresses = [
+        "Centro de la ciudad",
+        "Norte de la ciudad",
+        "Av. Principal, Zona Industrial",
+        "Calle 5, Urbanización El Parque",
+        "Av. Circunvalación, Sector 3",
+        "Calle 10, Las Flores",
+        "Av. Libertador, Edif. Azul",
+        "Urb. El Bosque, Calle 8",
+        "Av. Vista Hermosa, Qta. Alegre",
+        "Calle Los Pinos, Urb. Pinar",
+        "Av. Del Valle, Res. Valle Verde",
+        "Calle Cristal, Torre Oficinas",
+        "Av. San Miguel, Centro Comercial",
+        "Calle Pacifico, Urb. Oceano",
+        "Av. Alameda, Res. Alameda",
+        "Calle Nevada, Sector Alta",
+        "Urb. Monteverde, Av. Principal",
+        "Av. Horizonte, Edif. Horizonte",
+        "Calle Palmar, Res. Palmar",
+        "Av. Del Lago, Torre Lago",
+    ]
+
+    edificios = []
+    for i in range(20):
+        e, _ = Building.objects.get_or_create(
+            rif=f"J-{20000000 + i}-{i}",
+            defaults={
+                "name": _building_names[i],
+                "address": _addresses[i],
+                "floors": random.randint(5, 30),
+            },
+        )
+        edificios.append(e)
 
     print("Asignando Usuarios a Edificios...")
-    UserBuilding.objects.get_or_create(user=u1, building=e1)
-    UserBuilding.objects.get_or_create(user=u2, building=e2)
-    UserBuilding.objects.get_or_create(user=u3, building=e1)
-    UserBuilding.objects.get_or_create(user=u3, building=e2)
-    UserBuilding.objects.get_or_create(user=u4, building=e1)
-    UserBuilding.objects.get_or_create(user=u4, building=e2)
+    for u in usuarios:
+        assigned = random.sample(edificios, k=random.randint(1, 3))
+        for b in assigned:
+            UserBuilding.objects.get_or_create(user=u, building=b)
 
     print("Creando Equipos de Monitoreo...")
-    MonitoringEquipment.objects.get_or_create(
-        building=e1, equipment_type=MonitoringEquipment.TYPE_PUMP,
-        defaults={"name": "Bomba de agua"},
-    )
-    MonitoringEquipment.objects.get_or_create(
-        building=e1, equipment_type=MonitoringEquipment.TYPE_ELEVATOR,
-        defaults={"name": "Elevador"},
-    )
-    MonitoringEquipment.objects.get_or_create(
-        building=e2, equipment_type=MonitoringEquipment.TYPE_PUMP,
-        defaults={"name": "Bomba de agua"},
-    )
+    for b in edificios:
+        MonitoringEquipment.objects.get_or_create(
+            building=b, equipment_type=MonitoringEquipment.TYPE_PUMP,
+            defaults={"name": f"Bomba de agua - {b.name}"},
+        )
+        if random.random() < 0.6:
+            MonitoringEquipment.objects.get_or_create(
+                building=b, equipment_type=MonitoringEquipment.TYPE_ELEVATOR,
+                defaults={"name": f"Elevador - {b.name}"},
+            )
 
     print("Sembrando umbrales por edificio...")
-    for edificio in [e1, e2]:
+    for edificio in edificios:
         for variable, cfg in DEFAULT_THRESHOLDS.items():
             ThresholdConfig.objects.update_or_create(
                 building=edificio,
@@ -218,7 +236,7 @@ def populate():
             )
 
     print("Sembrando límites de sensores por edificio...")
-    for edificio in [e1, e2]:
+    for edificio in edificios:
         for variable, val_range in SENSOR_RANGES.items():
             SensorLimitConfig.objects.update_or_create(
                 building=edificio,
@@ -229,8 +247,8 @@ def populate():
             )
 
     print("Generando lecturas de sensores de ejemplo (7 días)...")
-    _seed_sensor_readings(e1, has_elevator=True)
-    _seed_sensor_readings(e2, has_elevator=False)
+    for i, b in enumerate(edificios):
+        _seed_sensor_readings(b, has_elevator=(i % 3 != 0))
 
     print("¡Población de base de datos completada exitosamente!")
 
