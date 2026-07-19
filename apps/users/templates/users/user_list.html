@@ -99,6 +99,14 @@
                                     data-edificios='[{% for e in usuario.edificios_list %}{"id":{{ e.id }},"nombre":"{{ e.nombre|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'>
                                 <i class="fa-solid fa-link" aria-hidden="true"></i> Enlazar edificio
                             </button>
+                            {% if usuario.edificios_list|length > 1 %}
+                            <button type="button" class="dropdown-item js-unlink-building-btn"
+                                    data-user-id="{{ usuario.id }}"
+                                    data-user-name="{{ usuario.nombre }} {{ usuario.last_name }}"
+                                    data-edificios='[{% for e in usuario.edificios_list %}{"id":{{ e.id }},"nombre":"{{ e.nombre|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'>
+                                <i class="fa-solid fa-link-slash" aria-hidden="true"></i> Desvincular edificio
+                            </button>
+                            {% endif %}
                             {% if usuario.email %}
                             <button type="button" class="dropdown-item send-email-btn" data-email="{{ usuario.email }}">
                                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar correo
@@ -400,6 +408,138 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ────────────────────────────────────────────────────────
+    // ── Modal: Desvincular edificio ──
+    // ────────────────────────────────────────────────────────
+
+    function openUnlinkBuildingModal(userId, userName, assignedBuildings, triggerRow) {
+        if (assignedBuildings.length <= 1) return;
+
+        var backdrop = document.createElement('div');
+        backdrop.className = 'custom-modal-backdrop';
+
+        var container = document.createElement('div');
+        container.className = 'custom-modal-container max-w-420';
+
+        var header = document.createElement('div');
+        header.className = 'custom-modal-header';
+        header.innerHTML = '<i class="fa-solid fa-link-slash custom-modal-icon custom-modal-icon-warn"></i>';
+        var titleSpan = document.createElement('span');
+        titleSpan.className = 'custom-modal-title';
+        titleSpan.textContent = 'Desvincular edificio';
+        header.appendChild(titleSpan);
+        container.appendChild(header);
+
+        var body = document.createElement('div');
+        body.className = 'custom-modal-body text-left';
+
+        var selectEl = null;
+        var csInstance = null;
+
+        var lbl = document.createElement('label');
+        lbl.className = 'field-label d-block mb-1';
+        lbl.textContent = 'Edificio a desvincular';
+        body.appendChild(lbl);
+
+        selectEl = document.createElement('select');
+        selectEl.className = 'custom-select-init w-100';
+        var defOpt = document.createElement('option');
+        defOpt.value = '';
+        defOpt.textContent = 'Seleccione un edificio';
+        selectEl.appendChild(defOpt);
+        assignedBuildings.forEach(function(b) {
+            var opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.nombre;
+            selectEl.appendChild(opt);
+        });
+        body.appendChild(selectEl);
+
+        container.appendChild(body);
+
+        var actions = document.createElement('div');
+        actions.className = 'custom-modal-actions';
+
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.textContent = 'Cancelar';
+        actions.appendChild(cancelBtn);
+
+        var confirmBtn = document.createElement('button');
+        confirmBtn.className = 'btn btn-primary';
+        confirmBtn.innerHTML = '<i class="fa-solid fa-link-slash" aria-hidden="true"></i> Desvincular';
+        confirmBtn.disabled = true;
+        actions.appendChild(confirmBtn);
+
+        container.appendChild(actions);
+        backdrop.appendChild(container);
+        document.body.appendChild(backdrop);
+        setTimeout(function() { backdrop.classList.add('active'); }, 10);
+
+        if (selectEl) {
+            csInstance = new CustomSelect(selectEl);
+            selectEl.addEventListener('change', function() {
+                confirmBtn.disabled = !selectEl.value;
+            });
+        }
+
+        function cleanUp() {
+            backdrop.classList.remove('active');
+            setTimeout(function() { backdrop.remove(); }, 150);
+        }
+
+        cancelBtn.addEventListener('click', cleanUp);
+        backdrop.addEventListener('click', function(e) {
+            if (e.target === backdrop) cleanUp();
+        });
+
+        confirmBtn.addEventListener('click', async function() {
+            var buildingId = selectEl ? parseInt(selectEl.value) : null;
+            if (!buildingId) return;
+
+            var origHTML = confirmBtn.innerHTML;
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Desvinculando...';
+
+            try {
+                var resp = await csrfFetch('/api/users/' + userId + '/unlink-building/', {
+                    method: 'POST',
+                    body: JSON.stringify({ building_id: buildingId })
+                });
+                var data = await resp.json();
+                if (resp.ok) {
+                    showToast('Edificio desvinculado correctamente.', 'success');
+                    if (triggerRow) {
+                        var cell = triggerRow.querySelector('td.hide-on-mobile:nth-child(4)');
+                        if (cell) {
+                            cell.textContent = data.edificios.map(function(e) { return e.nombre; }).join(', ');
+                            cell.title = cell.textContent;
+                        }
+                        var edificiosJson = JSON.stringify(data.edificios);
+                        var linkBtn = triggerRow.querySelector('.js-link-building-btn');
+                        if (linkBtn) linkBtn.dataset.edificios = edificiosJson;
+                        var unlinkBtn = triggerRow.querySelector('.js-unlink-building-btn');
+                        if (unlinkBtn) {
+                            unlinkBtn.dataset.edificios = edificiosJson;
+                            if (data.edificios.length <= 1) {
+                                unlinkBtn.style.display = 'none';
+                            }
+                        }
+                    }
+                    cleanUp();
+                } else {
+                    showToast(data.error || 'No se pudo desvincular el edificio.', 'error');
+                    confirmBtn.innerHTML = origHTML;
+                    confirmBtn.disabled = false;
+                }
+            } catch (_) {
+                showToast('Error de conexión con el servidor.', 'error');
+                confirmBtn.innerHTML = origHTML;
+                confirmBtn.disabled = false;
+            }
+        });
+    }
+
     // Delegar click en todos los botones "Enlazar edificio"
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('.js-link-building-btn');
@@ -413,6 +553,20 @@ document.addEventListener('DOMContentLoaded', function () {
         var row = btn.closest('tr');
 
         openLinkBuildingModal(userId, userName, assigned, row);
+    });
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.js-unlink-building-btn');
+        if (!btn) return;
+        e.stopPropagation();
+
+        var userId   = parseInt(btn.dataset.userId);
+        var userName = btn.dataset.userName;
+        var assigned = [];
+        try { assigned = JSON.parse(btn.dataset.edificios || '[]'); } catch (_) {}
+        var row = btn.closest('tr');
+
+        openUnlinkBuildingModal(userId, userName, assigned, row);
     });
 
 });
