@@ -49,9 +49,9 @@
 {% block list_table %}
 <thead>
     <tr>
+        <th class="col-rif">RIF</th>
         <th>Nombre</th>
         <th class="hide-on-mobile">Equipamiento</th>
-        <th class="col-rif">RIF</th>
         <th class="col-address hide-on-mobile">Dirección</th>
         <th class="col-actions">Acciones</th>
     </tr>
@@ -60,6 +60,7 @@
     {% if buildings %}
         {% for building in buildings %}
             <tr>
+                <td class="col-rif" title="{{ building.rif }}">{{ building.rif }}</td>
                 <td title="{{ building.name }}">{{ building.name }}</td>
                 <td class="hide-on-mobile">
                     {% with equipment_list=building.equipment.all %}
@@ -71,7 +72,6 @@
                         {% endfor %}
                     {% endwith %}
                 </td>
-                <td class="col-rif" title="{{ building.rif }}">{{ building.rif }}</td>
                 <td class="col-address hide-on-mobile" title="{{ building.address }}">{{ building.address }}</td>
                 <td class="col-actions">
                     <div class="actions-dropdown">
