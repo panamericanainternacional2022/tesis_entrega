@@ -81,11 +81,9 @@ def _validate_limit_input(
             errors[variable] = "Value must be numeric"
             continue
 
-        from apps.sensors.sensor_config import SENSOR_ABSOLUTE_RANGES
-        abs_max = SENSOR_ABSOLUTE_RANGES.get(variable, (0.0, 999999.0))[1]
-        if max_val > abs_max:
+        if max_val > 999999.0:
             errors[variable] = (
-                f"El límite máximo no puede exceder el límite físico absoluto ({abs_max})"
+                f"El límite máximo no puede exceder 999999.0"
             )
             continue
 
@@ -99,22 +97,17 @@ def _validate_limit_input(
 
         if variable in thresholds:
             t_config = thresholds[variable]
-            direction = t_config.get("direction")
-            is_lower = direction == "lower"
-            
-            max_thresh_key = "high" if is_lower else "critic"
-            
-            if max_thresh_key in t_config:
-                max_thresh = float(t_config[max_thresh_key])
-                if max_val < max_thresh:
+            if "critic" in t_config:
+                critic_thresh = float(t_config["critic"])
+                if max_val < critic_thresh:
                     label = (
-                        "alto" if is_lower
-                        else "límite crítico superior" if direction == "range"
+                        "límite crítico superior"
+                        if t_config.get("direction") == "range"
                         else "crítico"
                     )
                     errors[variable] = (
                         f"El límite máximo ({max_val}) no puede ser "
-                        f"inferior al umbral {label} ({max_thresh})"
+                        f"inferior al umbral {label} ({critic_thresh})"
                     )
 
         cleaned[variable] = max_val

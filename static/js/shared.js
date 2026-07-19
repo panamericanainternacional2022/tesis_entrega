@@ -619,7 +619,6 @@ const _LIMITS_EXCLUDE_VARS = _CONFIG.limits_exclude_vars || [];
 const _ENUM_VARS = _CONFIG.enum_vars || [];
 const _VALUE_DISPLAY = _CONFIG.value_display_es || {};
 let _SENSOR_RANGES = _CONFIG.sensor_ranges || {};
-let _SENSOR_ABSOLUTE_RANGES = _CONFIG.sensor_absolute_ranges || {};
 
 let _currentFaults = {};
 
@@ -760,7 +759,6 @@ window.setEquipmentState = (pumpOn, elevOn) => {
     }
 };
 Object.defineProperty(window, '_SENSOR_RANGES', { get: function () { return _SENSOR_RANGES; }, configurable: true });
-Object.defineProperty(window, '_SENSOR_ABSOLUTE_RANGES', { get: function () { return _SENSOR_ABSOLUTE_RANGES; }, configurable: true });
 
 
 // =============================================================================

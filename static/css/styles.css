@@ -2622,12 +2622,7 @@ input.is-dirty.input-error-state:active {
 .col-stack {
     display: flex;
     flex-direction: column;
-}
-
-.first-date {
-
-    margin-bottom: var(--sp-5);
-
+    gap: var(--sp-2);
 }
 
 .btn-flex {

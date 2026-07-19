@@ -20,17 +20,13 @@
             const unit = getUnit(k);
             const defaultMin = r[0];
             const maxBound = r[1];
-            const hardCap = (window._SENSOR_ABSOLUTE_RANGES && window._SENSOR_ABSOLUTE_RANGES[k]) ? window._SENSOR_ABSOLUTE_RANGES[k][1] : 999999.0;
+            const hardCap = 999999.0;
             const maxVal = r[1];
             const thresh = currentThresholds[k];
             let refText = '';
-            if (thresh) {
-                const isLower = thresh.direction === 'lower';
-                const maxThresh = isLower ? thresh.high : thresh.critic;
-                if (maxThresh !== undefined) {
-                    const label = isLower ? 'Alto' : (thresh.direction === 'range' ? 'Lím. crítico sup.' : 'Crítico');
-                    refText = `${label}: ${maxThresh}${unit ? ' ' + unit : ''}`;
-                }
+            if (thresh?.critic !== undefined) {
+                const label = thresh.direction === 'range' ? 'Lím. crítico sup.' : 'Crítico';
+                refText = `${label}: ${thresh.critic}${unit ? ' ' + unit : ''}`;
             }
             const headerHtml = `<div class="thresh-card-header">
                 <span class="thresh-label">${name}${unit ? ` (${unit})` : ''}</span>
@@ -85,7 +81,6 @@
             if (!panel) return;
             panel.querySelectorAll('input[type="number"]').forEach(inp => {
                 const v = inp.dataset.var;
-                if (!v) return;
                 const val = parseFloat(inp.value);
                 inp.classList.remove('input-error-state');
                 inp.removeAttribute('aria-invalid');
@@ -103,17 +98,10 @@
                 const defaultMin = _originalLimits[v]?.[0];
                 if (defaultMin === undefined) return showError('Variable sin rango configurado.');
                 if (val <= defaultMin) return showError(`Debe ser mayor que el mínimo (${defaultMin}).`);
-                const absMax = (window._SENSOR_ABSOLUTE_RANGES && window._SENSOR_ABSOLUTE_RANGES[v]) ? window._SENSOR_ABSOLUTE_RANGES[v][1] : 999999.0;
-                if (val > absMax) return showError(`No puede exceder el límite físico (${absMax}).`);
                 const thresh = currentThresholds[v];
-                if (thresh) {
-                    const isLower = thresh.direction === 'lower';
-                    const maxThresh = isLower ? thresh.high : thresh.critic;
-                    const maxThreshLabel = isLower ? 'alto' : (thresh.direction === 'range' ? 'crítico sup.' : 'crítico');
-                    if (maxThresh !== undefined && val < maxThresh) {
-                        const unitStr = getUnit(v) ? ` ${getUnit(v)}` : '';
-                        return showError(`No puede ser menor al umbral ${maxThreshLabel} (${maxThresh}${unitStr}).`);
-                    }
+                if (thresh?.critic !== undefined && val < thresh.critic) {
+                    const unitStr = getUnit(v) ? ` ${getUnit(v)}` : '';
+                    return showError(`No puede ser menor al umbral crítico (${thresh.critic}${unitStr}).`);
                 }
                 if (_originalLimits[v] && val !== _originalLimits[v][1]) hasChanges = true;
             });
@@ -131,10 +119,7 @@
             const panel = document.getElementById(panelId);
             if (!panel) return;
             panel.querySelectorAll('input[type="number"]').forEach(inp => {
-                const varName = inp.dataset.var;
-                if (varName) {
-                    newLimits[varName] = parseFloat(inp.value);
-                }
+                newLimits[inp.dataset.var] = parseFloat(inp.value);
             });
         });
         try {
