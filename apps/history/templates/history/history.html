@@ -196,33 +196,34 @@
 
 <div id="customDateBackdrop" class="custom-modal-backdrop">
     <div class="custom-modal-container max-w-420" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
-        <div class="row-md ">
-            <i class="fa-solid fa-calendar-days text-xl text-ink" aria-hidden="true"></i>
-            <h2 id="custom-modal-title" class="drawer-title m-0">Rango personalizado</h2>
+        <div class="custom-modal-header">
+            <i class="fa-solid fa-calendar-days custom-modal-icon custom-modal-icon-info" aria-hidden="true"></i>
+            <span id="custom-modal-title" class="custom-modal-title">Rango personalizado</span>
         </div>
-        <p class="text-sm text-secondary m-0">Selecciona las fechas de inicio y fin del período que quieres consultar.</p>
+        
+        <div class="custom-modal-body text-left">
+            <p class="text-sm text-secondary mb-3 m-0">Selecciona las fechas de inicio y fin del período que quieres consultar.</p>
 
-        <div class="col-stack">
-            <div>
-                <label class="field-label d-block" for="modal-fecha-desde">Desde</label>
-                <input type="date" id="modal-fecha-desde"
-                       value="{{ fecha_desde }}" class="form-input">
-            </div>
-            <div>
-                <label class="field-label d-block" for="modal-fecha-hasta">Hasta</label>
-                <input type="date" id="modal-fecha-hasta"
-                       value="{{ fecha_hasta }}" class="form-input">
-            </div>
+            <div class="col-stack">
+                <div>
+                    <label class="field-label d-block" for="modal-fecha-desde">Desde</label>
+                    <input type="date" id="modal-fecha-desde"
+                           value="{{ fecha_desde }}" class="form-input">
+                </div>
+                <div>
+                    <label class="field-label d-block" for="modal-fecha-hasta">Hasta</label>
+                    <input type="date" id="modal-fecha-hasta"
+                           value="{{ fecha_hasta }}" class="form-input">
+                </div>
 
-            <div id="customDateError" class="error-msg v-hidden">
-                La fecha "Desde" no puede ser posterior a "Hasta"
+                <div id="customDateError" class="error-msg v-hidden mt-2">
+                    La fecha "Desde" no puede ser posterior a "Hasta"
+                </div>
             </div>
         </div>
 
-        <div class="flex justify-end gap-2 mt-3">
-            <button id="cancelCustomDate" type="button" class="btn btn-secondary">
-                <i class="fa-solid fa-xmark" aria-hidden="true"></i> Cancelar
-            </button>
+        <div class="custom-modal-actions">
+            <button id="cancelCustomDate" type="button" class="btn btn-secondary">Cancelar</button>
             <button id="applyCustomDate" type="button" class="btn btn-primary" disabled>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Ver historial
             </button>

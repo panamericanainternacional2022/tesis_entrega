@@ -7,6 +7,7 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from apps.buildings.models import Building, UserBuilding
 from apps.core.auth_decorators import login_required, admin_required
@@ -169,9 +170,9 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
         if data.get("id_edificio") and data["id_edificio"].isdigit():
             data["id_edificio"] = int(data["id_edificio"])
 
-        if not has_required_fields(post_data):
-            messages.error(request, "Complete los campos obligatorios para actualizar: nombre, apellido, correo electrónico, cédula y edificio.")
-            form_errors = build_required_field_errors(post_data)
+        if not has_required_fields(post_data, require_building=False):
+            messages.error(request, "Complete los campos obligatorios para actualizar: nombre, apellido, correo electrónico y cédula.")
+            form_errors = build_required_field_errors(post_data, require_building=False)
         else:
             form_errors = validate_user_form(post_data, exclude_persona_id=person.id_persona)
             if form_errors:
@@ -184,13 +185,8 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
                 person.email = post_data["email"]
                 person.ci = post_data["cedula"]
                 person.save()
-
-                UserBuilding.objects.filter(user=user).delete()
-                if post_data.get("id_edificio"):
-                    UserBuilding.objects.create(
-                        user=user,
-                        building_id=post_data["id_edificio"],
-                    )
+                # NOTE: Los edificios se gestionan desde la lista de usuarios
+                # mediante el modal de vinculación/desvinculación (Opción A).
 
                 full_name = person.get_full_name() or user.username
 
@@ -222,10 +218,6 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
     else:
         data = build_edit_initial_data(user, person)
 
-    current_ue = UserBuilding.objects.filter(user=user).first()
-    current_building = current_ue.building if current_ue else None
-    buildings = Building.objects.all()
-
     return render(
         request,
         "users/user_register.html",
@@ -234,8 +226,6 @@ def user_update_view(request: HttpRequest, user_id: int) -> HttpResponse:
             "editing": True,
             "usuario_id": user_id,
             "persona_id": person.id_persona,
-            "edificios": buildings,
-            "edificio_actual": current_building,
             "form_errors": form_errors,
         },
     )
@@ -266,3 +256,69 @@ def check_cedula_uniqueness_view(request: HttpRequest) -> JsonResponse:
 
     error = _validate_unique_ci(ci, exclude_persona_id)
     return json_ok({"exists": bool(error), "error": error})
+
+
+@login_required
+@admin_required
+@require_http_methods(["POST"])
+def user_link_building_view(request: HttpRequest, user_id: int) -> JsonResponse:
+    """Vincula un edificio adicional a un usuario. Idempotente."""
+    from apps.core.services.http_response import json_error
+    import json as _json
+    try:
+        data = _json.loads(request.body)
+    except (_json.JSONDecodeError, ValueError):
+        return json_error("JSON inválido", status=400)
+
+    building_id = data.get("building_id")
+    if not building_id:
+        return json_error("building_id requerido", status=400)
+
+    user = get_object_or_404(Usuario, id_usuario=user_id)
+    building = get_object_or_404(Building, id=building_id)
+
+    _, created = UserBuilding.objects.get_or_create(user=user, building=building)
+    assignments = list(
+        UserBuilding.objects.filter(user=user)
+        .select_related("building")
+        .values("building__id", "building__name")
+    )
+    edificios = [{"id": a["building__id"], "nombre": a["building__name"]} for a in assignments]
+    return json_ok({
+        "created": created,
+        "edificios": edificios,
+    })
+
+
+@login_required
+@admin_required
+@require_http_methods(["POST"])
+def user_unlink_building_view(request: HttpRequest, user_id: int) -> JsonResponse:
+    """Desvincula un edificio de un usuario. Requiere que quede al menos uno."""
+    from apps.core.services.http_response import json_error
+    import json as _json
+    try:
+        data = _json.loads(request.body)
+    except (_json.JSONDecodeError, ValueError):
+        return json_error("JSON inválido", status=400)
+
+    building_id = data.get("building_id")
+    if not building_id:
+        return json_error("building_id requerido", status=400)
+
+    user = get_object_or_404(Usuario, id_usuario=user_id)
+    total = UserBuilding.objects.filter(user=user).count()
+    if total <= 1:
+        return json_error("El usuario debe tener al menos un edificio asignado.", status=400)
+
+    deleted, _ = UserBuilding.objects.filter(user=user, building_id=building_id).delete()
+    if not deleted:
+        return json_error("Asignación no encontrada.", status=404)
+
+    assignments = list(
+        UserBuilding.objects.filter(user=user)
+        .select_related("building")
+        .values("building__id", "building__name")
+    )
+    edificios = [{"id": a["building__id"], "nombre": a["building__name"]} for a in assignments]
+    return json_ok({"edificios": edificios})

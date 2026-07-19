@@ -6,6 +6,8 @@ from .views import (
     user_update_view,
     user_delete_view,
     check_cedula_uniqueness_view,
+    user_link_building_view,
+    user_unlink_building_view,
 )
 from .emails import send_test_email, send_all_subscribers
 from .reports import user_pdf_view
@@ -42,5 +44,15 @@ urlpatterns = [
         "usuarios/pdf/",
         user_pdf_view,
         name="user_pdf",
+    ),
+    path(
+        "api/users/<int:user_id>/link-building/",
+        user_link_building_view,
+        name="user_link_building",
+    ),
+    path(
+        "api/users/<int:user_id>/unlink-building/",
+        user_unlink_building_view,
+        name="user_unlink_building",
     ),
 ]

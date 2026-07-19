@@ -28,9 +28,14 @@ Este enlace es válido durante las próximas 24 horas. Si usted no ha solicitado
 
 def build_user_data(user: Usuario) -> dict[str, Any]:
     person = user.id_persona
-    assignments = list(user.building_assignments.all())
-    ue = assignments[0] if assignments else None
-    building = ue.building if ue else None
+    assignments = list(user.building_assignments.select_related("building").all())
+    edificios_list = [
+        {"id": ue.building.id, "nombre": ue.building.name}
+        for ue in assignments
+        if ue.building
+    ]
+    # Backward compat: primer edificio para formularios legacy
+    first_building = assignments[0].building if assignments else None
     name = user.username
     last_name = ""
     id_number = ""
@@ -49,9 +54,12 @@ def build_user_data(user: Usuario) -> dict[str, Any]:
         "last_name": last_name,
         "email": email,
         "username": user.username,
-        "edificio_nombre": building.name if building else "",
-        "edificio_rif": building.rif if building else "",
-        "edificio_direccion": building.address if building else "",
+        # Lista completa de edificios (nueva UI)
+        "edificios_list": edificios_list,
+        # Campos legacy (primer edificio) — usados por formulario de edición y PDF
+        "edificio_nombre": ", ".join(e["nombre"] for e in edificios_list) if edificios_list else "",
+        "edificio_rif": first_building.rif if first_building else "",
+        "edificio_direccion": first_building.address if first_building else "",
         "registered": user.registered,
     }
 
@@ -135,25 +143,23 @@ def extract_post_data(request: HttpRequest) -> dict[str, Any]:
     }
 
 
-def has_required_fields(data: dict[str, Any]) -> bool:
-    return bool(
+def has_required_fields(data: dict[str, Any], require_building: bool = True) -> bool:
+    base = bool(
         data.get("primerNombre")
         and data.get("primerApellido")
         and data.get("email")
         and data.get("cedula")
-        and data.get("id_edificio")
     )
+    if require_building:
+        return base and bool(data.get("id_edificio"))
+    return base
 
 
-def build_required_field_errors(data: dict[str, Any]) -> dict[str, str]:
+def build_required_field_errors(data: dict[str, Any], require_building: bool = True) -> dict[str, str]:
     errors: dict[str, str] = {}
-    required = (
-        "primerNombre",
-        "primerApellido",
-        "email",
-        "cedula",
-        "id_edificio",
-    )
+    required = ["primerNombre", "primerApellido", "email", "cedula"]
+    if require_building:
+        required.append("id_edificio")
     for key in required:
         if not data.get(key):
             errors[key] = "Este campo es obligatorio."

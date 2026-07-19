@@ -70,7 +70,7 @@
         <th>Cédula</th>
         <th>Nombre</th>
         <th class="hide-on-mobile">Apellido</th>
-        <th class="hide-on-mobile">Edificio</th>
+        <th class="hide-on-mobile">Edificio(s)</th>
         <th class="col-email hide-on-mobile">Correo</th>
         <th class="col-actions">Acciones</th>
     </tr>
@@ -82,7 +82,7 @@
                 <td>{{ usuario.cedula }}</td>
                 <td>{{ usuario.nombre }}</td>
                 <td class="hide-on-mobile">{{ usuario.last_name }}</td>
-                <td class="hide-on-mobile" title="{{ usuario.edificio_nombre }}">{{ usuario.edificio_nombre }}</td>
+                <td class="hide-on-mobile" title="{{ usuario.edificio_nombre }}">{{ usuario.edificio_nombre|default:'—' }}</td>
                 <td class="col-email hide-on-mobile">{{ usuario.email|default:'—' }}</td>
                 <td class="col-actions">
                     <div class="actions-dropdown">
@@ -93,6 +93,12 @@
                             <a href="{% url 'user_edit' usuario.id %}" class="dropdown-item">
                                 <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Editar
                             </a>
+                            <button type="button" class="dropdown-item js-link-building-btn"
+                                    data-user-id="{{ usuario.id }}"
+                                    data-user-name="{{ usuario.nombre }} {{ usuario.last_name }}"
+                                    data-edificios='[{% for e in usuario.edificios_list %}{"id":{{ e.id }},"nombre":"{{ e.nombre|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'>
+                                <i class="fa-solid fa-link" aria-hidden="true"></i> Enlazar edificio
+                            </button>
                             {% if usuario.email %}
                             <button type="button" class="dropdown-item send-email-btn" data-email="{{ usuario.email }}">
                                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar correo
@@ -165,6 +171,7 @@
 {% block list_extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
     // ── Filter panel ──
     var overlay = document.getElementById('userFilterOverlay');
     var panel   = document.getElementById('userFilterPanel');
@@ -174,8 +181,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function openFilterPanel()  { panel.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
     function closeFilterPanel() { panel.classList.remove('open'); overlay.classList.remove('open'); document.body.style.overflow = ''; }
 
-    if (openBtn) openBtn.addEventListener('click', openFilterPanel);
-    if (overlay) overlay.addEventListener('click', closeFilterPanel);
+    if (openBtn)  openBtn.addEventListener('click', openFilterPanel);
+    if (overlay)  overlay.addEventListener('click', closeFilterPanel);
     if (closeBtn) closeBtn.addEventListener('click', closeFilterPanel);
 
     document.getElementById('applyUserPanelFilters').addEventListener('click', function () {
@@ -186,25 +193,20 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('q-usuarios').form.submit();
     });
 
-    // ── Botones individuales de envío por correo ──
+    // ── Enviar correo individual ──
     document.querySelectorAll('.send-email-btn').forEach(function (btn) {
         btn.addEventListener('click', async function (e) {
             e.stopPropagation();
-            var email    = btn.dataset.email;
             var origHTML = btn.innerHTML;
-            btn.disabled   = true;
-            btn.innerHTML  = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Enviando...';
+            btn.disabled  = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Enviando...';
             try {
                 var resp = await csrfFetch('/api/send-test-email/', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ email: email })
+                    method: 'POST',
+                    body: JSON.stringify({ email: btn.dataset.email })
                 });
                 var data = await resp.json();
-                showToast(
-                    data.message || (resp.ok ? 'Correo enviado correctamente.' : 'No se pudo enviar el correo.'),
-                    resp.ok ? 'success' : 'error'
-                );
+                showToast(data.message || (resp.ok ? 'Correo enviado correctamente.' : 'No se pudo enviar el correo.'), resp.ok ? 'success' : 'error');
             } catch (_) {
                 showToast('Error de conexión con el servidor.', 'error');
             } finally {
@@ -214,29 +216,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ── Botón "Enviar a todos" ──
+    // ── Enviar a todos ──
     var sendAllBtn = document.getElementById('sendAllEmailBtn');
     if (sendAllBtn) {
         sendAllBtn.addEventListener('click', async function () {
             var edificioId = sendAllBtn.dataset.edificioId;
-            if (!edificioId) {
-                showToast('Seleccione un edificio específico antes de usar «Enviar a todos».', 'info');
-                return;
-            }
-            var origHTML   = sendAllBtn.innerHTML;
+            if (!edificioId) { showToast('Seleccione un edificio específico antes de usar «Enviar a todos».', 'info'); return; }
+            var origHTML = sendAllBtn.innerHTML;
             sendAllBtn.disabled  = true;
             sendAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Enviando...';
             try {
                 var resp = await csrfFetch('/api/send-all-subscribers/', {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ edificio_id: edificioId })
+                    method: 'POST',
+                    body: JSON.stringify({ edificio_id: edificioId })
                 });
                 var data = await resp.json();
-                showToast(
-                    data.message || (resp.ok ? 'Correos enviados correctamente.' : 'No se pudieron enviar los correos.'),
-                    resp.ok ? 'success' : 'error'
-                );
+                showToast(data.message || (resp.ok ? 'Correos enviados correctamente.' : 'No se pudieron enviar los correos.'), resp.ok ? 'success' : 'error');
             } catch (_) {
                 showToast('Error de conexión con el servidor.', 'error');
             } finally {
@@ -245,6 +240,177 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // ────────────────────────────────────────────────────────
+    // ── Modal: Enlazar edificio ──
+    // ────────────────────────────────────────────────────────
+
+    // Todos los edificios del sistema (inyectados desde el contexto Django)
+    var ALL_BUILDINGS = [
+        {% for b in edificios %}{ id: {{ b.id }}, nombre: '{{ b.name|escapejs }}' }{% if not forloop.last %},{% endif %}{% endfor %}
+    ];
+
+    /**
+     * Abre el modal de vinculación construido dinámicamente
+     * con las mismas clases CSS que showCustomModal del sistema.
+     *
+     * @param {number}   userId         - ID del usuario a vincular
+     * @param {string}   userName       - Nombre legible del usuario
+     * @param {Array}    assignedBuildings - [{id, nombre}] ya asignados
+     * @param {Element}  triggerRow     - <tr> de la fila para actualizar texto tras vincular
+     */
+    function openLinkBuildingModal(userId, userName, assignedBuildings, triggerRow) {
+        var assignedIds = assignedBuildings.map(function(b) { return b.id; });
+        var available   = ALL_BUILDINGS.filter(function(b) { return assignedIds.indexOf(b.id) === -1; });
+
+        // ─ Construir DOM con las clases del sistema ─
+        var backdrop = document.createElement('div');
+        backdrop.className = 'custom-modal-backdrop';
+
+        var container = document.createElement('div');
+        container.className = 'custom-modal-container max-w-420';
+
+        // Header
+        var header = document.createElement('div');
+        header.className = 'custom-modal-header';
+        header.innerHTML = '<i class="fa-solid fa-link custom-modal-icon custom-modal-icon-warn"></i>';
+        var titleSpan = document.createElement('span');
+        titleSpan.className = 'custom-modal-title';
+        titleSpan.textContent = 'Enlazar edificio';
+        header.appendChild(titleSpan);
+        container.appendChild(header);
+
+        // Body
+        var body = document.createElement('div');
+        body.className = 'custom-modal-body text-left';
+
+        var selectEl = null;
+        var csInstance = null;
+
+        if (available.length === 0) {
+            var noMsg = document.createElement('p');
+            noMsg.className = 'text-sm m-0 text-secondary';
+            noMsg.textContent = 'Este usuario ya tiene todos los edificios disponibles asignados.';
+            body.appendChild(noMsg);
+        } else {
+            var lbl = document.createElement('label');
+            lbl.className = 'field-label d-block mb-1';
+            lbl.textContent = 'Edificio a vincular';
+            body.appendChild(lbl);
+
+            selectEl = document.createElement('select');
+            selectEl.className = 'custom-select-init w-100';
+            var defOpt = document.createElement('option');
+            defOpt.value = '';
+            defOpt.textContent = 'Seleccione un edificio';
+            selectEl.appendChild(defOpt);
+            available.forEach(function(b) {
+                var opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.nombre;
+                selectEl.appendChild(opt);
+            });
+            body.appendChild(selectEl);
+        }
+        container.appendChild(body);
+
+        // Actions
+        var actions = document.createElement('div');
+        actions.className = 'custom-modal-actions';
+
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.textContent = 'Cancelar';
+        actions.appendChild(cancelBtn);
+
+        var confirmBtn = document.createElement('button');
+        confirmBtn.className = 'btn btn-primary';
+        confirmBtn.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i> Vincular';
+        confirmBtn.disabled = (available.length === 0);
+        actions.appendChild(confirmBtn);
+
+        container.appendChild(actions);
+        backdrop.appendChild(container);
+        document.body.appendChild(backdrop);
+        setTimeout(function() { backdrop.classList.add('active'); }, 10);
+
+        // Inicializar CustomSelect del sistema
+        if (selectEl) {
+            csInstance = new CustomSelect(selectEl);
+            // Escuchar cambios en el <select> subyacente
+            selectEl.addEventListener('change', function() {
+                confirmBtn.disabled = !selectEl.value;
+            });
+        }
+
+        function cleanUp() {
+            backdrop.classList.remove('active');
+            setTimeout(function() { backdrop.remove(); }, 150);
+        }
+
+        cancelBtn.addEventListener('click', cleanUp);
+        backdrop.addEventListener('click', function(e) {
+            if (e.target === backdrop) cleanUp();
+        });
+
+        confirmBtn.addEventListener('click', async function() {
+            var buildingId = selectEl ? parseInt(selectEl.value) : null;
+            if (!buildingId) return;
+
+            var origHTML = confirmBtn.innerHTML;
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Vinculando...';
+
+            try {
+                var resp = await csrfFetch('/api/users/' + userId + '/link-building/', {
+                    method: 'POST',
+                    body: JSON.stringify({ building_id: buildingId })
+                });
+                var data = await resp.json();
+                if (resp.ok) {
+                    showToast('Edificio vinculado correctamente.', 'success');
+                    // Actualizar celda de la fila con el nuevo texto
+                    if (triggerRow) {
+                        var cell = triggerRow.querySelector('td.hide-on-mobile:nth-child(4)');
+                        if (cell) {
+                            cell.textContent = data.edificios.map(function(e) { return e.nombre; }).join(', ');
+                            cell.title = cell.textContent;
+                        }
+                        // Actualizar data-edificios del botón para la próxima apertura
+                        var linkBtn = triggerRow.querySelector('.js-link-building-btn');
+                        if (linkBtn) {
+                            linkBtn.dataset.edificios = JSON.stringify(data.edificios);
+                        }
+                    }
+                    cleanUp();
+                } else {
+                    showToast(data.error || 'No se pudo vincular el edificio.', 'error');
+                    confirmBtn.innerHTML = origHTML;
+                    confirmBtn.disabled = false;
+                }
+            } catch (_) {
+                showToast('Error de conexión con el servidor.', 'error');
+                confirmBtn.innerHTML = origHTML;
+                confirmBtn.disabled = false;
+            }
+        });
+    }
+
+    // Delegar click en todos los botones "Enlazar edificio"
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.js-link-building-btn');
+        if (!btn) return;
+        e.stopPropagation();
+
+        var userId   = parseInt(btn.dataset.userId);
+        var userName = btn.dataset.userName;
+        var assigned = [];
+        try { assigned = JSON.parse(btn.dataset.edificios || '[]'); } catch (_) {}
+        var row = btn.closest('tr');
+
+        openLinkBuildingModal(userId, userName, assigned, row);
+    });
+
 });
 </script>
 {% endblock %}

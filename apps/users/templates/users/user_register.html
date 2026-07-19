@@ -74,14 +74,21 @@
 
             <div class="form-row">
                 <div class="form-group">
+                    {% if not editing %}
                     <label for="id_edificio">Elegir edificio</label>
                     <select id="id_edificio" name="id_edificio" required class="custom-select-init {% if form_errors.id_edificio %}input-error-state{% endif %}">
-                        {% if not editing %}<option value="">Seleccione un edificio</option>{% endif %}
+                        <option value="">Seleccione un edificio</option>
                         {% for building in edificios %}
                             <option value="{{ building.id }}" {% if user.id_edificio == building.id %}selected{% endif %}>{{ building.name }}</option>
                         {% endfor %}
                     </select>
                     <div class="error-msg">{% if form_errors.id_edificio %}{{ form_errors.id_edificio }}{% endif %}</div>
+                    {% else %}
+                    <p class="form-hint" style="margin:0; color: var(--text-muted, #888); font-size: 0.85rem;">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        Los edificios asignados a este usuario se gestionan desde la lista de usuarios, usando el menú de acciones.
+                    </p>
+                    {% endif %}
                 </div>
             </div>
 
