@@ -2,18 +2,20 @@ from typing import Optional
 
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
-    ENUM_VARS)
+    ENUM_VARS,
+)
 
 
 def classify_risk(
     variable: str,
     value,
-    thresholds: Optional[dict] = None) -> tuple[str, str]:
+    thresholds: Optional[dict] = None,
+) -> tuple[str, str]:
     """Clasifica el riesgo de un sensor según los umbrales.
 
     La clasificación es puramente numérica/umbral, sin lógica contextual.
     Los escenarios de falla combinada se manejan por el sistema de alertas
-    compuestas (engine.py → send_compound_alert), no aquí.
+    compuestas (engine.py -> send_compound_alert), no aquí.
 
     Returns:
         Tupla (nivel_riesgo, color_css): uno de
@@ -21,9 +23,14 @@ def classify_risk(
     """
     # Sensores de enumeración (ej: elev_door_status)
     if variable in ENUM_VARS:
+        val_str = str(value).lower()
+        if val_str in ("blocked", "true"):
+            return RISK_ALTO, "orange"
+        if val_str == "error":
+            return RISK_CRITICO, "red"
         return RISK_NORMAL, "green"
 
-    # Sin umbrales configurados → Normal por defecto
+    # Sin umbrales configurados -> Normal por defecto
     if thresholds is None or variable not in thresholds:
         return RISK_NORMAL, "green"
 
@@ -31,7 +38,7 @@ def classify_risk(
     d = cfg["direction"]
 
     if d == "range":
-        low  = cfg["high"]    # límite crítico inferior
+        low = cfg["high"]     # límite crítico inferior
         high = cfg["critic"]  # límite crítico superior
         margin = (high - low) * 0.20
 
@@ -42,7 +49,7 @@ def classify_risk(
         return RISK_ALTO, "orange"
 
     if d == "lower":
-        high_thresh   = cfg["high"]
+        high_thresh = cfg["high"]
         critic_thresh = cfg["critic"]
         if value >= high_thresh:
             return RISK_NORMAL, "green"
@@ -51,7 +58,7 @@ def classify_risk(
         else:
             return RISK_CRITICO, "red"
 
-    high_thresh   = cfg["high"]
+    high_thresh = cfg["high"]
     critic_thresh = cfg["critic"]
     if value <= high_thresh:
         return RISK_NORMAL, "green"

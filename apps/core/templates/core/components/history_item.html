@@ -8,7 +8,7 @@
                 <span class="compound-subtitle"> - {{ record.parsed_data.value }}</span>
             </h3>
             <p class="hist-meta-text compound-action">{{ record.parsed_data.action }}</p>
-            <ul>
+            <ul class="compound-var-list">
                 {% for var in record.parsed_data.variables_detail %}
                 <li class="compound-var-item">
                     <strong>{{ var.display_name }}</strong>
@@ -35,6 +35,16 @@
             <span title="{{ record.date|date:'d/m/Y H:i' }}"><i class="fa-solid fa-clock" aria-hidden="true"></i> {{ record.date|naturaltime_es }}</span>
             {% if record.monitoring_equipment.building %}
             <span><i class="fa-solid fa-building" aria-hidden="true"></i> {{ record.monitoring_equipment.building.name }}</span>
+            {% endif %}
+            {% if record.monitoring_equipment %}
+            <span title="{{ record.monitoring_equipment.name }}">
+                {% if record.monitoring_equipment.equipment_type == 'elevador' %}
+                <i class="fa-solid fa-elevator" aria-hidden="true"></i>
+                {% else %}
+                <i class="fa-solid fa-water" aria-hidden="true"></i>
+                {% endif %}
+                {{ record.monitoring_equipment.get_equipment_type_display }}
+            </span>
             {% endif %}
         </div>
     </div>

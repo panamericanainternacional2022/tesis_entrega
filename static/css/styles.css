@@ -1465,6 +1465,10 @@ button {
 
 }
 
+.compound-var-list {
+    margin: var(--sp-2);
+}
+
 /* ─── Estado vacío ─── */
 .no-history {
     text-align: center;

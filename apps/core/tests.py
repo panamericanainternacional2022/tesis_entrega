@@ -82,6 +82,16 @@ class ClassifyRiskTests(TestCase):
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
 
+    def test_door_status_blocked_is_high_risk(self):
+        risk, color = classify_risk("elev_door_status", "blocked")
+        self.assertEqual(risk, RISK_ALTO)
+        self.assertEqual(color, "orange")
+
+    def test_door_status_error_is_critic_risk(self):
+        risk, color = classify_risk("elev_door_status", "error")
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
     # ── direction == "higher" ───────────────────────────────────────────────
     # Usando la estructura real: {"direction": "higher", "high": X, "critic": Y}
 

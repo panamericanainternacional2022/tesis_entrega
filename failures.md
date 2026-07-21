@@ -1,20 +1,22 @@
 # Funcionamiento del Sistema de Fallas en el Simulador
 
-Este documento detalla la arquitectura, el flujo y el comportamiento del sistema de fallas implementado en el simulador (Bomba de Agua y Elevador). Explica cómo interactúa la interfaz de usuario con el backend y cómo impactan estas fallas en las variables físicas de los equipos.
+Este documento detalla la arquitectura, el flujo y el comportamiento del sistema de fallas implementado en el simulador (Bomba de Agua y Elevador). Explica cómo interactúa la interfaz de usuario con el backend y cómo impactan estas fallas en las variables físicas y eléctricas de los equipos según los principios de la ingeniería real.
 
 ---
 
 ## 1. Interfaz de Usuario (Frontend)
 
-El selector de fallas se encuentra en la plantilla del panel de control: `monitoring_dashboard.html`. 
+El selector de fallas se encuentra en la plantilla del panel de control: `monitoring_dashboard.html`.
 
 ### Elementos Principales
-- **Selectores HTML**: Existen dos menús desplegables (`<select>`), uno para la bomba (`id="simFaultPump"`) y otro para el elevador (`id="simFaultElevator"`).
-- **Controlador JavaScript (`SimulationController`)**: El frontend escucha los cambios en estos selectores mediante el evento `change`. Cuando el usuario selecciona una falla o la opción "Ninguna", se ejecuta el método `_handleFaultChange(device, newFault)`.
+
+* **Selectores HTML**: Existen dos menús desplegables (`<select>`), uno para la bomba (`id="simFaultPump"`) y otro para el elevador (`id="simFaultElevator"`).
+* **Controlador JavaScript (`SimulationController`)**: El frontend escucha los cambios en estos selectores mediante el evento `change`. Cuando el usuario selecciona una falla o la opción "Ninguna", se ejecuta el método `_handleFaultChange(device, newFault)`.
 
 ### Comunicación con el API
-- **Inyectar falla**: Si se selecciona una falla (ej. `dry_run`), se hace una petición `POST` al endpoint `/api/sim/{ID_EDIFICIO}/inject-fault/` con un payload JSON: `{"device": "pump", "fault_type": "dry_run"}`.
-- **Limpiar falla**: Si se selecciona "Ninguna", se hace una petición `POST` a `/api/sim/{ID_EDIFICIO}/clear-fault/` con el payload: `{"device": "pump"}`.
+
+* **Inyectar falla**: Si se selecciona una falla (ej. `dry_run`), se hace una petición `POST` al endpoint `/api/sim/{ID_EDIFICIO}/inject-fault/` con un payload JSON: `{"device": "pump", "fault_type": "dry_run"}`.
+* **Limpiar falla**: Si se selecciona "Ninguna", se hace una petición `POST` a `/api/sim/{ID_EDIFICIO}/clear-fault/` con el payload: `{"device": "pump"}`.
 
 Además, existe sincronización en tiempo real mediante *Server-Sent Events (SSE)*. Si una falla se dispara automáticamente o se limpia desde otro cliente, la función `syncFromPayload` del frontend actualiza el selector para reflejar el estado exacto en el backend.
 
@@ -24,57 +26,66 @@ Además, existe sincronización en tiempo real mediante *Server-Sent Events (SSE
 
 Las llamadas de la API son procesadas en `apps/dashboard/simulation/controls.py`.
 
-- **`sim_inject_fault`**: Llama al núcleo de control del simulador. Primero limpia cualquier falla existente y luego inyecta la nueva. Además, reinicia el temporizador de "gracia de protección" para que el equipo no se apague inmediatamente si la protección está encendida.
-- **`sim_clear_fault`**: Limpia la falla solicitada.
+* **`sim_inject_fault`**: Llama al núcleo de control del simulador. Primero limpia cualquier falla existente y luego inyecta la nueva. Además, reinicia el temporizador de "gracia de protección" para que el equipo no se apague inmediatamente si la protección está encendida.
+* **`sim_clear_fault`**: Limpia la falla solicitada.
 
 ### Núcleo de Simulación (`apps/sensors/simulation/controls.py`)
-- Al inyectar la falla (`inject_fault`), se guarda el tipo de falla en el estado del simulador (`sim.sim_faults[device] = fault_type`) y se registra el momento exacto (`sim.fault_injected_at`). 
-- **Transición**: Se inicia el estado `sim.fault_transition_pump = "injecting"` (o `elev`). Esto le indica al motor de físicas que aplique los efectos de la falla progresivamente (no de golpe).
-- Al limpiar la falla (`clear_fault`), se limpia del estado del simulador y se pasa al estado `recovering` (`sim.fault_transition = "recovering"`), lo cual indica al motor que regrese los valores a la normalidad de forma suave, permitiendo que las alertas previas sean marcadas como resueltas en el historial (`History`).
+
+* Al inyectar la falla (`inject_fault`), se guarda el tipo de falla en el estado del simulador (`sim.sim_faults[device] = fault_type`) y se registra el momento exacto (`sim.fault_injected_at`).
+* **Transición**: Se inicia el estado `sim.fault_transition_pump = "injecting"` (o `elev`). Esto le indica al motor de físicas que aplique los efectos de la falla progresivamente (siguiendo curvas de respuesta temporal de primer u orden superior) y no de forma instantánea no natural.
+* Al limpiar la falla (`clear_fault`), se limpia del estado del simulador y se pasa al estado `recovering` (`sim.fault_transition = "recovering"`), lo cual indica al motor que regrese los valores a la normalidad de forma suave, permitiendo que las alertas previas sean marcadas como resueltas en el historial (`History`).
 
 ---
 
 ## 3. Tipos de Fallas y Variables Afectadas
 
-Cada falla está configurada en `apps/sensors/sensor_config.py` y afecta un subconjunto específico de sensores para imitar un comportamiento real.
+Cada falla está configurada en `apps/sensors/sensor_config.py` y afecta un subconjunto específico de sensores para imitar con fidelidad técnica el comportamiento físico y eléctrico.
 
-### Bomba de Agua
-Cada falla inyectada en la bomba altera la simulación física (en `apps/sensors/simulation/physics/pump.py`) de la siguiente manera:
+### Bomba de Agua centrífuga
 
-| Falla | Identificador | Comportamiento Físico y Matemático | Sensores afectados |
-|---|---|---|---|
-| **Sequía (Trabajo en seco)** | `dry_run` | Al no haber fluido, `pump_flow_rate`, `pump_pressure` y el nivel de tanque caen a 0. La falta de fluido para refrigerar el sistema hace que la temperatura (`pump_temperature`) suba un 15% sobre su umbral crítico. El desbalance mecánico eleva la vibración un 25% sobre el crítico. La corriente cae a consumo en vacío (`3.5 A`). | Caudal, Presión, Temperatura, Vibración, Nivel, Corriente |
-| **Descarga bloqueada** | `blocked_discharge` | El fluido no puede escapar (`pump_flow_rate` = 0). La energía del motor se convierte en presión extrema (`pump_pressure` sube 25% sobre el crítico - Shut-off head). La temperatura sube un 25% sobre el crítico por estancamiento de líquido en carcasa. La corriente baja a `8.5 A` por la curva P-Q en centrífugas. Nivel de tanque se mantiene estático. | Caudal, Presión, Vibración, Temperatura, Corriente |
-| **Ruptura de tubería** | `pipe_burst` | Fuga masiva que dispara el caudal un 30% sobre el crítico (runout), vaciando el tanque a 0%. La presión colapsa a 0. Se eleva la corriente a máxima carga (15% sobre crítico), la vibración un 20% (golpe de ariete), la **temperatura un 15% sobre el crítico por la sobrecarga mecánica del runout** y la turbidez un 25% sobre el crítico por arrastre de sedimentos. | Caudal, Presión, Vibración, Temperatura, Corriente, Calidad de agua, Nivel |
-| **Cavitación** | `cavitation` | Formación e implosión de burbujas de vapor. Caudal (1.5-4.5 l/s) y presión (0.1-0.6 bar) altamente oscilantes. Vibración alcanza pico extremo (+45% sobre crítico + jitter). Corriente inestable/baja (7.5-10.5 A) y turbidez alta (+20% sobre crítico por erosión del impulsor). | Caudal, Presión, Vibración, Temperatura, Corriente, Calidad de agua |
-| **Sobrecalentamiento** | `overheat` | Ascenso térmico directo. La temperatura supera un 20% el umbral crítico. La corriente es ligeramente alta (+5% sobre crítico) y la vibración sube un 15% por dilatación térmica. **El caudal y la presión presentan una degradación visible del 25%** por pérdida de eficiencia volumétrica del impulsor. | Temperatura, Vibración, Corriente, Caudal, Presión |
-| **Sobrecarga eléctrica** | `power_surge` | Sobrecarga por rotor atascado/sobrecorriente. Corriente alcanza pico crítico (+25% sobre crítico, $I > I_{nom}$). El voltaje sufre una caída de tensión (Sag a `185 V`). La temperatura del motor sube un 15% y el sistema cae flujo y presión a 0 por pérdida de RPM/atasco. | Caudal, Presión, Voltaje, Corriente, Temperatura, Vibración |
-| **Corte eléctrico** | `power_outage` | Pérdida total de energía. Voltaje, corriente, caudal, presión y vibración caen a 0. Nivel de tanque se congela. La temperatura inicia un enfriamiento progresivo inercial hacia la temperatura ambiente (`22°C`). | Todos (Pasan a 0, Temp enfriando a ambiente) |
-| **Falla de rodamientos** | `bearing_failure` | Falla mecánica en el eje. La fricción dispara la vibración a pico extremo (+35% sobre crítico). La temperatura chumacera sube un 12% sobre crítico y la corriente sube un 8% por roce mecánico. Las virutas de metal elevan la turbidez un 20% sobre crítico. **El caudal y la presión presentan una degradación visible del 25%** por pérdida de eficiencia hidráulica y volumétrica del eje dañado. | Vibración, Temperatura, Corriente, Calidad de agua, Caudal, Presión |
+Cada falla inyectada en la bomba altera la simulación física (en `apps/sensors/simulation/physics/pump.py`) aplicando las leyes hidráulicas y la relación de potencia $P \propto Q \cdot H$:
+
+| Falla | Identificador | Comportamiento Físico y Matemático Real | Sensores afectados |
+| --- | --- | --- | --- |
+| **Sequía (Trabajo en seco)** | `dry_run` | El tanque de succión se vacía ($0\%$). Al no haber fluido en la cámara, $Q=0$ y $P=0$. El motor gira prácticamente sin carga hidráulica, cayendo la corriente a consumo en vacío ($I \approx 30\%$ de $I_{nom}$). Sin fluido para lubricar y disipar calor, el sello mecánico genera fricción seca, elevando la temperatura ($+30\%$ sobre crítico). La turbulencia de aire genera vibración desbalanceada ($+20\%$). El nivel del tanque de descarga se congela. | Caudal, Presión, Temperatura, Vibración, Nivel succión, Corriente |
+| **Descarga bloqueada** | `blocked_discharge` | Válvula de salida cerrada ($Q=0$). La bomba opera en el punto de corte (*Shut-off head*), llevando la presión a su máximo estático ($+30\%$ sobre crítico). En bombas centrífugas, a caudal cero la potencia consumida es mínima, bajando la corriente a $\approx 50-60\%$ de $I_{nom}$. La energía mecánica remanente se disipa como calor en el agua atrapada, haciendo ebullir el líquido en la carcasa e incrementando la temperatura exponencialmente ($+45\%$ sobre crítico) y generando cavitación por ebullición. | Caudal, Presión, Temperatura, Vibración, Corriente |
+| **Ruptura de tubería** | `pipe_burst` | Pérdida repentina de contrapresión (zona de *Runout*). El caudal se dispara al máximo ($+40\%$ sobre crítico) y la presión colapsa a $\approx 0\text{ bar}$. La demanda de mover este volumen descontrolado exige torque máximo al motor, provocando sobrecarga eléctrica severa ($I \approx +35\%$ sobre crítico). La turbulencia extrema en el punto de rotura eleva la vibración ($+25\%$) y la corriente sostenida eleva la temperatura del estator ($+20\%$). | Caudal, Presión, Vibración, Temperatura, Corriente, Nivel descarga |
+| **Cavitación** | `cavitation` | Formación e implosión de microburbujas de vapor por baja presión de succión (NPSHa < NPSHr). Provoca fluctuaciones erráticas y ruidosas en el caudal y la presión. El choque de las implosiones genera picos extremos de vibración de alta frecuencia ($+50\%$ sobre crítico con alto *jitter*). La erosión genera micropartículas que incrementan ligeramente la turbidez a largo plazo. | Caudal, Presión, Vibración, Corriente, Calidad de agua |
+| **Sobrecalentamiento** | `overheat` | Ascenso térmico directo por falla en ventilación o alta temperatura ambiente ($+25\%$ sobre crítico). La dilatación térmica reduce las holguras mecánicas de la bomba, incrementando el roce; esto produce una ligera sobrecorriente ($+8\%$), aumento de vibración ($+15\%$) y una degradación volumétrica progresiva del $10-15\%$ en caudal y presión. | Temperatura, Vibración, Corriente, Caudal, Presión |
+| **Sobrecarga eléctrica / Rotor atascado** | `power_surge` | Bloqueo mecánico del eje o falla severa en el bobinado. El caudal y la presión caen a $0$ de forma instantánea. Al no haber rotación ($RPM=0$), la contra-fuerza electromotriz desaparece y la corriente se dispara a la corriente de rotor bloqueado ($LRA \approx 400-500\%$ de $I_{nom}$). Esto provoca una caída de tensión severa en la red (*Sag* en voltaje) y un calentamiento crítico del estator antes de que salte la protección térmica. | Caudal, Presión, Voltaje, Corriente, Temperatura |
+| **Corte eléctrico** | `power_outage` | Pérdida total de suministro eléctrico. Voltaje, corriente, caudal, presión y vibración caen a $0$ inmediatamente. El nivel del tanque se congela. La temperatura del motor inicia un enfriamiento progresivo hacia la temperatura ambiente ($T_{amb} = 22^\circ\text{C}$) siguiendo la ley de enfriamiento de Newton: $T(t) = T_{amb} + (T_{actual} - T_{amb}) \cdot e^{-kt}$. | Todos (Pasan a 0; Temperatura enfriando progresivamente) |
+| **Falla de rodamientos** | `bearing_failure` | Degeneración física de la pista/bolas del rodamiento. El aumento de fricción dispara las lecturas de vibración a valores críticos ($+40\%$) y eleva la temperatura localizada en la chumacera ($+20\%$). El torque de fricción adicional eleva ligeramente el consumo eléctrico ($I \approx +10\%$). La pérdida de alineación axial/radial causa una leve pérdida de eficiencia hidráulica en caudal y presión ($\approx 10\%$). | Vibración, Temperatura, Corriente, Caudal, Presión |
 
 ### Elevador
-Las fallas del elevador se simulan en la máquina de estados y física (en `apps/sensors/simulation/physics/elevator.py`):
 
-| Falla | Identificador | Comportamiento Físico y Matemático | Sensores afectados |
-|---|---|---|---|
-| **Motor atascado** | `motor_stuck` | El par motor (torque) se vuelve 0.0 (rotor bloqueado). La velocidad cae a 0. Al aplicar energía a un motor inmovilizado, la corriente se dispara un 5% por encima de lo crítico. Esto genera un calentamiento rápido (10% sobre crítico) y vibración severa por el esfuerzo del estator (15% sobre crítico). El voltaje de red sufre una caída (baja al 90% del crítico) debido a la sobrecorriente. | Temperatura, Velocidad, Corriente, Estado puerta, Voltaje, Vibración |
-| **Puerta bloqueada** | `door_blocked` | Se fuerza la bandera `_elev_door_obstructed = True`. La máquina de estados impide que el elevador arranque si las puertas no pueden cerrarse. El estado de la puerta se mantiene en `open`, y la velocidad y corriente se quedan en 0 de manera indefinida. | Estado puerta, Velocidad |
-| **Exceso de velocidad** | `overspeed` | El gobernador de velocidad y los frenos fallan. La aceleración no se detiene en la velocidad de crucero. La cabina excede la velocidad límite por un 15%, y debido a las fuerzas cinéticas extremas, la vibración supera en un 10% el umbral crítico, al igual que la temperatura de los componentes. | Velocidad, Corriente, Estado puerta, Vibración |
-| **Sobrecarga** | `overload` | Se inyecta una masa virtual extra que empuja la lectura de peso un 5% por encima del umbral crítico de bloqueo del edificio. Al detectar que la carga total supera el límite, el sistema de seguridad físico aborta el cierre de puertas (abre puertas), y el motor no puede arrancar (velocidad y corriente a 0). | Carga, Estado puerta, Velocidad, Corriente, Vibración |
-| **Fallo de sensor de posición** | `pos_sensor_fail` | La lectura del sensor de posición se congela (se guarda en `_elev_pos_stuck_value`). Un algoritmo del motor detecta una inconsistencia: si el motor se mueve (velocidad > 0) pero la posición no cambia durante más de 1 "tick", se activa el freno de emergencia de inmediato (parada instantánea, velocidad y corriente a 0). | Posición, Velocidad, Estado puerta |
-| **Corte de energía comercial** | `commercial_power_outage` | Se corta la alimentación trifásica (voltaje y torque caen a 0). El freno electromecánico actúa por falta de tensión, deteniendo la cabina abruptamente (velocidad cae 2.5 m/s por tick). Tras una pausa, se enciende una batería de rescate de baja potencia que mueve la cabina lentamente (`BATTERY_RESCUE_SPEED`) hasta el piso más cercano para liberar a los pasajeros. | Voltaje, Corriente, Velocidad, Estado puerta, Temperatura |
-| **Pérdida de tracción** | `traction_loss` | Los cables patinan sobre la polea. El motor gira a velocidad normal, pero el multiplicador de cambio de posición cae al 10% (la cabina apenas se mueve). Girar en falso con deslizamiento de cables genera golpes mecánicos (vibración 15% sobre crítico). El motor, al girar sin arrastrar la carga completa, consume poca corriente (solo corriente en vacío, 20% de la nominal) pero se sobrecalienta por mala disipación (10% sobre crítico). | Posición, Velocidad, Corriente, Vibración, Temperatura |
+Las fallas del elevador se simulan en la máquina de estados y física (`apps/sensors/simulation/physics/elevator.py`):
+
+| Falla | Identificador | Comportamiento Físico y Matemático Real | Sensores afectados |
+| --- | --- | --- | --- |
+| **Motor atascado** | `motor_stuck` | Rotor inmovilizado ($RPM=0$). Aceleración y velocidad caen a $0$. Se aplica corriente de rotor bloqueado ($I \approx 400\%$ sobre nominal), lo que genera caída de voltaje en red (Sag al $90\%$), aumento térmico acelerado en el estator ($+20\%$) y fuerte zumbido/vibración magnética ($+20\%$). | Temperatura, Velocidad, Corriente, Estado puerta, Voltaje, Vibración |
+| **Puerta bloqueada** | `door_blocked` | Se activa la bandera de obstrucción física (`_elev_door_obstructed = True`). La lógica de seguridad impide el arranque del equipo mientras el contacto de seguridad de puerta esté abierto. El estado permanece en `open`, la velocidad se mantiene en $0$ m/s y el consumo eléctrico se limita a los circuitos de control. | Estado puerta, Velocidad, Corriente |
+| **Exceso de velocidad** | `overspeed` | Falla en el control vectorial/freno dinámico. La cabina acelera superando la velocidad nominal por un $+20\%$ hasta alcanzar el umbral del gobernador de velocidad. Las fuerzas dinámicas e inerciales elevan la vibración ($+15\%$) y la temperatura de las guías y poleas por fricción. | Velocidad, Corriente, Estado puerta, Vibración |
+| **Sobrecarga** | `overload` | Carga útil medida por pesacargas supera el $100\%$ de la capacidad nominal. El sistema de maniobra inhabilita el cierre de puertas y bloquea la orden de viaje (velocidad = $0$, motor sin energizar). Se activa señal auditiva/visual de sobrecarga. | Carga, Estado puerta, Velocidad, Corriente |
+| **Fallo de sensor de posición** | `pos_sensor_fail` | Pérdida o congelamiento del conteo del encoder (`_elev_pos_stuck_value`). La lógica de control detecta una inconsistencia entre la velocidad real medida/ordenada y la variación nula de posición. Tras $1$ ciclo de simulación, el sistema ejecuta una parada de emergencia activando el freno electromecánico. | Posición, Velocidad, Estado puerta, Corriente |
+| **Corte de energía comercial** | `commercial_power_outage` | Pérdida del suministro eléctrico principal ($V=0$). El freno electromecánico cae por falta de tensión deteniendo la cabina inmediatamente. Tras una retardo de seguridad, se activa el sistema de rescate automático por baterías (UPS), moviendo la cabina a velocidad reducida (`BATTERY_RESCUE_SPEED`) hacia el nivel más cercano para abrir puertas. | Voltaje, Corriente, Velocidad, Estado puerta, Temperatura |
+| **Pérdida de tracción** | `traction_loss` | Deslizamiento de los cables sobre la polea de tracción por desgaste de gargantas o falta de adherencia. El motor gira a velocidad angular nominal y consume baja corriente (sin carga efectiva $\approx 30\%$), pero la velocidad lineal real de la cabina cae al $10\%$. La fricción del cable deslizante genera vibración e incremento térmico en poleas. | Posición, Velocidad, Corriente, Vibración, Temperatura |
 
 ---
 
 ## 4. Funcionalidades Complementarias
 
-El sistema de fallas se complementa con dos funciones importantes:
+El sistema de fallas se complementa con dos funciones de control industrial:
 
 ### Fallas Automáticas (`Toggle Auto Faults`)
-Si el usuario activa la "inyección aleatoria de fallas", el motor (en cada "tick" de simulación) cuenta un tiempo aleatorio y dispara por su cuenta alguna de las fallas mencionadas. Esto desactiva temporalmente los selectores manuales en el frontend para evitar cruces. 
+
+Si el usuario activa la "inyección aleatoria de fallas", el motor de simulación calcula intervalos estocásticos mediante distribución de Poisson o temporizadores aleatorios para inyectar fallas de forma autónoma. Esto deshabilita temporalmente los selectores manuales de la interfaz gráfica para garantizar la consistencia de datos.
 
 ### Protección Automática (`Toggle Protection`)
-Cuando la "Protección Automática" está activa (botón con escudo en el UI), el simulador vigila la presencia de fallas. Si una falla crítica persiste por unos segundos (periodo de gracia), el motor **apaga automáticamente el equipo** para prevenir un daño mayor. Al apagar el equipo:
-1. Las métricas caen a cero.
-2. Si el motor se apaga, la falla se autolimpia (`clear_fault(device)`), lo que devuelve el sistema a un estado seguro, listo para volver a ser encendido.
+
+Simula el comportamiento de un tablero de control industrial moderno (con guardamotor, relé térmico y variador de frecuencia). Cuando la protección está activa:
+
+1. **Monitoreo de Umbrales:** El sistema evalúa si alguna variable sobrepasa los límites críticos de operación.
+2. **Tiempo de Gracia:** Inicia un temporizador (*trip delay*). Si la falla persiste tras vencer el tiempo de gracia, el sistema dispara el relé de disparo (*TRIP*).
+3. **Apagado Seguro y Limpieza:** El equipo se apaga (caudal, corriente, velocidad caen a $0$). La falla que originó el disparo se autolimpia (`clear_fault`), permitiendo que el equipo pase al estado de "Listo para Rearme/Reset".
+
+---
