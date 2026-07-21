@@ -13,14 +13,14 @@ from apps.sensors.simulation.utils import clamp
 
 # ── Tasas de ramping progresivo por variable (unidades por tick) ──
 PUMP_RAMP_RATES = {
-    "pump_flow_rate":     3.0,   # l/s/tick  - 12→0 en ~4s
-    "pump_pressure":      1.5,   # bar/tick  - 5→0 en ~3s
-    "pump_temperature":   8.0,   # °C/tick   - 50→90 en ~5s (masa térmica)
-    "pump_vibration":     2.0,   # mm/s/tick - 1→10 en ~4.5s
-    "pump_current":       4.0,   # A/tick    - 13→0/25 en ~3-6s
-    "pump_voltage":       30.0,  # V/tick    - 220→0/300 en ~7-10s
-    "pump_tank_level":    5.0,   # %/tick    - 50→0 en ~10s
-    "pump_water_quality": 30.0,  # ppm/tick  - 200→600 en ~13s
+    "pump_flow_rate":     5.0,    # l/s/tick
+    "pump_pressure":      3.0,    # bar/tick
+    "pump_temperature":   2.5,    # °C/tick  - Inercia térmica (calentamiento/enfriamiento progresivo)
+    "pump_vibration":     3.0,    # mm/s/tick
+    "pump_current":       8.0,    # A/tick   - Respuesta eléctrica rápida
+    "pump_voltage":       220.0,  # V/tick   - Escalón prácticamente instantáneo
+    "pump_tank_level":    1.0,    # %/tick   - Dinámica de masa lenta
+    "pump_water_quality": 15.0,   # ppm/tick - Disolución/arrastre progresivo
 }
 
 
@@ -32,44 +32,33 @@ def _update_pump(sim: BuildingSimulator) -> None:
     sd = sim.sensor_data
     dt = sim.sim_speed
 
-    # ── Tank level physics ──────────────────────────────────────────────────
-    if sim.pump_on:
-        is_pumping = "pump" not in sim.sim_faults
-        inflow = sd.get("pump_flow_rate", 0.0) if is_pumping else 0.0
+    # ── Tank level physics (solo en operación normal sin fallas activas) ─────
+    if sim.pump_on and "pump" not in sim.sim_faults:
+        from apps.thresholds.services import get_thresholds
+        thresh = get_thresholds(sim.edificio_id)
+        inflow = sd.get("pump_flow_rate", 0.0)
 
-        is_dry_run = sim.sim_faults.get("pump") == "dry_run"
-        if not is_dry_run:
-            from apps.thresholds.services import get_thresholds
-            thresh = get_thresholds(sim.edificio_id)
-            flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
-            target_max = max(5.0, flow_high * 0.85)
-            target_min = max(0.0, target_max - 5.0)
-            outflow = (target_max + target_min) / 2.0 + random.uniform(-1.0, 1.0)
-        else:
-            outflow = 0.0
+        flow_high = thresh.get("pump_flow_rate", {}).get("high", 18.0)
+        target_max = max(5.0, flow_high * 0.85)
+        target_min = max(0.0, target_max - 5.0)
+        outflow = (target_max + target_min) / 2.0 + random.uniform(-1.0, 1.0)
 
         net = inflow - outflow
         d_tank = net * 0.05 * dt + random.uniform(-0.1, 0.1) * dt
         
         new_tank = sd["pump_tank_level"] + d_tank
         
-        # Enforce safe normal regime for tank level if no fault
-        if "pump" not in sim.sim_faults:
-            tank_t = thresh.get("pump_tank_level", {})
-            safe_tank_min = tank_t.get("high", 20.0) + (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.25
-            safe_tank_max = tank_t.get("critic", 90.0) - (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.25
-            if new_tank < safe_tank_min:
-                new_tank = min(safe_tank_min, new_tank + 5.0 * dt)
-            elif new_tank > safe_tank_max:
-                new_tank = max(safe_tank_max, new_tank - 5.0 * dt)
-            
+        tank_t = thresh.get("pump_tank_level", {})
+        safe_tank_min = tank_t.get("high", 20.0) + (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.25
+        safe_tank_max = tank_t.get("critic", 90.0) - (tank_t.get("critic", 90.0) - tank_t.get("high", 20.0)) * 0.25
+        if new_tank < safe_tank_min:
+            new_tank = min(safe_tank_min, new_tank + 5.0 * dt)
+        elif new_tank > safe_tank_max:
+            new_tank = max(safe_tank_max, new_tank - 5.0 * dt)
+        
         sd["pump_tank_level"] = round(clamp(new_tank, sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[0], sim.sensor_limits.get('pump_tank_level', (0.0, 100.0))[1]), 1)
 
-    # Float switch automático eliminado - la bomba se controla únicamente de forma manual.
-
-    # ── Dispatch to correct operating mode ─────────────────────────────────
-    # Recovery countdown (debe ejecutarse incluso con bomba apagada,
-    # de lo contrario auto-proteccion deja fault_transition atascado en "recovering")
+    # Recovery countdown
     if sim.fault_transition_pump == "recovering":
         sim._fault_transition_ticks_pump -= 1
         if sim._fault_transition_ticks_pump <= 0:
@@ -103,7 +92,6 @@ def _set_pump_idle(sim: BuildingSimulator, sd: dict, dt: float) -> None:
             0.0, sim.sensor_limits.get('pump_voltage', (0.0, 300.0))[1],
         ), 1
     )
-    # Reducimos la fluctuación a medida que el caudal llega a cero
     current_flow = sd.get("pump_flow_rate", 0.0)
     noise_amp = max(0.0, min(1.0, current_flow / 5.0))
     
@@ -185,6 +173,12 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
         if not _ramp_toward_target(sd, k, target, rate, dt):
             all_reached = False
 
+    if fault_type == "cavitation":
+        sd["pump_flow_rate"]   = round(clamp(temp_sd["pump_flow_rate"], 0.0, 50000.0), 1)
+        sd["pump_pressure"]    = round(clamp(temp_sd["pump_pressure"], 0.0, 10.0), 1)
+        sd["pump_current"]     = round(clamp(temp_sd["pump_current"], 0.0, 30.0), 1)
+        sd["pump_vibration"]   = round(clamp(temp_sd["pump_vibration"], 0.0, 15.0), 1)
+
     if fault_type != "power_outage":
         _clamp_pump_values(sim, sd)
 
@@ -192,146 +186,148 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _apply_dry_run(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Sequía: sin caudal, sin presión, temperatura y vibración superan el umbral crítico."""
+    """Sequía (Marcha en seco): Caudal=0, Presión=0, Nivel Tanque=0%, Corriente=Muy Baja (Sin carga ~3.5A), Temp y Vib Altas."""
     lim = sim.sensor_limits
     sd["pump_flow_rate"]   = 0.0
     sd["pump_pressure"]    = 0.0
-    # Temperatura → superar el crítico (con techo en el límite físico)
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.08)
-    # Vibración → superar el crítico
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.1)
-    sd["pump_current"]     = 0.0
     sd["pump_tank_level"]  = 0.0
+    
+    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
+    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1], temp_critic * 1.15)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.25)
+    
+    sd["pump_current"]     = 3.5
 
 
 def _apply_blocked_discharge(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Descarga bloqueada: sin caudal, presión excede crítico, temperatura y vibración altas."""
+    """Descarga Bloqueada (Deadheading): Presión=Pico Máximo, Caudal=0, Temp=Muy Alta, Corriente=Baja (~8.5A), Nivel=Estático."""
     lim = sim.sensor_limits
     sd["pump_flow_rate"]   = 0.0
-    # Presión → superar el crítico (descarga bloqueada la sube)
-    press_critic = _thresh_critic(thresh, "pump_pressure", 6.0)
-    sd["pump_pressure"]    = min(lim.get("pump_pressure", (0.0, 10.0))[1],
-                                 press_critic * 1.1)
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.1)
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.05)
-    curr_critic = _thresh_critic(thresh, "pump_current", 20.0)
-    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1],
-                                 curr_critic * 1.05)
-    sd["pump_tank_level"]  = clamp(sd["pump_tank_level"] + 0.1 * dt, 0.0, 100.0)
+    
+    press_critic = _thresh_critic(thresh, "pump_pressure", 8.0)
+    sd["pump_pressure"]    = min(lim.get("pump_pressure", (0.0, 10.0))[1], press_critic * 1.25)
+    
+    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
+    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1], temp_critic * 1.25)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.15)
+    
+    sd["pump_current"]     = 8.5
 
 
 def _apply_pipe_burst(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Rotura de tubería: caudal excede crítico, presión cae a cero."""
+    """Ruptura de Tubería: Caudal=Pico Máximo, Presión=0, Corriente=Alta (Carga Máxima), Turbidez=Alta, Tanque baja a 0%."""
     lim = sim.sensor_limits
-    # Caudal → superar el umbral crítico (fuga masiva)
-    flow_critic = _thresh_critic(thresh, "pump_flow_rate", 20.0)
-    sd["pump_flow_rate"]   = min(lim.get("pump_flow_rate", (0.0, 50000.0))[1],
-                                 flow_critic * 1.15)
+    flow_critic = _thresh_critic(thresh, "pump_flow_rate", 22.0)
+    sd["pump_flow_rate"]   = min(lim.get("pump_flow_rate", (0.0, 50000.0))[1], flow_critic * 1.30)
     sd["pump_pressure"]    = 0.0
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.1)
-    curr_critic = _thresh_critic(thresh, "pump_current", 20.0)
-    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1],
-                                 curr_critic * 1.05)
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.05)
+    
+    curr_critic = _thresh_critic(thresh, "pump_current", 22.0)
+    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.15)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.20)
+    
+    qual_critic = _thresh_critic(thresh, "pump_water_quality", 500.0)
+    sd["pump_water_quality"] = min(lim.get("pump_water_quality", (0.0, 1000.0))[1], qual_critic * 1.25)
+    
     sd["pump_tank_level"]  = 0.0
 
 
 def _apply_cavitation(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Cavitación: caudal errático, presión colapsa, vibración y temperatura superan crítico."""
+    """Cavitación: Presión y Caudal oscilantes/bajos, Vibración=Pico Extremo, Corriente=Inestable/baja, Turbidez=Alta."""
     lim = sim.sensor_limits
-    flow_high = _thresh_high(thresh, "pump_flow_rate", 18.0)
-    flow_critic = _thresh_critic(thresh, "pump_flow_rate", 22.0)
-    # Caudal errático entre el umbral alto y el crítico
-    sd["pump_flow_rate"]   = random.uniform(flow_high * 0.8, min(lim.get("pump_flow_rate", (0.0, 50000.0))[1],
-                                                                   flow_critic * 1.05))
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.1)
-    sd["pump_pressure"]    = random.uniform(0.0, 0.5)
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.05)
-    curr_critic = _thresh_critic(thresh, "pump_current", 20.0)
-    sd["pump_current"]     = random.uniform(
-        min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.0),
-        min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.1),
-    )
+    
+    sd["pump_flow_rate"]   = random.uniform(1.5, 4.5)
+    sd["pump_pressure"]    = random.uniform(0.1, 0.6)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.45 + random.uniform(-0.4, 0.4))
+    
+    sd["pump_current"]     = random.uniform(7.5, 10.5)
+    
+    qual_critic = _thresh_critic(thresh, "pump_water_quality", 500.0)
+    sd["pump_water_quality"] = min(lim.get("pump_water_quality", (0.0, 1000.0))[1], qual_critic * 1.20)
+    
+    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
+    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1], temp_critic * 1.05)
 
 
 def _apply_overheat(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Sobrecalentamiento: temperatura supera el umbral crítico definido por el usuario."""
+    """Sobrecalentamiento: Temperatura=Pico Crítico, Corriente=Ligeramente Alta, Presión/Caudal=Normales o leve degradación."""
     lim = sim.sensor_limits
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.1)
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.1)
-    curr_critic = _thresh_critic(thresh, "pump_current", 20.0)
-    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1],
-                                 curr_critic * 1.05)
-    sd["pump_flow_rate"]   = 0.0
+    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
+    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1], temp_critic * 1.20)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.15)
+    
+    curr_critic = _thresh_critic(thresh, "pump_current", 22.0)
+    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.05)
+    
+    base_demand = getattr(sim, "_pump_demand", 12.0)
+    degraded_flow = base_demand * 0.95
+    sd["pump_flow_rate"]   = min(lim.get("pump_flow_rate", (0.0, 50000.0))[1], degraded_flow)
+    degraded_press = max(0.5, PUMP_P0 - PUMP_K * (degraded_flow ** 2)) * 0.95
+    sd["pump_pressure"]    = min(lim.get("pump_pressure", (0.0, 10.0))[1], degraded_press)
 
 
 def _apply_power_surge(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Sobretensión: voltaje y corriente superan el umbral crítico."""
+    """Sobrecarga Eléctrica: Corriente=Pico Crítico (I > I_nom), Voltaje=Caída puntual (Sag), Temp Motor=Muy Alta, Caudal/Presión cayendo a cero."""
     lim = sim.sensor_limits
-    volt_critic = _thresh_critic(thresh, "pump_voltage", 260.0)
-    sd["pump_voltage"]     = min(lim.get("pump_voltage", (0.0, 300.0))[1],
-                                 volt_critic * 1.1)
-    curr_critic = _thresh_critic(thresh, "pump_current", 20.0)
-    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1],
-                                 curr_critic * 1.1)
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.05)
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.05)
+    
+    curr_critic = _thresh_critic(thresh, "pump_current", 22.0)
+    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.25)
+    
+    sd["pump_voltage"]     = 185.0
+    
+    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
+    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1], temp_critic * 1.15)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.10)
+    
     sd["pump_flow_rate"]   = 0.0
     sd["pump_pressure"]    = 0.0
 
 
 def _apply_power_outage(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Corte de energía: todos los valores caen a cero / temperatura ambiente."""
+    """Corte Eléctrico: Voltaje=0, Corriente=0, Presión=0, Caudal=0, Vibración=0, Temp=Enfriamiento progresivo hacia T_AMBIENT."""
     sd["pump_voltage"]     = 0.0
     sd["pump_current"]     = 0.0
     sd["pump_flow_rate"]   = 0.0
     sd["pump_pressure"]    = 0.0
     sd["pump_vibration"]   = 0.0
-    sd["pump_temperature"] = T_AMBIENT
+    
+    current_temp = sd.get("pump_temperature", T_AMBIENT)
+    cooling_step = (current_temp - T_AMBIENT) * 0.08 * dt
+    sd["pump_temperature"] = round(max(T_AMBIENT, current_temp - cooling_step), 1)
 
 
 def _apply_bearing_failure(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Falla de rodamiento: vibración y temperatura superan crítico, caudal cae a cero."""
+    """Falla de Rodamientos: Vibración=Pico Extremo progresivo, Corriente=Sube por roce, Temp=Alta, Turbidez=Alta, Flujo/Presión leve caída paulatina."""
     lim = sim.sensor_limits
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.0)
-    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1],
-                                 vib_critic * 1.15)
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 80.0)
-    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1],
-                                 temp_critic * 1.08)
-    curr_critic = _thresh_critic(thresh, "pump_current", 20.0)
-    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1],
-                                 curr_critic * 1.05)
-    # Calidad del agua supera el umbral crítico (contaminación por metal)
+    
+    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
+    sd["pump_vibration"]   = min(lim.get("pump_vibration", (0.0, 15.0))[1], vib_critic * 1.35)
+    
+    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
+    sd["pump_temperature"] = min(lim.get("pump_temperature", (22.0, 100.0))[1], temp_critic * 1.12)
+    
+    curr_critic = _thresh_critic(thresh, "pump_current", 22.0)
+    sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.08)
+    
     qual_critic = _thresh_critic(thresh, "pump_water_quality", 500.0)
-    sd["pump_water_quality"] = min(lim.get("pump_water_quality", (0.0, 1000.0))[1],
-                                   qual_critic * 1.1)
-    sd["pump_flow_rate"]     = 0.0
-    sd["pump_pressure"]      = 0.0
+    sd["pump_water_quality"] = min(lim.get("pump_water_quality", (0.0, 1000.0))[1], qual_critic * 1.20)
+    
+    base_demand = getattr(sim, "_pump_demand", 12.0)
+    degraded_flow = base_demand * 0.90
+    sd["pump_flow_rate"]   = min(lim.get("pump_flow_rate", (0.0, 50000.0))[1], degraded_flow)
+    degraded_press = max(0.5, PUMP_P0 - PUMP_K * (degraded_flow ** 2)) * 0.90
+    sd["pump_pressure"]    = min(lim.get("pump_pressure", (0.0, 10.0))[1], degraded_press)
 
 def _clamp_pump_values(sim, sd: dict) -> None:
     sd["pump_flow_rate"]   = round(clamp(sd["pump_flow_rate"],   sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[0],       sim.sensor_limits.get('pump_flow_rate', (0.0, 50000.0))[1]),       1)

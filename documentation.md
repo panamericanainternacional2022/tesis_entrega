@@ -807,9 +807,9 @@ Bomba (8):
 |-------|--------|-------------------|
 | dry_run | Sequía | flow_rate, pressure, temperature, vibration, tank_level, current |
 | blocked_discharge | Descarga bloqueada | flow_rate, pressure, vibration, temperature, current |
-| pipe_burst | Ruptura de tubería | flow_rate, pressure, vibration, temperature, current, tank_level |
-| cavitation | Cavitación | flow_rate, vibration, pressure, temperature |
-| overheat | Sobrecalentamiento | temperature, vibration |
+| pipe_burst | Ruptura de tubería | flow_rate, pressure, vibration, temperature, current, tank_level, water_quality |
+| cavitation | Cavitación | flow_rate, pressure, vibration, temperature, current, water_quality |
+| overheat | Sobrecalentamiento | temperature, vibration, current |
 | power_surge | Sobrecarga eléctrica | flow_rate, pressure, voltage, current, temperature, vibration |
 | power_outage | Corte eléctrico | voltage, current, flow_rate, pressure, vibration, temperature |
 | bearing_failure | Falla de rodamientos | vibration, temperature, current, water_quality |

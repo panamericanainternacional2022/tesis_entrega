@@ -128,7 +128,9 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
 
         # Fast forward timer to rescue completion
         sim._elev_power_outage_timer = 5.0
-        sim._elev_position_meters = 0.1
+        sim._elev_position_meters = 0.0
+        _update_elevator(sim)
+        _update_elevator(sim)
         _update_elevator(sim)
         self.assertEqual(sim.sensor_data["elev_door_status"], "open")
         self.assertEqual(sim.sensor_data["elev_speed"], 0.0)
@@ -176,3 +178,100 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
         self.assertEqual(
             sim.sensor_data["elev_position"], float(actual_floor),
             "pos_sensor_fail must freeze position at the actual value when fault was injected.")
+
+
+from apps.sensors.simulation.physics.pump import _update_pump
+
+
+class PumpFaultsPhysicsTests(TestCase):
+    def setUp(self):
+        self.persona = Persona.objects.create(
+            ci="99999998", first_name="Maria", first_last_name="Gomez", email="mariag@example.com"
+        )
+        self.usuario = Usuario.objects.create(
+            username="mariag", password="hashed_password", id_persona=self.persona, rol="US", registered=True
+        )
+        self.building = Building.objects.create(
+            name="Test Building Pump", rif="J-11111111-1", address="Calle Test 1", floors=10
+        )
+        self.sim = _make_sim(self.building, pump=True, elevator=False)
+        self.sim.pump_on = True
+
+    def test_dry_run_fault(self):
+        self.sim.sim_faults["pump"] = "dry_run"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_current"], 3.5)
+        self.assertGreater(self.sim.sensor_data["pump_temperature"], 60.0)
+        self.assertGreater(self.sim.sensor_data["pump_vibration"], 4.5)
+
+    def test_blocked_discharge_fault(self):
+        self.sim.sensor_data["pump_tank_level"] = 50.0
+        self.sim.sim_faults["pump"] = "blocked_discharge"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
+        self.assertGreater(self.sim.sensor_data["pump_pressure"], 8.0)
+        self.assertEqual(self.sim.sensor_data["pump_current"], 8.5)
+        self.assertEqual(self.sim.sensor_data["pump_tank_level"], 50.0)
+        self.assertGreater(self.sim.sensor_data["pump_temperature"], 60.0)
+
+    def test_pipe_burst_fault(self):
+        self.sim.sim_faults["pump"] = "pipe_burst"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
+        self.assertGreater(self.sim.sensor_data["pump_flow_rate"], 20.0)
+        self.assertGreater(self.sim.sensor_data["pump_current"], 16.0)
+        self.assertGreater(self.sim.sensor_data["pump_water_quality"], 300.0)
+
+    def test_cavitation_fault(self):
+        self.sim.sim_faults["pump"] = "cavitation"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertLessEqual(self.sim.sensor_data["pump_flow_rate"], 5.0)
+        self.assertLessEqual(self.sim.sensor_data["pump_pressure"], 1.0)
+        self.assertGreater(self.sim.sensor_data["pump_vibration"], 7.0)
+        self.assertGreater(self.sim.sensor_data["pump_water_quality"], 300.0)
+
+    def test_overheat_fault(self):
+        self.sim.sim_faults["pump"] = "overheat"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertGreater(self.sim.sensor_data["pump_temperature"], 80.0)
+        self.assertGreater(self.sim.sensor_data["pump_current"], 16.0)
+        self.assertGreater(self.sim.sensor_data["pump_flow_rate"], 5.0)
+        self.assertGreater(self.sim.sensor_data["pump_pressure"], 1.0)
+
+    def test_power_surge_fault(self):
+        self.sim.sim_faults["pump"] = "power_surge"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertEqual(self.sim.sensor_data["pump_voltage"], 185.0)
+        self.assertGreater(self.sim.sensor_data["pump_current"], 22.0)
+        self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
+
+    def test_power_outage_fault(self):
+        self.sim.sensor_data["pump_tank_level"] = 65.0
+        self.sim.sim_faults["pump"] = "power_outage"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertEqual(self.sim.sensor_data["pump_voltage"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_current"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_vibration"], 0.0)
+        self.assertEqual(self.sim.sensor_data["pump_tank_level"], 65.0)
+
+    def test_bearing_failure_fault(self):
+        self.sim.sim_faults["pump"] = "bearing_failure"
+        for _ in range(35):
+            _update_pump(self.sim)
+        self.assertGreater(self.sim.sensor_data["pump_vibration"], 7.0)
+        self.assertGreater(self.sim.sensor_data["pump_water_quality"], 300.0)
+        self.assertGreater(self.sim.sensor_data["pump_flow_rate"], 5.0)
+        self.assertGreater(self.sim.sensor_data["pump_pressure"], 1.0)
+

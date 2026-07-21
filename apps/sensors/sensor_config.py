@@ -180,48 +180,50 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
     # ── BOMBA ────────────────────────────────────────────────────────────────
     "dry_run":
         "El sistema de bombeo opera sin agua en la línea de succión. "
-        "Los sensores de caudal, presión, nivel de tanque y corriente presentan "
-        "lecturas anómalas simultáneas características de esta condición.",
+        "Los sensores de caudal, presión, nivel de tanque, temperatura, vibración "
+        "y corriente presentan lecturas anómalas simultáneas características de esta condición.",
 
     "blocked_discharge":
         "La línea de descarga de la bomba se encuentra obstruida. "
-        "Los sensores de caudal, presión, temperatura y corriente presentan "
+        "Los sensores de caudal, presión, temperatura, vibración y corriente presentan "
         "desviaciones simultáneas características de esta condición.",
 
     "pipe_burst":
         "Se ha detectado una ruptura en la línea de distribución. "
-        "Los sensores de caudal, presión, nivel de tanque y temperatura presentan "
-        "lecturas anómalas simultáneas características de esta condición.",
+        "Los sensores de caudal, presión, nivel de tanque, temperatura, vibración, "
+        "corriente y calidad de agua presentan lecturas anómalas simultáneas "
+        "características de esta condición.",
 
     "cavitation":
         "El sistema de bombeo presenta un fenómeno de cavitación. "
-        "Los sensores de vibración, presión y caudal presentan oscilaciones "
-        "violentas e inestables simultáneas características de esta condición.",
+        "Los sensores de caudal, presión, vibración, temperatura, corriente y calidad de agua "
+        "presentan oscilaciones violentas e inestables simultáneas características de esta condición.",
 
     "overheat":
         "El motor de la bomba presenta un ascenso térmico continuo. "
-        "Los sensores de temperatura y vibración presentan lecturas por encima "
+        "Los sensores de temperatura, vibración y corriente presentan lecturas por encima "
         "de los límites operativos.",
 
     "power_surge":
         "Se ha detectado una sobrecarga en el sistema eléctrico "
-        "de la bomba. Los sensores de corriente, voltaje, temperatura y caudal "
-        "presentan desviaciones simultáneas características de esta condición.",
+        "de la bomba. Los sensores de corriente, voltaje, temperatura, presión, "
+        "vibración y caudal presentan desviaciones simultáneas características de esta condición.",
 
     "power_outage":
         "La alimentación eléctrica de la bomba ha sido interrumpida. "
-        "Los sensores de voltaje, corriente, caudal y presión reportan valores "
-        "en cero de forma simultánea.",
+        "Los sensores de voltaje, corriente, caudal, presión, vibración y temperatura "
+        "reportan valores en cero o en proceso de enfriamiento de forma simultánea.",
 
     "bearing_failure":
         "Se ha detectado degradación en los rodamientos de la bomba. "
-        "Los sensores de vibración, temperatura y corriente presentan un incremento "
-        "progresivo y simultáneo característico de esta condición.",
+        "Los sensores de vibración, temperatura, corriente y calidad de agua presentan "
+        "un incremento progresivo y simultáneo característico de esta condición.",
 
     # ── ELEVADOR ─────────────────────────────────────────────────────────────
     "motor_stuck":
         "El motor de tracción del elevador se encuentra en condición "
-        "de rotor bloqueado. Los sensores de corriente, temperatura, velocidad y vibración "
+        "de rotor bloqueado. Los sensores de corriente, temperatura, velocidad, "
+        "vibración, voltaje y estado de puerta "
         "presentan lecturas anómalas simultáneas características de esta condición.",
 
     "door_blocked":
@@ -231,28 +233,30 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
 
     "overspeed":
         "La cabina del elevador ha superado la velocidad crítica "
-        "de operación. Los sensores de velocidad y vibración presentan "
-        "lecturas anómalas simultáneas características de esta condición.",
+        "de operación. Los sensores de velocidad, corriente, vibración y estado de puerta "
+        "presentan lecturas anómalas simultáneas características de esta condición.",
 
     "overload":
         "La carga en la cabina del elevador supera el límite de bloqueo físico. "
         "El motor ha sido bloqueado por el sistema de protección. Los sensores de carga, "
-        "velocidad y corriente reflejan esta condición.",
+        "velocidad, corriente, vibración y estado de puerta reflejan esta condición.",
 
     "pos_sensor_fail":
         "El sensor de posición de la cabina del elevador "
         "reporta valores erróneos o congelados. Esta condición activa la parada de "
-        "emergencia inmediata del sistema.",
+        "emergencia inmediata del sistema. Los sensores de posición, velocidad y estado "
+        "de puerta confirman la anomalía.",
 
     "commercial_power_outage":
         "La alimentación trifásica del elevador ha sido "
         "interrumpida. El sistema ha activado los frenos mecánicos de seguridad. "
-        "Los sensores de voltaje, corriente y velocidad confirman la pérdida de suministro.",
+        "Los sensores de voltaje, corriente, velocidad, estado de puerta y temperatura "
+        "confirman la pérdida de suministro.",
 
     "traction_loss":
         "Se ha detectado un desfase entre la velocidad del motor "
-        "y el desplazamiento real de la cabina. Los sensores de posición, vibración, "
-        "corriente y velocidad presentan lecturas inconsistentes simultáneas "
+        "y el desplazamiento real de la cabina. Los sensores de posición, velocidad, "
+        "corriente, vibración y temperatura presentan lecturas inconsistentes simultáneas "
         "características de esta condición.",
 }
 
@@ -329,9 +333,9 @@ ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "
 FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "dry_run":               ["pump_flow_rate", "pump_pressure", "pump_temperature", "pump_vibration", "pump_tank_level", "pump_current"],
     "blocked_discharge":     ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current"],
-    "pipe_burst":            ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current", "pump_tank_level"],
-    "cavitation":            ["pump_flow_rate", "pump_vibration", "pump_pressure", "pump_temperature"],
-    "overheat":              ["pump_temperature", "pump_vibration"],
+    "pipe_burst":            ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current", "pump_tank_level", "pump_water_quality"],
+    "cavitation":            ["pump_flow_rate", "pump_vibration", "pump_pressure", "pump_temperature", "pump_current", "pump_water_quality"],
+    "overheat":              ["pump_temperature", "pump_vibration", "pump_current"],
     "power_surge":           ["pump_flow_rate", "pump_pressure", "pump_voltage", "pump_current", "pump_temperature", "pump_vibration"],
     "power_outage":          ["pump_voltage", "pump_current", "pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature"],
     "bearing_failure":       ["pump_vibration", "pump_temperature", "pump_current", "pump_water_quality"],
