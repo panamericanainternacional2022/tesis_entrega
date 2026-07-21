@@ -134,6 +134,8 @@ VALUE_DISPLAY_ES = {
         "closed":   "Cerrada",
         "opening":  "Abriendo",
         "closing":  "Cerrando",
+        "blocked":  "Bloqueada",
+        "error":    "Error",
         "true":     "Bloqueada",
         "false":    "Normal",
     },

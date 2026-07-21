@@ -40,6 +40,10 @@ OVERSPEED_ACCEL_RATE: float = 0.5       # Acceleration rate when governor failed
 ELEVATOR_MOTOR_TEMP_AMBIENT: float = 25.0
 ELEVATOR_MOTOR_TEMP_ALERT: float = 90.0
 ELEVATOR_MOTOR_RATED_CURRENT: float = 28.0
+ELEVATOR_LOCKED_ROTOR_CURRENT: float = 85.0   # Locked Rotor Amperage (LRA) spike (A)
+ELEVATOR_DOOR_MOTOR_CURRENT: float = 2.5       # Door operator motor current (A)
+ELEVATOR_BRAKE_SHOCK_VIBRATION: float = 9.5    # Mechanical brake drop shock (mm/s)
+SAFETY_GOVERNOR_TRIP_SPEED: float = 1.25       # Governor trip threshold ratio (1.25x cruising speed)
 
 MIN_SIM_SPEED: float = 0.1
 MAX_SIM_SPEED: float = 10.0

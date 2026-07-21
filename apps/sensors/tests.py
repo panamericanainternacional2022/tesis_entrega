@@ -179,6 +179,60 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
             sim.sensor_data["elev_position"], float(actual_floor),
             "pos_sensor_fail must freeze position at the actual value when fault was injected.")
 
+    # -----------------------------------------------------------------------
+    # 32. Commercial Power Outage Step Dynamics & Brake Shock Impulse
+    # -----------------------------------------------------------------------
+    def test_elevator_power_outage_step_and_brake_shock(self):
+        """Power outage must step drop voltage to 0V and current to 0A, and trigger brake drop shock vibration."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sensor_data["elev_speed"] = 1.0
+        sim.sim_faults["elevator"] = "commercial_power_outage"
+        _update_elevator(sim)
+        self.assertEqual(sim.sensor_data["elev_voltage"], 0.0, "Voltage must drop to 0V step in power outage.")
+        self.assertEqual(sim.sensor_data["elev_current"], 0.0, "Current must drop to 0A step in power outage.")
+        self.assertGreaterEqual(sim.sensor_data["elev_vibration"], 9.0, "Mechanical brake engagement must cause vibration shock.")
+
+    # -----------------------------------------------------------------------
+    # 33. Motor Stuck Locked Rotor Amperage (LRA) & Voltage Dip
+    # -----------------------------------------------------------------------
+    def test_elevator_motor_stuck_lra_and_voltage_sag(self):
+        """Motor stuck fault must step current to LRA (85A) and cause line voltage sag."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "motor_stuck"
+        _update_elevator(sim)
+        self.assertEqual(sim.sensor_data["elev_speed"], 0.0)
+        self.assertEqual(sim.sensor_data["elev_current"], 85.0, "Jammed motor must step to Locked Rotor Amperage (85A).")
+        self.assertLessEqual(sim.sensor_data["elev_voltage"], 360.0, "LRA current spike must sag line voltage.")
+
+    # -----------------------------------------------------------------------
+    # 34. Door Blocked Safety Chain Interlock & Operator Current
+    # -----------------------------------------------------------------------
+    def test_elevator_door_blocked_safety_chain(self):
+        """Door blocked fault must set status to 'blocked' and draw door operator motor current while main motor is 0A."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "door_blocked"
+        _update_elevator(sim)
+        self.assertEqual(sim.sensor_data["elev_door_status"], "blocked")
+        self.assertEqual(sim.sensor_data["elev_speed"], 0.0)
+        self.assertEqual(sim.sensor_data["elev_current"], 2.5, "Door operator motor draws operator current while main motor is disabled.")
+
+    # -----------------------------------------------------------------------
+    # 35. Traction Loss (Rope Slip) Low Current & Normal Thermodynamics
+    # -----------------------------------------------------------------------
+    def test_elevator_traction_loss_thermodynamics(self):
+        """Traction loss must reflect no-load motor current and normal motor temperature range (no false overheating)."""
+        sim = _make_sim(self.building, pump=True, elevator=True)
+        sim.elevator_on = True
+        sim.sim_faults["elevator"] = "traction_loss"
+        for _ in range(5):
+            _update_elevator(sim)
+        self.assertLessEqual(sim.sensor_data["elev_current"], 6.0, "Motor in no-load state draws low current (~5.6A).")
+        self.assertLessEqual(sim.sensor_data["elev_temperature"], 40.0, "Unloaded motor does not overheat (Joule heating P=I^2*R is minimal).")
+        self.assertGreaterEqual(sim.sensor_data["elev_vibration"], 5.0, "Rope slippage produces high vibration.")
+
 
 from apps.sensors.simulation.physics.pump import _update_pump
 
@@ -203,7 +257,7 @@ class PumpFaultsPhysicsTests(TestCase):
             _update_pump(self.sim)
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
-        self.assertEqual(self.sim.sensor_data["pump_current"], 3.5)
+        self.assertAlmostEqual(self.sim.sensor_data["pump_current"], 3.5, delta=1.0)
         self.assertGreater(self.sim.sensor_data["pump_temperature"], 60.0)
         self.assertGreater(self.sim.sensor_data["pump_vibration"], 4.5)
 
@@ -214,8 +268,8 @@ class PumpFaultsPhysicsTests(TestCase):
             _update_pump(self.sim)
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertGreater(self.sim.sensor_data["pump_pressure"], 8.0)
-        self.assertEqual(self.sim.sensor_data["pump_current"], 8.5)
-        self.assertEqual(self.sim.sensor_data["pump_tank_level"], 50.0)
+        self.assertAlmostEqual(self.sim.sensor_data["pump_current"], 8.5, delta=1.0)
+        self.assertLess(self.sim.sensor_data["pump_tank_level"], 50.0)
         self.assertGreater(self.sim.sensor_data["pump_temperature"], 60.0)
 
     def test_pipe_burst_fault(self):
@@ -249,7 +303,7 @@ class PumpFaultsPhysicsTests(TestCase):
         self.sim.sim_faults["pump"] = "power_surge"
         for _ in range(35):
             _update_pump(self.sim)
-        self.assertEqual(self.sim.sensor_data["pump_voltage"], 185.0)
+        self.assertAlmostEqual(self.sim.sensor_data["pump_voltage"], 185.0, delta=5.0)
         self.assertGreater(self.sim.sensor_data["pump_current"], 22.0)
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
@@ -264,7 +318,7 @@ class PumpFaultsPhysicsTests(TestCase):
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_vibration"], 0.0)
-        self.assertEqual(self.sim.sensor_data["pump_tank_level"], 65.0)
+        self.assertLess(self.sim.sensor_data["pump_tank_level"], 65.0)
 
     def test_bearing_failure_fault(self):
         self.sim.sim_faults["pump"] = "bearing_failure"

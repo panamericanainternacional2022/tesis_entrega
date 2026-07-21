@@ -12,6 +12,10 @@ from apps.sensors.simulation.constants import (
     OVERSPEED_GOVERNOR_TRIGGER, OVERSPEED_ACCEL_RATE,
     ELEVATOR_MOTOR_TEMP_AMBIENT,
     ELEVATOR_MOTOR_RATED_CURRENT,
+    ELEVATOR_LOCKED_ROTOR_CURRENT,
+    ELEVATOR_DOOR_MOTOR_CURRENT,
+    ELEVATOR_BRAKE_SHOCK_VIBRATION,
+    SAFETY_GOVERNOR_TRIP_SPEED,
 )
 from apps.sensors.simulation.models import BuildingSimulator
 from apps.sensors.simulation.utils import clamp
@@ -52,6 +56,24 @@ def _clear_elevator_fault_params(sim: BuildingSimulator) -> None:
     sim._elev_power_outage_complete = False
     sim._elev_pos_sensor_mismatch_timer = 0.0
     sim._elev_traction_loss = False
+    sim._elev_governor_tripped = False
+
+
+def _check_safety_chain(sim: BuildingSimulator, sd: dict) -> bool:
+    """
+    Verifica la Cadena de Seguridad (contactos de seguridad en serie:
+    puertas DW/GS, limitador de velocidad, corte de energía y sobrecarga).
+    Retorna True si la cadena permite energización del motor de tracción.
+    """
+    door_status = sd.get("elev_door_status", "closed")
+    door_ok = (door_status in ("closed", "closing")) and not getattr(sim, "_elev_door_obstructed", False)
+    power_ok = getattr(sim, "_elev_power_available", True)
+    governor_ok = not getattr(sim, "_elev_speed_governor_failed", False) or not getattr(sim, "_elev_governor_tripped", False)
+    
+    total_load = _effective_load(sim, sd.get("elev_load", 0))
+    overload_ok = (total_load <= RATED_LOAD * 1.10) and (getattr(sim, "_elev_overload_extra_kg", 0) <= 0)
+    
+    return door_ok and power_ok and governor_ok and overload_ok
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +154,14 @@ def _update_elevator(sim: BuildingSimulator) -> None:
     else:
         _clear_elevator_fault_params(sim)
 
+    # ── Safety Chain Interlock Check ──────────────────────────────────────
+    if not _check_safety_chain(sim, sd):
+        if sim._elev_state in ("ACCELERATING", "MOVING", "DECELERATING"):
+            sim._elev_state = "IDLE"
+            sd["elev_speed"] = 0.0
+            sd["elev_current"] = 0.0
+            sim._elev_motor_torque_factor = 0.0
+
     _run_elevator_fsm(sim, sd, dt)
 
     _restore_protected(sd, protected)
@@ -162,35 +192,31 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
     targets = {
         "motor_stuck": {
             "elev_speed": 0.0,
-            # Corriente → superar el crítico (motor bloqueado, rotor forzado)
-            "elev_current": _above("elev_current", 30.0, 1.05),
+            # Pico de Rotor Bloqueado (LRA) instantáneo
+            "elev_current": ELEVATOR_LOCKED_ROTOR_CURRENT,
             "elev_door_status": "closed",
-            # Temperatura → superar el crítico (motor atascado genera calor)
+            # Temperatura sube térmicamente por I^2*R
             "elev_temperature": _above("elev_temperature", 75.0, 1.1),
             "elevator_state": "STUCK",
-            # Vibración → superar el crítico (rotor bloqueado genera vibración severa)
+            # Vibración por zumbido electromagnético intenso de rotor bloqueado
             "elev_vibration": _above("elev_vibration", 5.0, 1.15),
-            "elev_voltage": max(0.0, _critic("elev_voltage", 400.0) * 0.9),  # Caída por sobrecorriente
+            "elev_voltage": 340.0,  # Caída de tensión por sobrecorriente de rotor bloqueado
         },
         "door_blocked": {
-            "elev_door_status": "open",
+            "elev_door_status": "blocked",
             "elev_speed": 0.0,
-            "elev_current": 0.0,
+            "elev_current": ELEVATOR_DOOR_MOTOR_CURRENT,  # Corriente del operador de puerta, tracción = 0 A
             "elevator_state": "DOORS_OPEN",
         },
         "overspeed": {
-            # Velocidad → superar el crítico (gobernador fallido)
-            "elev_speed": _above("elev_speed", 1.6, 1.15),
-            "elev_current": _high("elev_current", 10.0),
+            "elev_speed": 0.0 if getattr(sim, "_elev_governor_tripped", False) else _above("elev_speed", 1.6, 1.15),
+            "elev_current": 0.0 if getattr(sim, "_elev_governor_tripped", False) else _high("elev_current", 10.0),
             "elev_door_status": "closed",
-            # Temperatura → superar el umbral alto (por exceso de velocidad)
-            "elev_temperature": _above("elev_temperature", 75.0, 1.05),
-            # Vibración → superar el crítico (velocidad excesiva)
-            "elev_vibration": _above("elev_vibration", 5.0, 1.1),
-            "elevator_state": "MOVING",
+            "elev_temperature": ELEVATOR_MOTOR_TEMP_AMBIENT + 10.0,
+            "elev_vibration": 12.0 if getattr(sim, "_elev_governor_tripped", False) else _above("elev_vibration", 5.0, 1.1),
+            "elevator_state": "SAFETY_GEAR_TRIPPED" if getattr(sim, "_elev_governor_tripped", False) else "MOVING",
         },
         "overload": {
-            # Carga → superar el crítico definido por el usuario
             "elev_load": _above("elev_load", 800.0, 1.05),
             "elev_door_status": "open",
             "elev_speed": 0.0,
@@ -201,46 +227,58 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_position": getattr(sim, "_elev_pos_stuck_value", FLOOR_HEIGHT * 1.25),
             "elev_speed": 0.0 if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else CRUISING_SPEED,
             "elev_door_status": "closed",
+            "elev_current": 0.0 if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else ELEVATOR_MOTOR_RATED_CURRENT * 0.5,
+            "elev_vibration": ELEVATOR_BRAKE_SHOCK_VIBRATION if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else 0.5,
             "elevator_state": "IDLE" if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else "MOVING",
         },
         "traction_loss": {
-            # Vibración → superar el crítico (pérdida de tracción genera golpes mecánicos)
+            # Vibración alta por fricción de rozamiento de cables en garganta
             "elev_vibration": _above("elev_vibration", 5.0, 1.15),
-            # Corriente de vacío (~20% de la nominal, por debajo del umbral alto)
+            # Corriente de marcha en vacío (~20% nominal)
             "elev_current": ELEVATOR_MOTOR_RATED_CURRENT * 0.2,
-            # Temperatura → superar el crítico (motor sin carga real, se recalienta)
-            "elev_temperature": _above("elev_temperature", 75.0, 1.1),
+            # CORRECCIÓN TERMODINÁMICA: Motor en vacío disipa muy poco calor (I^2 * R = 4% de la nominal)
+            "elev_temperature": ELEVATOR_MOTOR_TEMP_AMBIENT + 8.0,
             "elev_speed": CRUISING_SPEED,
         }
     }
     if fault == "commercial_power_outage":
         timer = getattr(sim, "_elev_power_outage_timer", 0.0)
         complete = getattr(sim, "_elev_power_outage_complete", False)
+        dt = sim.sim_speed or 1.0
         if complete:
             return {
                 "elev_speed": 0.0,
+                "elev_voltage": 0.0,
                 "elev_door_status": "open",
                 "elev_current": 0.0,
                 "elev_temperature": ELEVATOR_MOTOR_TEMP_AMBIENT,
+                "elev_vibration": 0.0,
                 "elevator_state": "DOORS_OPEN",
             }
-        elif timer < POWER_OUTAGE_BRAKE_TIME:
+        elif timer <= max(POWER_OUTAGE_BRAKE_TIME, dt):
             return {
                 "elev_speed": 0.0,
+                "elev_voltage": 0.0,
                 "elev_door_status": "closed",
                 "elev_current": 0.0,
+                "elev_vibration": ELEVATOR_BRAKE_SHOCK_VIBRATION,
             }
         elif timer < POWER_OUTAGE_BATTERY_WAIT:
             return {
                 "elev_speed": 0.0,
+                "elev_voltage": 0.0,
                 "elev_door_status": "closed",
+                "elev_current": 0.0,
+                "elev_vibration": 0.2,
                 "elevator_state": "IDLE",
             }
         else:
             return {
                 "elev_speed": BATTERY_RESCUE_SPEED,
+                "elev_voltage": 48.0,
                 "elev_door_status": "closed",
                 "elev_current": ELEVATOR_MOTOR_RATED_CURRENT * 0.15,
+                "elev_vibration": 0.5,
                 "elevator_state": "MOVING",
             }
     return targets.get(fault, {})
@@ -272,6 +310,17 @@ def _ramp_toward_target(sd: dict, var: str, target, rate: float, dt: float) -> b
     return False
 
 
+STEP_VARS_BY_FAULT = {
+    "commercial_power_outage": {"elev_voltage", "elev_current", "elev_vibration", "elev_speed", "elev_door_status"},
+    "motor_stuck": {"elev_current", "elev_voltage", "elev_vibration", "elev_speed", "elev_door_status"},
+    "door_blocked": {"elev_current", "elev_speed", "elev_door_status"},
+    "overload": {"elev_load", "elev_current", "elev_speed", "elev_door_status"},
+    "traction_loss": {"elev_current", "elev_temperature"},
+    "pos_sensor_fail": {"elev_position", "elev_current", "elev_vibration", "elev_speed"},
+    "overspeed": {"elev_speed", "elev_vibration", "elev_current"},
+}
+
+
 def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
     fault = sim.sim_faults.get("elevator")
     if not fault:
@@ -279,15 +328,16 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
 
     targets = _get_fault_telemetry_targets(sim, fault)
     dt = sim.sim_speed or 1.0
+    step_vars = STEP_VARS_BY_FAULT.get(fault, set())
 
     all_reached = True
     for var, target in targets.items():
-        if var in ENUM_VARS or isinstance(target, str):
+        if var in ENUM_VARS or isinstance(target, str) or var in step_vars:
             sd[var] = target
             continue
 
         bounds = sim.sensor_limits.get(var)
-        if bounds:
+        if bounds and isinstance(target, (int, float)):
             target = max(bounds[0], min(bounds[1], target))
 
         rate = ELEV_RAMP_RATES.get(var, 2.0)
@@ -297,7 +347,7 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
         val = sd[var]
         if var in ("elev_load",):
             val = int(round(val))
-        else:
+        elif isinstance(val, (int, float)):
             val = round(val, 1)
         sd[var] = val
 
