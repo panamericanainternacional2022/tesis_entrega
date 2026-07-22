@@ -54,3 +54,28 @@ class HistoryViewTests(TestCase):
         data = json.loads(response.content)
         self.assertEqual(data["status"], "ok")
 
+    def test_clear_history_per_user(self):
+        from apps.history.models import UserDismissedHistory
+        from apps.buildings.models import UserBuilding
+
+        persona_b = Persona.objects.create(ci="87654321", first_name="UserB", first_last_name="Test", email="b@b.com")
+        from django.contrib.auth.hashers import make_password
+        usuario_b = Usuario.objects.create(username="user_b", password=make_password("pass123"), id_persona=persona_b, rol="US", registered=True)
+        UserBuilding.objects.create(user=usuario_b, building=self.building)
+
+        record = History.objects.create(
+            user=self.usuario, monitoring_equipment=self.equipment,
+            date=timezone.now(), message={"risk": RISK_ALTO, "variable": "temperature", "value": 85, "action": "Revisar"},
+        )
+
+        response = self.client.post(reverse("clear_history"), json.dumps({}), content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+
+        # Record is dismissed for self.usuario (admin)
+        self.assertTrue(UserDismissedHistory.objects.filter(user=self.usuario, history_record=record).exists())
+        # Record is NOT dismissed for usuario_b
+        self.assertFalse(UserDismissedHistory.objects.filter(user=usuario_b, history_record=record).exists())
+        # History table physically retains the record
+        self.assertEqual(History.objects.filter(pk=record.pk).count(), 1)
+
+

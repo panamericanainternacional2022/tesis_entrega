@@ -190,22 +190,23 @@ def clear_history_view(request: HttpRequest) -> JsonResponse:
     fecha_hasta = data.get("fecha_hasta", "")
     periodo = data.get("periodo", "reciente")
 
-    qs = History.objects.filter(user_id=usuario_id)
-
-    if edificio_id:
-        qs = qs.filter(monitoring_equipment__building_id=edificio_id)
+    rol = request.session.get("usuario_rol", "US")
+    records, _ = _build_history_query(usuario_id, rol, str(edificio_id) if edificio_id else None)
 
     if periodo == "custom" and fecha_desde and fecha_hasta:
-        qs = filter_date_range(qs, periodo, fecha_desde, fecha_hasta)
+        records = filter_date_range(records, periodo, fecha_desde, fecha_hasta)
     elif fecha_desde and fecha_hasta:
-        qs = filter_date_range(qs, "custom", fecha_desde, fecha_hasta)
+        records = filter_date_range(records, "custom", fecha_desde, fecha_hasta)
+
+    records = records.select_related("user", "monitoring_equipment__building").distinct()
+    parsed_list = parse_history(records)
 
     if severidad:
-        qs = qs.filter(message__risk=severidad)
+        parsed_list = [n for n in parsed_list if n.parsed_data.get("parsed") and n.parsed_data.get("risk") == severidad]
     if variable_filter:
-        qs = qs.filter(message__variable=variable_filter)
+        parsed_list = [n for n in parsed_list if n.parsed_data.get("parsed") and n.parsed_data.get("variable") == variable_filter]
 
-    record_ids = list(qs.values_list("id", flat=True))
+    record_ids = [n.id for n in parsed_list]
     if record_ids:
         dismissed = [
             UserDismissedHistory(user_id=usuario_id, history_record_id=rid)
