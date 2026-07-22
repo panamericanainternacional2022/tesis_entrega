@@ -12,15 +12,16 @@ from apps.sensors.simulation.utils import clamp
 # _TANK_BUILDING_DEMAND is now dynamically calculated to balance inflow
 
 # ── Tasas de ramping progresivo por variable (unidades por tick) ──
+# Alineadas con las tasas de cambio en operación normal para transiciones coherentes.
 PUMP_RAMP_RATES = {
-    "pump_flow_rate":     5.0,    # l/s/tick
-    "pump_pressure":      3.0,    # bar/tick
-    "pump_temperature":   2.5,    # °C/tick  - Inercia térmica (calentamiento/enfriamiento progresivo)
-    "pump_vibration":     3.0,    # mm/s/tick
-    "pump_current":       8.0,    # A/tick   - Respuesta eléctrica rápida
-    "pump_voltage":       220.0,  # V/tick   - Escalón prácticamente instantáneo
-    "pump_tank_level":    1.0,    # %/tick   - Dinámica de masa lenta
-    "pump_water_quality": 15.0,   # ppm/tick - Disolución/arrastre progresivo
+    "pump_flow_rate":     3.0,    # l/s/tick  — Igual a ramp normal (max_flow_ramp)
+    "pump_pressure":      1.5,    # bar/tick  — Igual a ramp normal (max_press_ramp)
+    "pump_temperature":   0.8,    # °C/tick   — Inercia térmica realista (normal ~0.3)
+    "pump_vibration":     2.0,    # mm/s/tick — Igual a ramp normal (max_vib_ramp)
+    "pump_current":       4.0,    # A/tick    — Igual a ramp normal (max_curr_ramp)
+    "pump_voltage":      15.0,    # V/tick    — Rápido pero no instantáneo (red tiene impedancia)
+    "pump_tank_level":    1.0,    # %/tick    — Dinámica de masa lenta (sin cambio)
+    "pump_water_quality": 3.0,    # ppm/tick  — Disolución gradual (normal ~2.0)
 }
 
 
@@ -198,13 +199,22 @@ def _apply_pump_fault(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 
 def _apply_dry_run(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Sequía (Marcha en seco): Caudal=0, Presión=0, Tanque→0% (drenaje lento),
-    Corriente=Muy Baja (~3.5A), Temp y Vib Altas con ruido vivo."""
+    """Sequía (Marcha en seco): Tanque se drena progresivamente y caudal cae
+    simultáneamente (proporcional al nivel del tanque). Cuando el tanque llega
+    a 0% el caudal es 0. Presión=0, Corriente=Muy Baja (~3.5A),
+    Temp y Vib Altas con ruido vivo."""
     lim = sim.sensor_limits
-    sd["pump_flow_rate"]   = 0.0
-    sd["pump_pressure"]    = 0.0
-    # Tanque se drena hacia 0 (sin fluido de entrada, la demanda del edificio lo agota)
-    sd["pump_tank_level"]  = 0.0
+
+    # Tanque se drena progresivamente (no hay suministro de agua entrando)
+    current_tank = sd["pump_tank_level"]
+    sd["pump_tank_level"] = max(0.0, current_tank - 3.0 * dt)
+
+    # Caudal acoplado al nivel del tanque: bajan SIMULTÁNEAMENTE
+    # Mientras haya algo de agua, la bomba expulsa algo; cuando el tanque
+    # llega a 0, el caudal es 0.
+    tank_fraction = sd["pump_tank_level"] / 100.0
+    sd["pump_flow_rate"] = max(0.0, tank_fraction * 2.0)  # Caudal residual decreciente
+    sd["pump_pressure"]  = 0.0
 
     temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
     sd["pump_temperature"] = min(
@@ -221,13 +231,13 @@ def _apply_dry_run(sim, sd: dict, dt: float, thresh: dict) -> None:
     # Corriente de marcha en vacío con leve fluctuación
     sd["pump_current"]     = max(0.0, 3.5 + random.uniform(-0.2, 0.2) * dt)
 
-    # B-3: Sin flujo, agua residual estancada → turbidez estable y baja
+    # Sin flujo significativo, agua residual estancada → turbidez estable y baja
     sd["pump_water_quality"] = min(lim.get("pump_water_quality", (0.0, 1000.0))[1], 180.0)
 
 
 def _apply_blocked_discharge(sim, sd: dict, dt: float, thresh: dict) -> None:
     """Descarga Bloqueada (Deadheading): Presión=Pico Máximo con ruido, Caudal=0,
-    Temp=Muy Alta, Corriente=Baja (~8.5A), Tanque se drena lentamente (demanda del edificio)."""
+    Temp=Muy Alta, Corriente=Baja (~8.5A). Tanque congelado (sin caudal no hay drenaje)."""
     lim = sim.sensor_limits
     sd["pump_flow_rate"]   = 0.0
 
@@ -252,8 +262,8 @@ def _apply_blocked_discharge(sim, sd: dict, dt: float, thresh: dict) -> None:
 
     sd["pump_current"]     = max(0.0, 8.5 + random.uniform(-0.2, 0.2) * dt)
 
-    # Tanque se drena: la bomba no entrega caudal pero la demanda del edificio sigue
-    _update_tank_with_flow(sim, sd, thresh, 0.0, dt)
+    # Tanque congelado: sin caudal de salida, el tanque no se drena
+    # (bomba de expulsión — el agua solo sale del tanque via caudal de la bomba)
 
 
 def _apply_pipe_burst(sim, sd: dict, dt: float, thresh: dict) -> None:
@@ -356,7 +366,7 @@ def _apply_overheat(sim, sd: dict, dt: float, thresh: dict) -> None:
 
 def _apply_power_surge(sim, sd: dict, dt: float, thresh: dict) -> None:
     """Sobrecarga Eléctrica: Corriente=Pico Crítico, Voltaje=Caída (Sag) con ruido,
-    Temp=Alta, Vibración=Zumbido electromagnético, Caudal/Presión=0. Tanque se drena."""
+    Temp=Alta, Vibración=Zumbido electromagnético, Caudal/Presión=0. Tanque congelado."""
     lim = sim.sensor_limits
 
     curr_critic = _thresh_critic(thresh, "pump_current", 22.0)
@@ -385,13 +395,13 @@ def _apply_power_surge(sim, sd: dict, dt: float, thresh: dict) -> None:
     sd["pump_flow_rate"]   = 0.0
     sd["pump_pressure"]    = 0.0
 
-    # Tanque se drena: motor parado, la demanda del edificio agota el tanque
-    _update_tank_with_flow(sim, sd, thresh, 0.0, dt)
+    # Tanque congelado: sin caudal de salida, el tanque no se drena
+    # (bomba de expulsión — el agua solo sale del tanque via caudal de la bomba)
 
 
 def _apply_power_outage(sim, sd: dict, dt: float, thresh: dict) -> None:
-    """Corte Eléctrico: Todo a 0, Temp enfriamiento progresivo. Tanque se drena
-    lentamente (demanda del edificio sigue consumiendo el agua almacenada)."""
+    """Corte Eléctrico: Todo a 0, Temp enfriamiento progresivo.
+    Tanque congelado (sin caudal no hay drenaje)."""
     sd["pump_voltage"]     = 0.0
     sd["pump_current"]     = 0.0
     sd["pump_flow_rate"]   = 0.0
@@ -402,11 +412,11 @@ def _apply_power_outage(sim, sd: dict, dt: float, thresh: dict) -> None:
     cooling_step = (current_temp - T_AMBIENT) * 0.08 * dt
     sd["pump_temperature"] = round(max(T_AMBIENT, current_temp - cooling_step), 1)
 
-    # B-5: Sin flujo ni energía → calidad de agua congelada (agua residual quieta)
+    # Sin flujo ni energía → calidad de agua congelada (agua residual quieta)
     sd["pump_water_quality"] = sd.get("pump_water_quality", 200.0)
 
-    # Tanque se drena lentamente: sin bomba la red consume el agua almacenada
-    _update_tank_with_flow(sim, sd, thresh, 0.0, dt)
+    # Tanque congelado: sin caudal de salida, el tanque no se drena
+    # (bomba de expulsión — el agua solo sale del tanque via caudal de la bomba)
 
 
 def _apply_bearing_failure(sim, sd: dict, dt: float, thresh: dict) -> None:

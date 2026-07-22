@@ -47,13 +47,13 @@ Cada falla inyectada en la bomba altera la simulación física (en `apps/sensors
 
 | Falla | Identificador | Comportamiento Físico y Matemático Real | Sensores afectados |
 | --- | --- | --- | --- |
-| **Sequía (Trabajo en seco)** | `dry_run` | El tanque de succión se vacía ($0\%$). Al no haber fluido en la cámara, $Q=0$ y $P=0$. El motor gira prácticamente sin carga hidráulica, cayendo la corriente a consumo en vacío ($I \approx 30\%$ de $I_{nom}$). Sin fluido para lubricar y disipar calor, el sello mecánico genera fricción seca, elevando la temperatura ($+30\%$ sobre crítico). La turbulencia de aire genera vibración desbalanceada ($+20\%$). El nivel del tanque de descarga se congela. | Caudal, Presión, Temperatura, Vibración, Nivel succión, Corriente |
-| **Descarga bloqueada** | `blocked_discharge` | Válvula de salida cerrada ($Q=0$). La bomba opera en el punto de corte (*Shut-off head*), llevando la presión a su máximo estático ($+30\%$ sobre crítico). En bombas centrífugas, a caudal cero la potencia consumida es mínima, bajando la corriente a $\approx 50-60\%$ de $I_{nom}$. La energía mecánica remanente se disipa como calor en el agua atrapada, haciendo ebullir el líquido en la carcasa e incrementando la temperatura exponencialmente ($+45\%$ sobre crítico) y generando cavitación por ebullición. | Caudal, Presión, Temperatura, Vibración, Corriente |
+| **Sequía (Trabajo en seco)** | `dry_run` | El tanque se drena progresivamente (sin suministro de agua). El caudal cae **simultáneamente** acoplado al nivel del tanque ($Q \propto \text{nivel}$): mientras haya agua, la bomba expulsa un caudal residual decreciente; cuando el tanque llega a $0\%$, $Q=0$. $P=0$ (sin contrapresión). El motor gira prácticamente sin carga hidráulica, cayendo la corriente a consumo en vacío ($I \approx 30\%$ de $I_{nom}$). Sin fluido para lubricar y disipar calor, el sello mecánico genera fricción seca, elevando la temperatura ($+30\%$ sobre crítico). La turbulencia de aire genera vibración desbalanceada ($+20\%$). | Caudal, Presión, Temperatura, Vibración, Nivel succión, Corriente |
+| **Descarga bloqueada** | `blocked_discharge` | Válvula de salida cerrada ($Q=0$). La bomba opera en el punto de corte (*Shut-off head*), llevando la presión a su máximo estático ($+30\%$ sobre crítico). En bombas centrífugas, a caudal cero la potencia consumida es mínima, bajando la corriente a $\approx 50-60\%$ de $I_{nom}$. La energía mecánica remanente se disipa como calor en el agua atrapada, haciendo ebullir el líquido en la carcasa e incrementando la temperatura exponencialmente ($+45\%$ sobre crítico) y generando cavitación por ebullición. **El nivel del tanque se congela** (sin caudal de salida, el agua no abandona el tanque). | Caudal, Presión, Temperatura, Vibración, Corriente |
 | **Ruptura de tubería** | `pipe_burst` | Pérdida repentina de contrapresión (zona de *Runout*). El caudal se dispara al máximo ($+40\%$ sobre crítico) y la presión colapsa a $\approx 0\text{ bar}$. La demanda de mover este volumen descontrolado exige torque máximo al motor, provocando sobrecarga eléctrica severa ($I \approx +35\%$ sobre crítico). La turbulencia extrema en el punto de rotura eleva la vibración ($+25\%$) y la corriente sostenida eleva la temperatura del estator ($+20\%$). | Caudal, Presión, Vibración, Temperatura, Corriente, Nivel descarga |
 | **Cavitación** | `cavitation` | Formación e implosión de microburbujas de vapor por baja presión de succión (NPSHa < NPSHr). Provoca fluctuaciones erráticas y ruidosas en el caudal y la presión. El choque de las implosiones genera picos extremos de vibración de alta frecuencia ($+50\%$ sobre crítico con alto *jitter*). La erosión genera micropartículas que incrementan ligeramente la turbidez a largo plazo. | Caudal, Presión, Vibración, Corriente, Calidad de agua |
 | **Sobrecalentamiento** | `overheat` | Ascenso térmico directo por falla en ventilación o alta temperatura ambiente ($+25\%$ sobre crítico). La dilatación térmica reduce las holguras mecánicas de la bomba, incrementando el roce; esto produce una ligera sobrecorriente ($+8\%$), aumento de vibración ($+15\%$) y una degradación volumétrica progresiva del $10-15\%$ en caudal y presión. | Temperatura, Vibración, Corriente, Caudal, Presión |
-| **Sobrecarga eléctrica / Rotor atascado** | `power_surge` | Bloqueo mecánico del eje o falla severa en el bobinado. El caudal y la presión caen a $0$ de forma instantánea. Al no haber rotación ($RPM=0$), la contra-fuerza electromotriz desaparece y la corriente se dispara a la corriente de rotor bloqueado ($LRA \approx 400-500\%$ de $I_{nom}$). Esto provoca una caída de tensión severa en la red (*Sag* en voltaje) y un calentamiento crítico del estator antes de que salte la protección térmica. | Caudal, Presión, Voltaje, Corriente, Temperatura |
-| **Corte eléctrico** | `power_outage` | Pérdida total de suministro eléctrico. Voltaje, corriente, caudal, presión y vibración caen a $0$ inmediatamente. El nivel del tanque se congela. La temperatura del motor inicia un enfriamiento progresivo hacia la temperatura ambiente ($T_{amb} = 22^\circ\text{C}$) siguiendo la ley de enfriamiento de Newton: $T(t) = T_{amb} + (T_{actual} - T_{amb}) \cdot e^{-kt}$. | Todos (Pasan a 0; Temperatura enfriando progresivamente) |
+| **Sobrecarga eléctrica / Rotor atascado** | `power_surge` | Bloqueo mecánico del eje o falla severa en el bobinado. El caudal y la presión caen a $0$ de forma instantánea. Al no haber rotación ($RPM=0$), la contra-fuerza electromotriz desaparece y la corriente se dispara a la corriente de rotor bloqueado ($LRA \approx 400-500\%$ de $I_{nom}$). Esto provoca una caída de tensión severa en la red (*Sag* en voltaje) y un calentamiento crítico del estator antes de que salte la protección térmica. **El nivel del tanque se congela** (sin caudal, no hay drenaje). | Caudal, Presión, Voltaje, Corriente, Temperatura |
+| **Corte eléctrico** | `power_outage` | Pérdida total de suministro eléctrico. Voltaje, corriente, caudal, presión y vibración caen a $0$ inmediatamente. **El nivel del tanque se congela** (sin caudal de salida, el agua permanece en el tanque). La temperatura del motor inicia un enfriamiento progresivo hacia la temperatura ambiente ($T_{amb} = 22^\circ\text{C}$) siguiendo la ley de enfriamiento de Newton: $T(t) = T_{amb} + (T_{actual} - T_{amb}) \cdot e^{-kt}$. | Todos (Pasan a 0; Temperatura enfriando progresivamente) |
 | **Falla de rodamientos** | `bearing_failure` | Degeneración física de la pista/bolas del rodamiento. El aumento de fricción dispara las lecturas de vibración a valores críticos ($+40\%$) y eleva la temperatura localizada en la chumacera ($+20\%$). El torque de fricción adicional eleva ligeramente el consumo eléctrico ($I \approx +10\%$). La pérdida de alineación axial/radial causa una leve pérdida de eficiencia hidráulica en caudal y presión ($\approx 10\%$). | Vibración, Temperatura, Corriente, Caudal, Presión |
 
 ### Elevador
@@ -84,7 +84,7 @@ Cada fila muestra la correspondencia exacta entre la especificación, la lista `
 | --- | --- |
 | **Spec** | Caudal, Presión, Temperatura, Vibración, Nivel succión, Corriente |
 | **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_temperature`, `pump_vibration`, `pump_tank_level`, `pump_current` |
-| **Handler `_apply_dry_run`** | `flow=0`, `pressure=0`, `tank=0%`, `temperature↑ (+15% sobre crítico)`, `vibration↑ (+25% sobre crítico)`, `current↓ (~3.5 A vacío)` |
+| **Handler `_apply_dry_run`** | `tank drena progresivamente (-3%/tick)`, `flow∝tank (residual decreciente)`, `pressure=0`, `temperature↑ (+15% sobre crítico)`, `vibration↑ (+25% sobre crítico)`, `current↓ (~3.5 A vacío)` |
 | **Mensaje de alerta** | Caudal, presión, nivel de tanque, temperatura, vibración y corriente |
 | **Estado** | ✅ Sincronizado |
 
@@ -94,7 +94,7 @@ Cada fila muestra la correspondencia exacta entre la especificación, la lista `
 | --- | --- |
 | **Spec** | Caudal, Presión, Temperatura, Vibración, Corriente |
 | **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_vibration`, `pump_temperature`, `pump_current` |
-| **Handler `_apply_blocked_discharge`** | `flow=0`, `pressure↑ (+25% shut-off head)`, `temperature↑ (+25% sobre crítico)`, `vibration↑ (+15% sobre crítico)`, `current↓ (~8.5 A)` |
+| **Handler `_apply_blocked_discharge`** | `flow=0`, `pressure↑ (+25% shut-off head)`, `temperature↑ (+25% sobre crítico)`, `vibration↑ (+15% sobre crítico)`, `current↓ (~8.5 A)`, `tank=congelado` |
 | **Mensaje de alerta** | Caudal, presión, temperatura, vibración y corriente |
 | **Estado** | ✅ Sincronizado |
 
@@ -134,7 +134,7 @@ Cada fila muestra la correspondencia exacta entre la especificación, la lista `
 | --- | --- |
 | **Spec** | Caudal, Presión, Voltaje, Corriente, Temperatura |
 | **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_voltage`, `pump_current`, `pump_temperature` |
-| **Handler `_apply_power_surge`** | `current↑ (+25% LRA)`, `voltage↓ (~185 V sag)`, `temperature↑ (+15%)`, `flow=0`, `pressure=0` |
+| **Handler `_apply_power_surge`** | `current↑ (+25% LRA)`, `voltage↓ (~185 V sag)`, `temperature↑ (+15%)`, `flow=0`, `pressure=0`, `tank=congelado` |
 | **Mensaje de alerta** | Corriente, voltaje, temperatura, presión y caudal |
 | **Estado** | ✅ Sincronizado |
 
@@ -144,7 +144,7 @@ Cada fila muestra la correspondencia exacta entre la especificación, la lista `
 | --- | --- |
 | **Spec** | Todos (Pasan a 0; Temperatura enfriando progresivamente) |
 | **`FAULT_AFFECTED_VARIABLES`** | `pump_voltage`, `pump_current`, `pump_flow_rate`, `pump_pressure`, `pump_vibration`, `pump_temperature` |
-| **Handler `_apply_power_outage`** | `voltage=0`, `current=0`, `flow=0`, `pressure=0`, `vibration=0`, `temperature↓ (enfriamiento Newton hacia 22°C)` |
+| **Handler `_apply_power_outage`** | `voltage=0`, `current=0`, `flow=0`, `pressure=0`, `vibration=0`, `temperature↓ (enfriamiento Newton hacia 22°C)`, `tank=congelado` |
 | **Mensaje de alerta** | Voltaje, corriente, caudal, presión, vibración y temperatura |
 | **Estado** | ✅ Sincronizado |
 
