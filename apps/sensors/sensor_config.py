@@ -192,13 +192,13 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
 
     "pipe_burst":
         "Se ha detectado una ruptura en la línea de distribución. "
-        "Los sensores de caudal, presión, nivel de tanque, temperatura, vibración, "
-        "corriente y calidad de agua presentan lecturas anómalas simultáneas "
+        "Los sensores de caudal, presión, nivel de tanque, temperatura, vibración "
+        "y corriente presentan lecturas anómalas simultáneas "
         "características de esta condición.",
 
     "cavitation":
         "El sistema de bombeo presenta un fenómeno de cavitación. "
-        "Los sensores de caudal, presión, vibración, temperatura, corriente y calidad de agua "
+        "Los sensores de caudal, presión, vibración, corriente y calidad de agua "
         "presentan oscilaciones violentas e inestables simultáneas características de esta condición.",
 
     "overheat":
@@ -208,8 +208,8 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
 
     "power_surge":
         "Se ha detectado una sobrecarga en el sistema eléctrico "
-        "de la bomba. Los sensores de corriente, voltaje, temperatura, presión, "
-        "vibración y caudal presentan desviaciones simultáneas características de esta condición.",
+        "de la bomba. Los sensores de corriente, voltaje, temperatura, presión "
+        "y caudal presentan desviaciones simultáneas características de esta condición.",
 
     "power_outage":
         "La alimentación eléctrica de la bomba ha sido interrumpida. "
@@ -218,7 +218,7 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
 
     "bearing_failure":
         "Se ha detectado degradación en los rodamientos de la bomba. "
-        "Los sensores de vibración, temperatura, corriente y calidad de agua presentan "
+        "Los sensores de vibración, temperatura y corriente presentan "
         "un incremento progresivo y simultáneo característico de esta condición.",
 
     # ── ELEVADOR ─────────────────────────────────────────────────────────────
@@ -241,7 +241,7 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
     "overload":
         "La carga en la cabina del elevador supera el límite de bloqueo físico. "
         "El motor ha sido bloqueado por el sistema de protección. Los sensores de carga, "
-        "velocidad, corriente, vibración y estado de puerta reflejan esta condición.",
+        "velocidad, corriente y estado de puerta reflejan esta condición.",
 
     "pos_sensor_fail":
         "El sensor de posición de la cabina del elevador "
@@ -335,16 +335,16 @@ ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "
 FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "dry_run":               ["pump_flow_rate", "pump_pressure", "pump_temperature", "pump_vibration", "pump_tank_level", "pump_current"],
     "blocked_discharge":     ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current"],
-    "pipe_burst":            ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current", "pump_tank_level", "pump_water_quality"],
-    "cavitation":            ["pump_flow_rate", "pump_vibration", "pump_pressure", "pump_temperature", "pump_current", "pump_water_quality"],
+    "pipe_burst":            ["pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature", "pump_current", "pump_tank_level"],
+    "cavitation":            ["pump_flow_rate", "pump_vibration", "pump_pressure", "pump_current", "pump_water_quality"],
     "overheat":              ["pump_temperature", "pump_vibration", "pump_current", "pump_flow_rate", "pump_pressure"],
-    "power_surge":           ["pump_flow_rate", "pump_pressure", "pump_voltage", "pump_current", "pump_temperature", "pump_vibration"],
+    "power_surge":           ["pump_flow_rate", "pump_pressure", "pump_voltage", "pump_current", "pump_temperature"],
     "power_outage":          ["pump_voltage", "pump_current", "pump_flow_rate", "pump_pressure", "pump_vibration", "pump_temperature"],
-    "bearing_failure":       ["pump_vibration", "pump_temperature", "pump_current", "pump_water_quality", "pump_flow_rate", "pump_pressure"],
+    "bearing_failure":       ["pump_vibration", "pump_temperature", "pump_current", "pump_flow_rate", "pump_pressure"],
     "motor_stuck":           ["elev_temperature", "elev_speed", "elev_current", "elev_door_status", "elev_voltage", "elev_vibration"],
     "door_blocked":          ["elev_door_status", "elev_speed", "elev_current"],
     "overspeed":             ["elev_speed", "elev_current", "elev_door_status", "elev_vibration"],
-    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current", "elev_vibration"],
+    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current"],
     "pos_sensor_fail":       ["elev_position", "elev_speed", "elev_door_status", "elev_current"],
     "commercial_power_outage": ["elev_voltage", "elev_current", "elev_speed", "elev_door_status", "elev_temperature"],
     "traction_loss":         ["elev_position", "elev_speed", "elev_current", "elev_vibration", "elev_temperature"],

@@ -212,7 +212,6 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_speed": 0.0 if getattr(sim, "_elev_governor_tripped", False) else _above("elev_speed", 1.6, 1.15),
             "elev_current": 0.0 if getattr(sim, "_elev_governor_tripped", False) else _high("elev_current", 10.0),
             "elev_door_status": "closed",
-            "elev_temperature": ELEVATOR_MOTOR_TEMP_AMBIENT + 10.0,
             "elev_vibration": 12.0 if getattr(sim, "_elev_governor_tripped", False) else _above("elev_vibration", 5.0, 1.1),
             "elevator_state": "SAFETY_GEAR_TRIPPED" if getattr(sim, "_elev_governor_tripped", False) else "MOVING",
         },

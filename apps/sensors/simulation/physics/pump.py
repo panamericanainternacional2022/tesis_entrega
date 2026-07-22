@@ -284,11 +284,6 @@ def _apply_pipe_burst(sim, sd: dict, dt: float, thresh: dict) -> None:
         temp_critic * 1.15 + random.uniform(-0.3, 0.3) * dt
     )
 
-    qual_critic = _thresh_critic(thresh, "pump_water_quality", 500.0)
-    sd["pump_water_quality"] = min(
-        lim.get("pump_water_quality", (0.0, 1000.0))[1],
-        qual_critic * 1.25 + random.uniform(-2.0, 2.0) * dt
-    )
 
     # Tanque se vacía rápidamente (fuga masiva)
     sd["pump_tank_level"]  = 0.0
@@ -318,11 +313,6 @@ def _apply_cavitation(sim, sd: dict, dt: float, thresh: dict) -> None:
         qual_critic * 1.20 + random.uniform(-3.0, 3.0)
     )
 
-    temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
-    sd["pump_temperature"] = min(
-        lim.get("pump_temperature", (22.0, 100.0))[1],
-        temp_critic * 1.05 + random.uniform(-0.2, 0.2) * dt
-    )
 
     # Tanque actualiza con el caudal errático (la bomba sigue intentando operar)
     _update_tank_with_flow(sim, sd, thresh, erratic_flow, dt)
@@ -373,11 +363,6 @@ def _apply_power_surge(sim, sd: dict, dt: float, thresh: dict) -> None:
         temp_critic * 1.15 + random.uniform(-0.3, 0.3) * dt
     )
 
-    vib_critic = _thresh_critic(thresh, "pump_vibration", 7.1)
-    sd["pump_vibration"]   = min(
-        lim.get("pump_vibration", (0.0, 15.0))[1],
-        vib_critic * 1.10 + random.uniform(-0.1, 0.1) * dt
-    )
 
     sd["pump_flow_rate"]   = 0.0
     sd["pump_pressure"]    = 0.0
@@ -418,8 +403,6 @@ def _apply_bearing_failure(sim, sd: dict, dt: float, thresh: dict) -> None:
     curr_critic = _thresh_critic(thresh, "pump_current", 22.0)
     sd["pump_current"]     = min(lim.get("pump_current", (0.0, 30.0))[1], curr_critic * 1.08)
 
-    qual_critic = _thresh_critic(thresh, "pump_water_quality", 500.0)
-    sd["pump_water_quality"] = min(lim.get("pump_water_quality", (0.0, 1000.0))[1], qual_critic * 1.20)
 
     # Degradación visible del 25% + ruido para que el valor no luzca congelado
     base_demand = getattr(sim, "_pump_demand", 12.0)
