@@ -214,7 +214,11 @@ def _apply_dry_run(sim, sd: dict, dt: float, thresh: dict) -> None:
     # llega a 0, el caudal es 0.
     tank_fraction = sd["pump_tank_level"] / 100.0
     sd["pump_flow_rate"] = max(0.0, tank_fraction * 2.0)  # Caudal residual decreciente
-    sd["pump_pressure"]  = 0.0
+
+    # Presión acoplada al caudal/tanque: curva P = P0 - K·Q² escalada por nivel
+    # Si hay caudal residual → hay presión residual; cuando tanque=0 → presión=0
+    residual_flow = sd["pump_flow_rate"]
+    sd["pump_pressure"] = max(0.0, tank_fraction * (PUMP_P0 - PUMP_K * residual_flow ** 2))
 
     temp_critic = _thresh_critic(thresh, "pump_temperature", 85.0)
     sd["pump_temperature"] = min(
