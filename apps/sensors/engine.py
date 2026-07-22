@@ -73,17 +73,16 @@ def _send_compound_alerts_for_faults(sim: BuildingSimulator, risk_cache: dict[st
         worst_risk = RISK_NORMAL
         for var in affected_vars_defs:
             var_risk = risk_cache.get(var, RISK_NORMAL)
-            if fault_type in ("pos_sensor_fail", "door_blocked") or var_risk in (RISK_ALTO, RISK_CRITICO):
-                alert_vars[var] = {
-                    "value": sim.sensor_data.get(var, 0),
-                    "risk": var_risk,
-                    "display_name": VAR_NAMES.get(var, var),
-                    "unit": UNITS.get(var, ""),
-                }
-                if var_risk == RISK_CRITICO:
-                    worst_risk = RISK_CRITICO
-                elif worst_risk != RISK_CRITICO and var_risk == RISK_ALTO:
-                    worst_risk = RISK_ALTO
+            alert_vars[var] = {
+                "value": sim.sensor_data.get(var, 0),
+                "risk": var_risk,
+                "display_name": VAR_NAMES.get(var, var),
+                "unit": UNITS.get(var, ""),
+            }
+            if var_risk == RISK_CRITICO:
+                worst_risk = RISK_CRITICO
+            elif worst_risk != RISK_CRITICO and var_risk == RISK_ALTO:
+                worst_risk = RISK_ALTO
 
         if fault_type == "pos_sensor_fail" and worst_risk == RISK_NORMAL:
             worst_risk = RISK_CRITICO

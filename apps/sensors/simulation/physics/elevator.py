@@ -252,6 +252,8 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
                 "elev_current": 0.0,
                 "elev_temperature": ELEVATOR_MOTOR_TEMP_AMBIENT,
                 "elev_vibration": 0.0,
+                # E-7: Pasajeros evacuan con puerta abierta tras rescate completado
+                "elev_load": 0,
                 "elevator_state": "DOORS_OPEN",
             }
         elif timer <= max(POWER_OUTAGE_BRAKE_TIME, dt):
