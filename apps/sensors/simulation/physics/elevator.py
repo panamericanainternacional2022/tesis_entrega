@@ -25,13 +25,14 @@ from apps.sensors.simulation.utils import clamp
 # que cada edificio con sus propios umbrales refleje el bloqueo correcto (spec: >800 kg)
 
 # ── Tasas de ramping progresivo por variable (unidades por tick) ──
+# Alineadas con las tasas de cambio en operación normal para transiciones coherentes.
 ELEV_RAMP_RATES = {
-    "elev_speed":       0.5,   # m/s/tick  - ~1.5→0 en ~3s
-    "elev_current":     4.0,   # A/tick    - régimen→0/40 en ~3-10s
-    "elev_temperature": 5.0,   # °C/tick   - ~25→110 en ~17s (masa térmica)
-    "elev_vibration":   2.0,   # mm/s/tick - ~1→10 en ~4.5s
-    "elev_voltage":     30.0,  # V/tick    - 380→0 en ~13s
-    "elev_load":        100.0, # kg/tick   - ~200→1000 en ~8s
+    "elev_speed":       0.5,   # m/s/tick  — Igual a ramp normal (accel ~0.5)
+    "elev_current":     3.0,   # A/tick    — Coherente con ramp normal (~3 A)
+    "elev_temperature": 1.0,   # °C/tick   — Inercia térmica realista (normal ~0.3)
+    "elev_vibration":   2.0,   # mm/s/tick — Igual a ramp normal
+    "elev_voltage":    15.0,   # V/tick    — Rápido pero no instantáneo (red tiene impedancia)
+    "elev_load":       100.0,  # kg/tick   — Pasajeros (instantáneo en la realidad)
     "elev_position":    1.0,   # pisos/tick
 }
 
@@ -49,12 +50,10 @@ def _clear_elevator_fault_params(sim: BuildingSimulator) -> None:
     sim._elev_door_obstructed = False
     sim._elev_speed_governor_failed = False
     sim._elev_overload_extra_kg = 0.0
-    sim._elev_pos_sensor_stuck = False
     sim._elev_power_available = True
     sim._elev_brake_failed = False
     sim._elev_power_outage_timer = 0.0
     sim._elev_power_outage_complete = False
-    sim._elev_pos_sensor_mismatch_timer = 0.0
     sim._elev_traction_loss = False
     sim._elev_governor_tripped = False
 
@@ -95,12 +94,6 @@ def _set_overspeed_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
 
 def _set_overload_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
     sim._elev_overload_extra_kg = OVERLOAD_EXTRA_KG
-
-
-def _set_pos_sensor_fail_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
-    sim._elev_pos_sensor_stuck = True
-    if not hasattr(sim, "_elev_pos_stuck_value"):
-        sim._elev_pos_stuck_value = round(sim._elev_position_meters / FLOOR_HEIGHT, 1)
 
 
 def _set_power_outage_params(sim: BuildingSimulator, sd: dict, dt: float) -> None:
@@ -168,6 +161,9 @@ def _update_elevator(sim: BuildingSimulator) -> None:
 
     if "elevator" in sim.sim_faults:
         _force_elevator_fault_telemetry(sim, sd)
+        # Sincronizar estado térmico interno con la temperatura forzada por la falla
+        # para evitar que el modelo térmico del post_fsm contradiga el valor forzado
+        sim._elev_motor_temp = sd.get("elev_temperature", sim._elev_motor_temp)
 
 
 def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
@@ -219,16 +215,11 @@ def _get_fault_telemetry_targets(sim: BuildingSimulator, fault: str) -> dict:
             "elev_load": _above("elev_load", 800.0, 1.05),
             "elev_door_status": "open",
             "elev_speed": 0.0,
-            "elev_current": 0.0,
+            # Corriente de standby: circuitos de control, iluminación cabina, operador de puerta
+            "elev_current": ELEVATOR_MOTOR_RATED_CURRENT * 0.08,
+            # Motor NO energizado → temperatura se mantiene en ambiente
+            "elev_temperature": ELEVATOR_MOTOR_TEMP_AMBIENT,
             "elevator_state": "DOORS_OPEN",
-        },
-        "pos_sensor_fail": {
-            "elev_position": getattr(sim, "_elev_pos_stuck_value", FLOOR_HEIGHT * 1.25),
-            "elev_speed": 0.0 if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else CRUISING_SPEED,
-            "elev_door_status": "closed",
-            "elev_current": 0.0 if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else ELEVATOR_MOTOR_RATED_CURRENT * 0.5,
-            "elev_vibration": ELEVATOR_BRAKE_SHOCK_VIBRATION if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else 0.5,
-            "elevator_state": "IDLE" if getattr(sim, "_elev_pos_sensor_mismatch_timer", 0.0) >= (sim.sim_speed or 1.0) else "MOVING",
         },
         "traction_loss": {
             # Vibración alta por fricción de rozamiento de cables en garganta
@@ -315,9 +306,8 @@ STEP_VARS_BY_FAULT = {
     "commercial_power_outage": {"elev_voltage", "elev_current", "elev_vibration", "elev_speed", "elev_door_status"},
     "motor_stuck": {"elev_current", "elev_voltage", "elev_vibration", "elev_speed", "elev_door_status"},
     "door_blocked": {"elev_current", "elev_speed", "elev_door_status"},
-    "overload": {"elev_load", "elev_current", "elev_speed", "elev_door_status"},
+    "overload": {"elev_load", "elev_current", "elev_speed", "elev_door_status", "elev_temperature"},
     "traction_loss": {"elev_current", "elev_temperature"},
-    "pos_sensor_fail": {"elev_position", "elev_current", "elev_vibration", "elev_speed"},
     "overspeed": {"elev_speed", "elev_vibration", "elev_current"},
 }
 
@@ -386,7 +376,6 @@ def _apply_elevator_fault_params(sim: BuildingSimulator, sd: dict, dt: float) ->
         "door_blocked":            _set_door_blocked_params,
         "overspeed":               _set_overspeed_params,
         "overload":                _set_overload_params,
-        "pos_sensor_fail":         _set_pos_sensor_fail_params,
         "commercial_power_outage": _set_power_outage_params,
         "traction_loss":           _set_traction_loss_params,
     }
@@ -779,39 +768,7 @@ def _run_elevator_post_fsm(
     effective_load = _effective_load(sim, load)
 
     # ── Position sensor ────────────────────────────────────────────────────
-    if not sim._elev_pos_sensor_stuck:
-        sd["elev_position"] = round(sim._elev_position_meters / FLOOR_HEIGHT, 1)
-
-    # ── Speed ──────────────────────────────────────────────────────────────
-    sd["elev_speed"] = round(spd, 1)
-
-    # ── Load ───────────────────────────────────────────────────────────────
-    target_load = clamp(load, sim.sensor_limits.get('elev_load', (0.0, 1200.0))[0], sim.sensor_limits.get('elev_load', (0.0, 1200.0))[1])
-    if sim.fault_transition_elev == "recovering":
-        _ramp_toward_target(sd, "elev_load", target_load, ELEV_RAMP_RATES.get("elev_load", 100.0), dt)
-        sd["elev_load"] = int(round(sd["elev_load"]))
-    else:
-        sd["elev_load"] = int(round(target_load))
-
-    # ── Door status ────────────────────────────────────────────────────────
-    sd["elev_door_status"] = door
-
-    # ── Position sensor mismatch detection ──────────────────────────────────
-    if sim._elev_pos_sensor_stuck:
-        if not hasattr(sim, "_elev_pos_sensor_mismatch_timer"):
-            sim._elev_pos_sensor_mismatch_timer = 0.0
-        if abs(spd) > 0.05:
-            sim._elev_pos_sensor_mismatch_timer += dt
-            # Spec: parada de emergencia INMEDIATA (≤1 tick) ante fallo de sensor de posición (B-5)
-            # Umbral = dt (un solo tick) en lugar de 1.0 s acumulado
-            if sim._elev_pos_sensor_mismatch_timer >= dt:
-                sim._elev_state = "IDLE"
-                sd["elev_speed"] = 0.0
-                spd = 0.0
-                sim._elev_motor_torque_factor = 0.0
-                sim._elev_brake_failed = False
-    else:
-        sim._elev_pos_sensor_mismatch_timer = 0.0
+    sd["elev_position"] = round(sim._elev_position_meters / FLOOR_HEIGHT, 1)
 
     # ── Power outage forces current to 0 ───────────────────────────────────
     if not sim._elev_power_available:

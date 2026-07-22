@@ -159,25 +159,7 @@ class SimulatorPhysicsAndAlertsTests(TestCase):
             "door_obstructed must be True for door_blocked fault.")
 
     # -----------------------------------------------------------------------
-    # 31. Position sensor fail freezes actual position
-    # -----------------------------------------------------------------------
-    def test_pos_sensor_fail_frozen_actual_position(self):
-        """pos_sensor_fail must freeze position at actual value, not at arbitrary 4.3."""
-        sim = _make_sim(self.building, pump=True, elevator=True)
-        sim.elevator_on = True
-        actual_floor = 7
-        sim._elev_position_meters = actual_floor * 3.5
-        sim.sensor_data["elev_position"] = float(actual_floor)
-        sim.sim_faults["elevator"] = "pos_sensor_fail"
-        # Elevator is moving (speed > 0) but position sensor should stay frozen
-        sim._elev_state = "MOVING"
-        sim.sensor_data["elev_speed"] = 2.0
-        sim._elev_current_accel = 0.0
-        for _ in range(5):
-            _update_elevator(sim)
-        self.assertEqual(
-            sim.sensor_data["elev_position"], float(actual_floor),
-            "pos_sensor_fail must freeze position at the actual value when fault was injected.")
+
 
     # -----------------------------------------------------------------------
     # 32. Commercial Power Outage Step Dynamics & Brake Shock Impulse

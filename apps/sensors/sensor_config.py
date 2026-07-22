@@ -243,12 +243,6 @@ FAULT_ALERT_MESSAGES: dict[str, str] = {
         "El motor ha sido bloqueado por el sistema de protección. Los sensores de carga, "
         "velocidad, corriente y estado de puerta reflejan esta condición.",
 
-    "pos_sensor_fail":
-        "El sensor de posición de la cabina del elevador "
-        "reporta valores erróneos o congelados. Esta condición activa la parada de "
-        "emergencia inmediata del sistema. Los sensores de posición, velocidad y estado "
-        "de puerta confirman la anomalía.",
-
     "commercial_power_outage":
         "La alimentación trifásica del elevador ha sido "
         "interrumpida. El sistema ha activado los frenos mecánicos de seguridad. "
@@ -324,13 +318,12 @@ FAULT_NAMES_ES = {
     "door_blocked":        "Puerta bloqueada",
     "overspeed":           "Exceso de velocidad",
     "overload":            "Sobrecarga",
-    "pos_sensor_fail":     "Fallo del sensor de posición",
     "commercial_power_outage": "Corte de energía comercial",
     "traction_loss":       "Pérdida de tracción",
 }
 
 PUMP_FAULT_KEYS = ("dry_run", "blocked_discharge", "pipe_burst", "cavitation", "overheat", "power_surge", "power_outage", "bearing_failure")
-ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "pos_sensor_fail", "commercial_power_outage", "traction_loss")
+ELEVATOR_FAULT_KEYS = ("motor_stuck", "door_blocked", "overspeed", "overload", "commercial_power_outage", "traction_loss")
 
 FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "dry_run":               ["pump_flow_rate", "pump_pressure", "pump_temperature", "pump_vibration", "pump_tank_level", "pump_current"],
@@ -344,8 +337,7 @@ FAULT_AFFECTED_VARIABLES: dict[str, list[str]] = {
     "motor_stuck":           ["elev_temperature", "elev_speed", "elev_current", "elev_door_status", "elev_voltage", "elev_vibration"],
     "door_blocked":          ["elev_door_status", "elev_speed", "elev_current"],
     "overspeed":             ["elev_speed", "elev_current", "elev_door_status", "elev_vibration"],
-    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current"],
-    "pos_sensor_fail":       ["elev_position", "elev_speed", "elev_door_status", "elev_current"],
+    "overload":              ["elev_load", "elev_door_status", "elev_speed", "elev_current", "elev_temperature"],
     "commercial_power_outage": ["elev_voltage", "elev_current", "elev_speed", "elev_door_status", "elev_temperature"],
     "traction_loss":         ["elev_position", "elev_speed", "elev_current", "elev_vibration", "elev_temperature"],
 }

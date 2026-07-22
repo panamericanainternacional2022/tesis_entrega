@@ -65,8 +65,7 @@ Las fallas del elevador se simulan en la máquina de estados y física (`apps/se
 | **Motor atascado** | `motor_stuck` | Rotor inmovilizado ($RPM=0$). Aceleración y velocidad caen a $0$. Se aplica corriente de rotor bloqueado ($I \approx 400\%$ sobre nominal), lo que genera caída de voltaje en red (Sag al $90\%$), aumento térmico acelerado en el estator ($+20\%$) y fuerte zumbido/vibración magnética ($+20\%$). | Temperatura, Velocidad, Corriente, Estado puerta, Voltaje, Vibración |
 | **Puerta bloqueada** | `door_blocked` | Se activa la bandera de obstrucción física (`_elev_door_obstructed = True`). La lógica de seguridad impide el arranque del equipo mientras el contacto de seguridad de puerta esté abierto. El estado permanece en `open`, la velocidad se mantiene en $0$ m/s y el consumo eléctrico se limita a los circuitos de control. | Estado puerta, Velocidad, Corriente |
 | **Exceso de velocidad** | `overspeed` | Falla en el control vectorial/freno dinámico. La cabina acelera superando la velocidad nominal por un $+20\%$ hasta alcanzar el umbral del gobernador de velocidad. Las fuerzas dinámicas e inerciales elevan la vibración ($+15\%$) y la temperatura de las guías y poleas por fricción. | Velocidad, Corriente, Estado puerta, Vibración |
-| **Sobrecarga** | `overload` | Carga útil medida por pesacargas supera el $100\%$ de la capacidad nominal. El sistema de maniobra inhabilita el cierre de puertas y bloquea la orden de viaje (velocidad = $0$, motor sin energizar). Se activa señal auditiva/visual de sobrecarga. | Carga, Estado puerta, Velocidad, Corriente |
-| **Fallo de sensor de posición** | `pos_sensor_fail` | Pérdida o congelamiento del conteo del encoder (`_elev_pos_stuck_value`). La lógica de control detecta una inconsistencia entre la velocidad real medida/ordenada y la variación nula de posición. Tras $1$ ciclo de simulación, el sistema ejecuta una parada de emergencia activando el freno electromecánico. | Posición, Velocidad, Estado puerta, Corriente |
+| **Sobrecarga** | `overload` | Carga útil medida por pesacargas supera el $100\%$ de la capacidad nominal. El sistema de maniobra inhabilita el cierre de puertas y bloquea la orden de viaje (velocidad = $0$, motor sin energizar). Se activa señal auditiva/visual de sobrecarga. **La temperatura se mantiene en ambiente** (motor no energizado). Corriente mínima de standby (circuitos de control, iluminación). | Carga, Estado puerta, Velocidad, Corriente, Temperatura |
 | **Corte de energía comercial** | `commercial_power_outage` | Pérdida del suministro eléctrico principal ($V=0$). El freno electromecánico cae por falta de tensión deteniendo la cabina inmediatamente. Tras una retardo de seguridad, se activa el sistema de rescate automático por baterías (UPS), moviendo la cabina a velocidad reducida (`BATTERY_RESCUE_SPEED`) hacia el nivel más cercano para abrir puertas. | Voltaje, Corriente, Velocidad, Estado puerta, Temperatura |
 | **Pérdida de tracción** | `traction_loss` | Deslizamiento de los cables sobre la polea de tracción por desgaste de gargantas o falta de adherencia. El motor gira a velocidad angular nominal y consume baja corriente (sin carga efectiva $\approx 30\%$), pero la velocidad lineal real de la cabina cae al $10\%$. La fricción del cable deslizante genera vibración e incremento térmico en poleas. | Posición, Velocidad, Corriente, Vibración, Temperatura |
 
@@ -196,20 +195,10 @@ Cada fila muestra la correspondencia exacta entre la especificación, la lista `
 
 | Capa | Sensores |
 | --- | --- |
-| **Spec** | Carga, Estado puerta, Velocidad, Corriente |
-| **`FAULT_AFFECTED_VARIABLES`** | `elev_load`, `elev_door_status`, `elev_speed`, `elev_current` |
-| **Targets `_get_fault_telemetry_targets`** | `load↑ (+5% sobre crítico)`, `door=open`, `speed=0`, `current=0` |
-| **Mensaje de alerta** | Carga, velocidad, corriente y estado de puerta |
-| **Estado** | ✅ Sincronizado |
-
-#### `pos_sensor_fail` — Fallo de sensor de posición
-
-| Capa | Sensores |
-| --- | --- |
-| **Spec** | Posición, Velocidad, Estado puerta, Corriente |
-| **`FAULT_AFFECTED_VARIABLES`** | `elev_position`, `elev_speed`, `elev_door_status`, `elev_current` |
-| **Targets `_get_fault_telemetry_targets`** | `position=congelada (stuck_value)`, `speed→0 (tras parada de emergencia)`, `door=closed`, `current→0 (tras parada)` |
-| **Mensaje de alerta** | Posición, velocidad y estado de puerta |
+| **Spec** | Carga, Estado puerta, Velocidad, Corriente, Temperatura |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_load`, `elev_door_status`, `elev_speed`, `elev_current`, `elev_temperature` |
+| **Targets `_get_fault_telemetry_targets`** | `load↑ (+5% sobre crítico)`, `door=open`, `speed=0`, `current=standby (~2.2A, 8% nominal)`, `temperature=ambiente (motor no energizado)` |
+| **Mensaje de alerta** | Carga, velocidad, corriente, temperatura y estado de puerta |
 | **Estado** | ✅ Sincronizado |
 
 #### `commercial_power_outage` — Corte de energía comercial
