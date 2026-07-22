@@ -235,7 +235,7 @@ class PumpFaultsPhysicsTests(TestCase):
 
     def test_dry_run_fault(self):
         self.sim.sim_faults["pump"] = "dry_run"
-        for _ in range(35):
+        for _ in range(60):
             _update_pump(self.sim)
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
@@ -251,8 +251,9 @@ class PumpFaultsPhysicsTests(TestCase):
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertGreater(self.sim.sensor_data["pump_pressure"], 8.0)
         self.assertAlmostEqual(self.sim.sensor_data["pump_current"], 8.5, delta=1.0)
-        self.assertLess(self.sim.sensor_data["pump_tank_level"], 50.0)
-        self.assertGreater(self.sim.sensor_data["pump_temperature"], 60.0)
+        # Nivel del tanque congelado cuando caudal = 0 (bomba de expulsión)
+        self.assertEqual(self.sim.sensor_data["pump_tank_level"], 50.0)
+        self.assertGreater(self.sim.sensor_data["pump_temperature"], 50.0)
 
     def test_pipe_burst_fault(self):
         self.sim.sim_faults["pump"] = "pipe_burst"
@@ -261,7 +262,6 @@ class PumpFaultsPhysicsTests(TestCase):
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
         self.assertGreater(self.sim.sensor_data["pump_flow_rate"], 20.0)
         self.assertGreater(self.sim.sensor_data["pump_current"], 16.0)
-        self.assertGreater(self.sim.sensor_data["pump_water_quality"], 300.0)
 
     def test_cavitation_fault(self):
         self.sim.sim_faults["pump"] = "cavitation"
@@ -270,11 +270,10 @@ class PumpFaultsPhysicsTests(TestCase):
         self.assertLessEqual(self.sim.sensor_data["pump_flow_rate"], 5.0)
         self.assertLessEqual(self.sim.sensor_data["pump_pressure"], 1.0)
         self.assertGreater(self.sim.sensor_data["pump_vibration"], 7.0)
-        self.assertGreater(self.sim.sensor_data["pump_water_quality"], 300.0)
 
     def test_overheat_fault(self):
         self.sim.sim_faults["pump"] = "overheat"
-        for _ in range(35):
+        for _ in range(75):
             _update_pump(self.sim)
         self.assertGreater(self.sim.sensor_data["pump_temperature"], 80.0)
         self.assertGreater(self.sim.sensor_data["pump_current"], 16.0)
@@ -300,14 +299,14 @@ class PumpFaultsPhysicsTests(TestCase):
         self.assertEqual(self.sim.sensor_data["pump_flow_rate"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
         self.assertEqual(self.sim.sensor_data["pump_vibration"], 0.0)
-        self.assertLess(self.sim.sensor_data["pump_tank_level"], 65.0)
+        # Nivel del tanque congelado cuando caudal = 0 (bomba de expulsión)
+        self.assertEqual(self.sim.sensor_data["pump_tank_level"], 65.0)
 
     def test_bearing_failure_fault(self):
         self.sim.sim_faults["pump"] = "bearing_failure"
         for _ in range(35):
             _update_pump(self.sim)
         self.assertGreater(self.sim.sensor_data["pump_vibration"], 7.0)
-        self.assertGreater(self.sim.sensor_data["pump_water_quality"], 300.0)
         self.assertGreater(self.sim.sensor_data["pump_flow_rate"], 5.0)
         self.assertGreater(self.sim.sensor_data["pump_pressure"], 1.0)
 

@@ -20,7 +20,7 @@ PUMP_RAMP_RATES = {
     "pump_vibration":     2.0,    # mm/s/tick — Igual a ramp normal (max_vib_ramp)
     "pump_current":       4.0,    # A/tick    — Igual a ramp normal (max_curr_ramp)
     "pump_voltage":      15.0,    # V/tick    — Rápido pero no instantáneo (red tiene impedancia)
-    "pump_tank_level":    1.0,    # %/tick    — Dinámica de masa lenta (sin cambio)
+    "pump_tank_level":    3.0,    # %/tick   — Coherente con la tasa de drenaje de masa
     "pump_water_quality": 3.0,    # ppm/tick  — Disolución gradual (normal ~2.0)
 }
 
