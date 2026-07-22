@@ -332,7 +332,13 @@ def _force_elevator_fault_telemetry(sim: BuildingSimulator, sd: dict) -> None:
     all_reached = True
     for var, target in targets.items():
         if var in ENUM_VARS or isinstance(target, str) or var in step_vars:
-            sd[var] = target
+            if isinstance(target, (int, float)):
+                if var in ("elev_load",):
+                    sd[var] = int(round(target))
+                else:
+                    sd[var] = round(target, 1)
+            else:
+                sd[var] = target
             continue
 
         bounds = sim.sensor_limits.get(var)
