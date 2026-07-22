@@ -72,7 +72,169 @@ Las fallas del elevador se simulan en la máquina de estados y física (`apps/se
 
 ---
 
-## 4. Funcionalidades Complementarias
+## 4. Matriz de Verificación Detallada
+
+Cada fila muestra la correspondencia exacta entre la especificación, la lista `FAULT_AFFECTED_VARIABLES` en `sensor_config.py`, las variables que modifica el handler de físicas, y los sensores mencionados en el `FAULT_ALERT_MESSAGES`.
+
+### Bomba de Agua
+
+#### `dry_run` — Sequía (Trabajo en seco)
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Caudal, Presión, Temperatura, Vibración, Nivel succión, Corriente |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_temperature`, `pump_vibration`, `pump_tank_level`, `pump_current` |
+| **Handler `_apply_dry_run`** | `flow=0`, `pressure=0`, `tank=0%`, `temperature↑ (+15% sobre crítico)`, `vibration↑ (+25% sobre crítico)`, `current↓ (~3.5 A vacío)` |
+| **Mensaje de alerta** | Caudal, presión, nivel de tanque, temperatura, vibración y corriente |
+| **Estado** | ✅ Sincronizado |
+
+#### `blocked_discharge` — Descarga bloqueada
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Caudal, Presión, Temperatura, Vibración, Corriente |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_vibration`, `pump_temperature`, `pump_current` |
+| **Handler `_apply_blocked_discharge`** | `flow=0`, `pressure↑ (+25% shut-off head)`, `temperature↑ (+25% sobre crítico)`, `vibration↑ (+15% sobre crítico)`, `current↓ (~8.5 A)` |
+| **Mensaje de alerta** | Caudal, presión, temperatura, vibración y corriente |
+| **Estado** | ✅ Sincronizado |
+
+#### `pipe_burst` — Ruptura de tubería
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Caudal, Presión, Vibración, Temperatura, Corriente, Nivel descarga |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_vibration`, `pump_temperature`, `pump_current`, `pump_tank_level` |
+| **Handler `_apply_pipe_burst`** | `flow↑ (+30% runout)`, `pressure=0`, `current↑ (+15% sobre crítico)`, `vibration↑ (+20%)`, `temperature↑ (+15%)`, `tank=0%` |
+| **Mensaje de alerta** | Caudal, presión, nivel de tanque, temperatura, vibración y corriente |
+| **Estado** | ✅ Sincronizado |
+
+#### `cavitation` — Cavitación
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Caudal, Presión, Vibración, Corriente, Calidad de agua |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_vibration`, `pump_pressure`, `pump_current`, `pump_water_quality` |
+| **Handler `_apply_cavitation`** | `flow errático (1.5–4.5)`, `pressure errático (0.1–0.6)`, `vibration↑ (+45% sobre crítico)`, `current errático (7.5–10.5)`, `water_quality↑ (+20% sobre crítico)` |
+| **Mensaje de alerta** | Caudal, presión, vibración, corriente y calidad de agua |
+| **Estado** | ✅ Sincronizado |
+
+#### `overheat` — Sobrecalentamiento
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Temperatura, Vibración, Corriente, Caudal, Presión |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_temperature`, `pump_vibration`, `pump_current`, `pump_flow_rate`, `pump_pressure` |
+| **Handler `_apply_overheat`** | `temperature↑ (+20% sobre crítico)`, `vibration↑ (+15%)`, `current↑ (+5%)`, `flow↓ (degradación 25%)`, `pressure↓ (degradación 25%)` |
+| **Mensaje de alerta** | Temperatura, vibración y corriente |
+| **Estado** | ✅ Sincronizado |
+
+#### `power_surge` — Sobrecarga eléctrica / Rotor atascado
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Caudal, Presión, Voltaje, Corriente, Temperatura |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_flow_rate`, `pump_pressure`, `pump_voltage`, `pump_current`, `pump_temperature` |
+| **Handler `_apply_power_surge`** | `current↑ (+25% LRA)`, `voltage↓ (~185 V sag)`, `temperature↑ (+15%)`, `flow=0`, `pressure=0` |
+| **Mensaje de alerta** | Corriente, voltaje, temperatura, presión y caudal |
+| **Estado** | ✅ Sincronizado |
+
+#### `power_outage` — Corte eléctrico
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Todos (Pasan a 0; Temperatura enfriando progresivamente) |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_voltage`, `pump_current`, `pump_flow_rate`, `pump_pressure`, `pump_vibration`, `pump_temperature` |
+| **Handler `_apply_power_outage`** | `voltage=0`, `current=0`, `flow=0`, `pressure=0`, `vibration=0`, `temperature↓ (enfriamiento Newton hacia 22°C)` |
+| **Mensaje de alerta** | Voltaje, corriente, caudal, presión, vibración y temperatura |
+| **Estado** | ✅ Sincronizado |
+
+#### `bearing_failure` — Falla de rodamientos
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Vibración, Temperatura, Corriente, Caudal, Presión |
+| **`FAULT_AFFECTED_VARIABLES`** | `pump_vibration`, `pump_temperature`, `pump_current`, `pump_flow_rate`, `pump_pressure` |
+| **Handler `_apply_bearing_failure`** | `vibration↑ (+35% sobre crítico)`, `temperature↑ (+12%)`, `current↑ (+8%)`, `flow↓ (degradación 25%)`, `pressure↓ (degradación 25%)` |
+| **Mensaje de alerta** | Vibración, temperatura y corriente |
+| **Estado** | ✅ Sincronizado |
+
+---
+
+### Elevador
+
+#### `motor_stuck` — Motor atascado
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Temperatura, Velocidad, Corriente, Estado puerta, Voltaje, Vibración |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_temperature`, `elev_speed`, `elev_current`, `elev_door_status`, `elev_voltage`, `elev_vibration` |
+| **Targets `_get_fault_telemetry_targets`** | `speed=0`, `current=LRA (85 A)`, `door=closed`, `temperature↑ (+10% sobre crítico)`, `vibration↑ (+15% sobre crítico)`, `voltage=340 V (sag)` |
+| **Mensaje de alerta** | Corriente, temperatura, velocidad, vibración, voltaje y estado de puerta |
+| **Estado** | ✅ Sincronizado |
+
+#### `door_blocked` — Puerta bloqueada
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Estado puerta, Velocidad, Corriente |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_door_status`, `elev_speed`, `elev_current` |
+| **Targets `_get_fault_telemetry_targets`** | `door=blocked`, `speed=0`, `current=2.5 A (motor de puerta)` |
+| **Mensaje de alerta** | Estado de puerta y velocidad |
+| **Estado** | ✅ Sincronizado |
+
+#### `overspeed` — Exceso de velocidad
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Velocidad, Corriente, Estado puerta, Vibración |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_speed`, `elev_current`, `elev_door_status`, `elev_vibration` |
+| **Targets `_get_fault_telemetry_targets`** | `speed↑ (+15% sobre crítico)`, `current↑ (alto)`, `door=closed`, `vibration↑ (+10% sobre crítico)` |
+| **Mensaje de alerta** | Velocidad, corriente, vibración y estado de puerta |
+| **Estado** | ✅ Sincronizado |
+
+#### `overload` — Sobrecarga
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Carga, Estado puerta, Velocidad, Corriente |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_load`, `elev_door_status`, `elev_speed`, `elev_current` |
+| **Targets `_get_fault_telemetry_targets`** | `load↑ (+5% sobre crítico)`, `door=open`, `speed=0`, `current=0` |
+| **Mensaje de alerta** | Carga, velocidad, corriente y estado de puerta |
+| **Estado** | ✅ Sincronizado |
+
+#### `pos_sensor_fail` — Fallo de sensor de posición
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Posición, Velocidad, Estado puerta, Corriente |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_position`, `elev_speed`, `elev_door_status`, `elev_current` |
+| **Targets `_get_fault_telemetry_targets`** | `position=congelada (stuck_value)`, `speed→0 (tras parada de emergencia)`, `door=closed`, `current→0 (tras parada)` |
+| **Mensaje de alerta** | Posición, velocidad y estado de puerta |
+| **Estado** | ✅ Sincronizado |
+
+#### `commercial_power_outage` — Corte de energía comercial
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Voltaje, Corriente, Velocidad, Estado puerta, Temperatura |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_voltage`, `elev_current`, `elev_speed`, `elev_door_status`, `elev_temperature` |
+| **Targets `_get_fault_telemetry_targets`** | Fase 1: `voltage=0, current=0, speed→0 (freno), door=closed`. Fase 2 (batería): `voltage=48 V, speed=0.3 m/s (rescate), current=15% nominal`. Fase 3 (completo): `speed=0, door=open, temperature→ambiente` |
+| **Mensaje de alerta** | Voltaje, corriente, velocidad, estado de puerta y temperatura |
+| **Estado** | ✅ Sincronizado |
+
+#### `traction_loss` — Pérdida de tracción
+
+| Capa | Sensores |
+| --- | --- |
+| **Spec** | Posición, Velocidad, Corriente, Vibración, Temperatura |
+| **`FAULT_AFFECTED_VARIABLES`** | `elev_position`, `elev_speed`, `elev_current`, `elev_vibration`, `elev_temperature` |
+| **Targets `_get_fault_telemetry_targets`** | `vibration↑ (+15% sobre crítico)`, `current↓ (20% nominal, marcha en vacío)`, `temperature=ambiente+8°C`, `speed=cruising (motor gira, cabina no se mueve)`. Posición: FSM aplica `pos_change_factor=0.1` (cabina avanza al 10%) |
+| **Mensaje de alerta** | Posición, velocidad, corriente, vibración y temperatura |
+| **Estado** | ✅ Sincronizado |
+
+---
+
+## 5. Funcionalidades Complementarias
 
 El sistema de fallas se complementa con dos funciones de control industrial:
 
