@@ -80,9 +80,9 @@ def _validate_threshold_config(
     raw_high = str(config.get("high", ""))
     raw_critic = str(config.get("critic", ""))
     for raw, label in [(raw_high, "high"), (raw_critic, "critic")]:
-        raw_clean = raw.replace("-", "").replace(".", "")
-        if len(raw_clean) > 10:
-            return f"El valor '{label}' tiene demasiados dígitos enteros ({len(raw_clean)}). Máximo 10."
+        integer_part = raw.lstrip("-").split(".")[0]
+        if len(integer_part) > 10:
+            return f"El valor '{label}' tiene demasiados dígitos enteros ({len(integer_part)}). Máximo 10."
         if "." in raw and len(raw.split(".")[1]) > 4:
             return f"El valor '{label}' tiene demasiados decimales. Máximo 4."
 

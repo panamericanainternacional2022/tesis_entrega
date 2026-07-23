@@ -1,5 +1,6 @@
 import logging
 import os
+import unicodedata
 from typing import Any
 
 
@@ -62,15 +63,8 @@ def safe_text(txt: Any) -> str:
         return ""
     t_str = str(txt)
     if not _resolve_font():
-        accents = {
-            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
-            'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
-            'ñ': 'n', 'Ñ': 'N', 'ü': 'u', 'Ü': 'U',
-            'ï': 'i', 'ö': 'o', 'ä': 'a',
-        }
-        for c, r in accents.items():
-            t_str = t_str.replace(c, r)
-        t_str = t_str.encode("latin-1", errors="replace").decode("latin-1")
+        t_str = unicodedata.normalize("NFKD", t_str)
+        t_str = t_str.encode("ascii", errors="replace").decode("ascii")
     return t_str
 
 

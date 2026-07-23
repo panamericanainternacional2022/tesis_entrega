@@ -67,8 +67,8 @@ def _validate_limit_input(
 
     for variable, max_val_raw in data.items():
         raw = str(max_val_raw)
-        raw_clean = raw.replace("-", "").replace(".", "")
-        if len(raw_clean) > 10:
+        integer_part = raw.lstrip("-").split(".")[0]
+        if len(integer_part) > 10:
             errors[variable] = "Demasiados dígitos enteros. Máximo 10."
             continue
         if "." in raw and len(raw.split(".")[1]) > 4:
@@ -81,7 +81,6 @@ def _validate_limit_input(
             errors[variable] = "Value must be numeric"
             continue
 
-        from apps.sensors.sensor_config import SENSOR_ABSOLUTE_RANGES
         abs_max = SENSOR_ABSOLUTE_RANGES.get(variable, (0.0, 999999.0))[1]
         if max_val > abs_max:
             errors[variable] = (
