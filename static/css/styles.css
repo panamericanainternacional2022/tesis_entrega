@@ -643,6 +643,18 @@ button {
     grid-column: 1 / -1;
 }
 
+.half-width,
+.form-group--half {
+    max-width: calc(50% - (var(--sp-5) / 2));
+}
+
+@media (max-width: 640px) {
+    .half-width,
+    .form-group--half {
+        max-width: 100%;
+    }
+}
+
 .actions-row {
     margin: var(--sp-4) var(--sp-5) var(--sp-5);
     display: flex;
@@ -843,6 +855,11 @@ button {
 
 .custom-select-menu.open {
     display: flex;
+}
+
+.custom-select--up .custom-select-menu {
+    top: auto;
+    bottom: calc(100% + 4px);
 }
 
 .custom-select-item {

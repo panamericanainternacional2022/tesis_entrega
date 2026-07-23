@@ -24,7 +24,16 @@ class CustomSelect {
         this.select.style.display = 'none';
 
         this.wrapper = document.createElement('div');
-        this.wrapper.className = 'custom-select';
+        let wrapperClasses = ['custom-select'];
+        if (
+            this.select.classList.contains('custom-select--up') ||
+            this.select.classList.contains('dropup') ||
+            this.select.dataset.dropup === 'true' ||
+            this.select.dataset.direction === 'up'
+        ) {
+            wrapperClasses.push('custom-select--up');
+        }
+        this.wrapper.className = wrapperClasses.join(' ');
 
         this.trigger = document.createElement('button');
         this.trigger.type = 'button';
@@ -127,7 +136,13 @@ class CustomSelect {
         if (panel) {
             const rect = this.trigger.getBoundingClientRect();
             this.menu.style.position = 'fixed';
-            this.menu.style.top = rect.bottom + 'px';
+            if (this.wrapper.classList.contains('custom-select--up')) {
+                this.menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                this.menu.style.top = 'auto';
+            } else {
+                this.menu.style.top = rect.bottom + 'px';
+                this.menu.style.bottom = 'auto';
+            }
             this.menu.style.right = (window.innerWidth - rect.right) + 'px';
             this.menu.style.left = 'auto';
             this.menu.style.minWidth = rect.width + 'px';
@@ -150,6 +165,7 @@ class CustomSelect {
         if (this.menu.style.position === 'fixed') {
             this.menu.style.position = '';
             this.menu.style.top = '';
+            this.menu.style.bottom = '';
             this.menu.style.right = '';
             this.menu.style.left = '';
             this.menu.style.minWidth = '';
