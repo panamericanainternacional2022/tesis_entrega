@@ -275,6 +275,7 @@ def _render_current_readings(
         for var in vars_list:
             if var not in sensor_data:
                 continue
+            val = sensor_data[var]
             from apps.sensors.sensor_config import PUMP_VARS
             is_on = sensor_data.get("pump_on") if var in PUMP_VARS else sensor_data.get("elevator_on")
             sim_faults = sensor_data.get("sim_faults") if isinstance(sensor_data.get("sim_faults"), dict) else {}
