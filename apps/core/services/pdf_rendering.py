@@ -269,7 +269,12 @@ def make_pdf_response(pdf: Any, filename: str) -> HttpResponse:
 
 def _get_equipment_name(notif: Any) -> str:
     if notif.monitoring_equipment:
-        return notif.monitoring_equipment.name
+        name = notif.monitoring_equipment.name or ""
+        if " - " in name:
+            name = name.split(" - ")[0].strip()
+        elif "-" in name:
+            name = name.split("-")[0].strip()
+        return name or notif.monitoring_equipment.get_equipment_type_display()
     return "N/A"
 
 
