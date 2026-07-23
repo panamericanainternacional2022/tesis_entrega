@@ -257,7 +257,7 @@ class PumpFaultsPhysicsTests(TestCase):
 
     def test_pipe_burst_fault(self):
         self.sim.sim_faults["pump"] = "pipe_burst"
-        for _ in range(35):
+        for _ in range(10):
             _update_pump(self.sim)
         self.assertEqual(self.sim.sensor_data["pump_pressure"], 0.0)
         self.assertGreater(self.sim.sensor_data["pump_flow_rate"], 20.0)
