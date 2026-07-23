@@ -275,8 +275,11 @@ def _render_current_readings(
         for var in vars_list:
             if var not in sensor_data:
                 continue
-            val = sensor_data[var]
-            risk, _ = classify_risk(var, val, thresholds)
+            from apps.sensors.sensor_config import PUMP_VARS
+            is_on = sensor_data.get("pump_on") if var in PUMP_VARS else sensor_data.get("elevator_on")
+            sim_faults = sensor_data.get("sim_faults") if isinstance(sensor_data.get("sim_faults"), dict) else {}
+            active_fault = sim_faults.get("pump") if var in PUMP_VARS else sim_faults.get("elevator")
+            risk, _ = classify_risk(var, val, thresholds, is_on=is_on, active_fault=active_fault)
             val_str = _format_value(var, val, _UNITS, _VALUE_DISPLAY_ES)
             var_name = _VAR_NAMES.get(var, var)
             fill_c, text_c = RISK_STYLES.get(risk, ((255, 255, 255), (26, 26, 26)))

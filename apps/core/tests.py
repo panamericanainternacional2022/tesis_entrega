@@ -119,11 +119,39 @@ class ClassifyRiskTests(TestCase):
         self.assertEqual(color, "red")
 
     def test_flow_zero_is_normal_per_spec(self):
-        """spec: pump_flow_rate Normal = 0.0 a 15.0, así que 0 es Normal."""
+        """spec: pump_flow_rate Normal = 0.0 a 15.0 cuando el equipo está en reposo."""
         thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
         risk, color = classify_risk("pump_flow_rate", 0.0, thresholds)
         self.assertEqual(risk, RISK_NORMAL)
         self.assertEqual(color, "green")
+
+    def test_flow_zero_is_critico_when_pump_is_on(self):
+        """Si la bomba está ENCENDIDA (is_on=True), 0.0 l/s de caudal es Crítico."""
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 0.0, thresholds, is_on=True)
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_flow_zero_is_critico_during_dry_run(self):
+        """Si hay falla activa de sequía (dry_run), 0.0 l/s de caudal es Crítico."""
+        thresholds = {"pump_flow_rate": {"direction": "higher", "high": 15.0, "critic": 20.0}}
+        risk, color = classify_risk("pump_flow_rate", 0.0, thresholds, active_fault="dry_run")
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_current_zero_is_critico_during_power_outage(self):
+        """Si hay corte eléctrico (power_outage), 0.0 A de corriente es Crítico."""
+        thresholds = {"pump_current": {"direction": "higher", "high": 16.0, "critic": 22.0}}
+        risk, color = classify_risk("pump_current", 0.0, thresholds, active_fault="power_outage")
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
+
+    def test_elev_speed_zero_is_critico_during_motor_stuck(self):
+        """Si hay motor atascado en elevador, 0.0 m/s de velocidad es Crítico."""
+        thresholds = {"elev_speed": {"direction": "higher", "high": 1.2, "critic": 1.6}}
+        risk, color = classify_risk("elev_speed", 0.0, thresholds, active_fault="motor_stuck")
+        self.assertEqual(risk, RISK_CRITICO)
+        self.assertEqual(color, "red")
 
     # ── direction == "range" ────────────────────────────────────────────────
     # Estructura: {"direction": "range", "high": límite_crítico_inferior,

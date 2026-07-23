@@ -2,7 +2,7 @@ from typing import Optional
 
 from apps.sensors.sensor_config import (
     RISK_NORMAL, RISK_ALTO, RISK_CRITICO,
-    ENUM_VARS,
+    ENUM_VARS, FAULT_AFFECTED_VARIABLES,
 )
 
 
@@ -10,12 +10,14 @@ def classify_risk(
     variable: str,
     value,
     thresholds: Optional[dict] = None,
+    is_on: Optional[bool] = None,
+    active_fault: Optional[str] = None,
 ) -> tuple[str, str]:
-    """Clasifica el riesgo de un sensor según los umbrales.
+    """Clasifica el riesgo de un sensor según los umbrales y el contexto operativo.
 
-    La clasificación es puramente numérica/umbral, sin lógica contextual.
-    Los escenarios de falla combinada se manejan por el sistema de alertas
-    compuestas (engine.py -> send_compound_alert), no aquí.
+    Si existe una falla activa o el equipo está encendido (is_on=True),
+    los valores anormalmente bajos (como 0 caudal o 0 corriente durante falla/operación)
+    se clasifican como Crítico o Alto en lugar de Normal.
 
     Returns:
         Tupla (nivel_riesgo, color_css): uno de
@@ -28,7 +30,39 @@ def classify_risk(
             return RISK_ALTO, "orange"
         if val_str == "error":
             return RISK_CRITICO, "red"
+        if active_fault == "door_blocked" and val_str == "open":
+            return RISK_ALTO, "orange"
         return RISK_NORMAL, "green"
+
+    # Verificación contextual de fallas activas y estado de marcha (is_on)
+    # Para sensores donde el valor 0 o muy bajo es anómalo durante falla u operación
+    affected_by_fault = bool(active_fault and variable in FAULT_AFFECTED_VARIABLES.get(active_fault, []))
+
+    if active_fault or is_on:
+        try:
+            num_val = float(value)
+            if variable == "pump_flow_rate":
+                if affected_by_fault or is_on:
+                    if num_val < 1.0:
+                        return RISK_CRITICO, "red"
+                    elif num_val < 5.0:
+                        return RISK_ALTO, "orange"
+            elif variable == "pump_current":
+                if affected_by_fault or is_on:
+                    if num_val < 1.0:
+                        return RISK_CRITICO, "red"
+                    elif num_val < 5.0:
+                        return RISK_ALTO, "orange"
+            elif variable == "elev_speed":
+                if affected_by_fault and active_fault in ("motor_stuck", "commercial_power_outage", "door_blocked", "overload"):
+                    if num_val < 0.1:
+                        return RISK_CRITICO, "red"
+            elif variable == "elev_current":
+                if affected_by_fault and active_fault == "commercial_power_outage":
+                    if num_val < 1.0:
+                        return RISK_CRITICO, "red"
+        except (ValueError, TypeError):
+            pass
 
     # Sin umbrales configurados -> Normal por defecto
     if thresholds is None or variable not in thresholds:
@@ -66,3 +100,4 @@ def classify_risk(
         return RISK_ALTO, "orange"
     else:
         return RISK_CRITICO, "red"
+

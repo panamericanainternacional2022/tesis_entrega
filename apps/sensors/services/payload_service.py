@@ -75,9 +75,12 @@ def build_live_payload(ctx: PayloadContext) -> dict[str, Any]:
     current = {k: v for k, v in ctx.sensor_data.items() if k in relevant_vars}
 
     _BADGE_MAP = {"Normal": "badge-normal", "Alto": "badge-high", "Crítico": "badge-crit"}
+    from apps.sensors.sensor_config import PUMP_VARS
     risk = {}
     for var, val in current.items():
-        level, _color = classify_risk(var, val, thresholds)
+        is_on = ctx.pump_on if var in PUMP_VARS else ctx.elevator_on
+        active_fault = ctx.sim_faults.get("pump") if var in PUMP_VARS else ctx.sim_faults.get("elevator")
+        level, _color = classify_risk(var, val, thresholds, is_on=is_on, active_fault=active_fault)
         risk[var] = {"label": level, "badge": _BADGE_MAP.get(level, "badge-normal")}
 
     return {
