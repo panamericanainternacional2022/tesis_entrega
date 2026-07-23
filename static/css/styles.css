@@ -656,6 +656,7 @@ button {
 }
 
 @media (max-width: 640px) {
+
     .half-width,
     .form-group--half {
         max-width: 100%;
@@ -856,7 +857,7 @@ button {
     z-index: 200;
     display: none;
     flex-direction: column;
-    max-height: 220px;
+    max-height: 260px;
     overflow-y: auto;
 }
 
