@@ -495,7 +495,7 @@
                     <ul>
                         ${varsList}
                     </ul>
-                    <div class="hist-meta" style="margin-top:8px;">
+                    <div class="hist-meta">
                         <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
                     </div>
                 </div>`;
@@ -533,7 +533,7 @@
                         <span class="value-bold">${safeText(getVariableName(data.variable))}</span>
                     </div>
                     <p class="hist-meta-text">${safeText(data.message)}</p>
-                    <div class="hist-meta" style="margin-top:8px;">
+                    <div class="hist-meta">
                         <span><i class="fa-solid fa-clock"></i> ${_parseTimestamp(data.timestamp)}</span>
                     </div>
                 </div>`;

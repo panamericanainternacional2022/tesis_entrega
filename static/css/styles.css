@@ -639,6 +639,13 @@ button {
     margin-bottom: var(--sp-1);
 }
 
+.form-hint {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+}
+
 .full-width {
     grid-column: 1 / -1;
 }
@@ -1428,6 +1435,7 @@ button {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-4);
+    margin-top: var(--sp-2);
 }
 
 .hist-meta-text {
