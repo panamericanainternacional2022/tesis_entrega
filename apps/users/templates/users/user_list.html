@@ -108,7 +108,7 @@
                             </button>
                             {% endif %}
                             {% if usuario.email %}
-                            <button type="button" class="dropdown-item send-email-btn" data-email="{{ usuario.email }}">
+                            <button type="button" class="dropdown-item send-email-btn" data-email="{{ usuario.email }}" data-user-id="{{ usuario.id }}">
                                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar correo
                             </button>
                             {% endif %}
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 var resp = await csrfFetch('/api/send-test-email/', {
                     method: 'POST',
-                    body: JSON.stringify({ email: btn.dataset.email })
+                    body: JSON.stringify({ email: btn.dataset.email, user_id: parseInt(btn.dataset.userId) })
                 });
                 var data = await resp.json();
                 showToast(data.message || (resp.ok ? 'Correo enviado correctamente.' : 'No se pudo enviar el correo.'), resp.ok ? 'success' : 'error');

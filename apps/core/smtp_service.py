@@ -55,8 +55,10 @@ def build_mime_message(
     from_addr: str,
     attachment_pdf: Optional[bytes] = None,
     attachment_name: str = "reporte.pdf",
+    attachments: Optional[List[tuple[bytes, str]]] = None,
 ) -> MIMEMultipart:
-    msg = MIMEMultipart("mixed" if attachment_pdf else "alternative")
+    has_attachments = bool(attachment_pdf is not None or attachments)
+    msg = MIMEMultipart("mixed" if has_attachments else "alternative")
     alt = MIMEMultipart("alternative")
     alt.attach(MIMEText(plain_body or html_body, "plain", "utf-8"))
     alt.attach(MIMEText(html_body, "html", "utf-8"))
@@ -67,6 +69,14 @@ def build_mime_message(
         part.add_header("Content-Disposition", "attachment", filename=attachment_name)
         msg.attach(part)
 
+    if attachments:
+        for att_bytes, att_name in attachments:
+            if att_bytes:
+                part = MIMEApplication(att_bytes, _subtype="pdf")
+                part.add_header("Content-Disposition", "attachment", filename=att_name)
+                msg.attach(part)
+
     msg["From"] = from_addr
     msg["Subject"] = subject
     return msg
+

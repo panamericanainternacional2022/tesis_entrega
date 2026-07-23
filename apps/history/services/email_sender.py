@@ -19,6 +19,7 @@ def send_email_raw(
     plain_body: str = "",
     attachment_pdf: Optional[bytes] = None,
     attachment_name: str = "reporte.pdf",
+    attachments: Optional[List[tuple[bytes, str]]] = None,
     smtp_server: Optional[str] = None,
     smtp_port: Optional[int] = None,
     smtp_user: Optional[str] = None,
@@ -38,6 +39,7 @@ def send_email_raw(
         from_addr=smtp_user,
         attachment_pdf=attachment_pdf,
         attachment_name=attachment_name,
+        attachments=attachments,
     )
 
     from apps.sensors.sensor_config import SMTP_TIMEOUT
