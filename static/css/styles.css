@@ -1503,6 +1503,13 @@ button {
     background: var(--color-surface);
 }
 
+.no-history>p {
+
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+
+}
+
 .no-history>i {
     font-size: var(--text-2xl);
     color: var(--color-ink);
